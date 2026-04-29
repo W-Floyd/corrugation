@@ -360,6 +360,11 @@ func PatchRecord(ctx context.Context, input *struct {
 			}
 			artifacts = append(artifacts, &foundArtifact)
 		}
+		// Persist artifacts to database
+		err = db.Model(&r).Association("Artifacts").Replace(artifacts)
+		if err != nil {
+			return
+		}
 		r.Artifacts = artifacts
 	}
 

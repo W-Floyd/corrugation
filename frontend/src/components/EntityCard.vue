@@ -458,7 +458,7 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
     try {
         const artifactId = await api.uploadArtifact(files[0]);
         const artifacts = [...(props.entity.artifacts ?? []), artifactId];
-        await api.updateRecord(props.entity.id, { Artifacts: artifacts });
+        await api.patchRecord(props.entity.id, { Artifacts: artifacts });
         await entitiesStore.reload();
         editMode.value = false;
         emit("entityUpdated", props.entity);
@@ -478,11 +478,8 @@ const handleQuickCaptureNewChild = async (): Promise<void> => {
             }
             try {
                 const artifactId = await api.uploadArtifact(files[0]);
-                await api.createRecord({
-                    ParentID: props.entity.id,
-                    Artifacts: [artifactId],
-                });
                 await entitiesStore.reload();
+                await api.patchRecord(props.entity.id, { Artifacts: [artifactId] });
                 toastsStore.add("Entity created from photo");
             } catch {
                 toastsStore.add("Failed to create entity from photo");

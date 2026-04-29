@@ -117,9 +117,17 @@ export const api = {
       headers: { "Content-Type": "application/merge-patch+json" },
       body: JSON.stringify(
         {
-          ParentID: locationId || null
+          ParentID: locationId
         }
       ),
+    });
+  },
+
+  async patchRecord(id: number, body: Partial<RecordBody>): Promise<void> {
+    await apiFetch(`/api/v2/record/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/merge-patch+json" },
+      body: JSON.stringify(body),
     });
   },
 

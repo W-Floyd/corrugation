@@ -137,7 +137,7 @@ const handleQuickCaptureOnEntity = async (entityId: number): Promise<void> => {
         const artifactId = await api.uploadArtifact(capturedFiles[0]);
         const entity = entitiesStore.entityMap[entityId];
         const artifacts = [...(entity?.artifacts ?? []), artifactId];
-        await api.updateRecord(entityId, { Artifacts: artifacts });
+        await api.patchRecord(entityId, { Artifacts: artifacts });
         await entitiesStore.reload();
         toastsStore.add("Artifact captured and added", "info");
     } catch {
