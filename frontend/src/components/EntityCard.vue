@@ -262,19 +262,30 @@ const isAtCurrentLocation = computed((): boolean => {
 const handleMoveKeydown = (e: KeyboardEvent): void => {
     if (!props.confirmMove) return;
     const target = e.target as HTMLElement;
-    if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        if (target.matches("input, select")) {
+
+    // If focused on input/select, only handle Enter/Escape
+    if (target.matches("input, select")) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             (target as HTMLElement).blur();
-        } else {
-            emit("moveCancelled");
+            return;
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            emit("moveConfirmed", moveTargetLocation.value);
+            return;
         }
-    } else if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        emit("moveConfirmed", moveTargetLocation.value);
-    } else if ((e.key === "h" || e.key === "H") && !target.matches("input")) {
+        // Block H and U shortcuts when typing in input
+        if (e.key === "h" || e.key === "H" || e.key === "u" || e.key === "U") {
+            // e.preventDefault();
+            // e.stopImmediatePropagation();
+            return;
+        }
+    }
+
+    // Handle H/U shortcuts only when not in input
+    if ((e.key === "h" || e.key === "H")) {
         e.preventDefault();
         e.stopImmediatePropagation();
         emit("moveConfirmed", entitiesStore.currentEntity);
