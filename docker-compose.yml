@@ -11,16 +11,20 @@ services:
       - SERVICE_ADDRESS
       - SERVICE_DATA
       - SERVICE_DIST
+      - SERVICE_EMBEDDING_CONCURRENCY
+      - SERVICE_GENERATE_EMBEDDINGS_ON_START
       - SERVICE_INFINITY_ADDRESS=http://infinity:${INFINITY_PORT}
       - SERVICE_INFINITY_IMAGE_MODEL
       - SERVICE_INFINITY_TEXT_DOCUMENT_PREFIX
       - SERVICE_INFINITY_TEXT_MODEL
       - SERVICE_INFINITY_TEXT_QUERY_PREFIX
+      - SERVICE_LEGACY_IMPORT_USER
       - SERVICE_LOG_LEVEL
       - SERVICE_OIDC_CLIENT_ID
       - SERVICE_OIDC_DISCOVERY_URL
-      - SERVICE_OIDC_INSECURE_SKIP_VERIFY=false
+      - SERVICE_OIDC_INSECURE_SKIP_VERIFY
       - SERVICE_PORT
+      - SERVICE_PPROF_ADDR
     volumes:
       - ${DATA_DIR}/corrugation:/data
     depends_on:
@@ -36,16 +40,20 @@ services:
       - SERVICE_ADDRESS
       - SERVICE_DATA
       - SERVICE_DIST
+      - SERVICE_EMBEDDING_CONCURRENCY
+      - SERVICE_GENERATE_EMBEDDINGS_ON_START
       - SERVICE_INFINITY_ADDRESS=http://infinity:${INFINITY_PORT}
       - SERVICE_INFINITY_IMAGE_MODEL
       - SERVICE_INFINITY_TEXT_DOCUMENT_PREFIX
       - SERVICE_INFINITY_TEXT_MODEL
       - SERVICE_INFINITY_TEXT_QUERY_PREFIX
+      - SERVICE_LEGACY_IMPORT_USER
       - SERVICE_LOG_LEVEL
       - SERVICE_OIDC_CLIENT_ID
       - SERVICE_OIDC_DISCOVERY_URL
       - SERVICE_OIDC_INSECURE_SKIP_VERIFY
       - SERVICE_PORT
+      - SERVICE_PPROF_ADDR
     volumes:
       - ${DATA_DIR}/corrugation:/data
     depends_on:
@@ -60,7 +68,9 @@ services:
       - INFINITY_PORT
       - SERVICE_INFINITY_IMAGE_MODEL
       - SERVICE_INFINITY_TEXT_MODEL
-    command: v2 --engine torch --device cpu --model-id ${SERVICE_INFINITY_IMAGE_MODEL} --model-id ${SERVICE_INFINITY_TEXT_MODEL} --log-level warning
+    command: v2 --engine torch --device cpu --model-id
+      ${SERVICE_INFINITY_IMAGE_MODEL} --model-id ${SERVICE_INFINITY_TEXT_MODEL}
+      --log-level warning
     restart: unless-stopped
     volumes:
       - ${DATA_DIR}/infinity/:/app/.cache
