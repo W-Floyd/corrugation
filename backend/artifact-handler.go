@@ -21,7 +21,6 @@ func CreateArtifact(ctx context.Context, input *struct {
 		File huma.FormFile `form:"file" required:"true"`
 	}]
 }) (output *UIntOutput, err error) {
-
 	f := input.RawBody.Data().File
 
 	var a ArtifactInterface
@@ -62,20 +61,20 @@ func GetArtifact(ctx context.Context, input *struct {
 	conditional.Params
 	ID uint `path:"id" example:"1" doc:"Artifact ID to get"`
 }) (output *BytesOutput, err error) {
+	username, user, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+
+	uc, _ := loadUser(username)
 
 	artifact, err := GetArtifactFromDB(input.ID)
 	if err != nil {
 		return
 	}
 
-	username := UsernameFromContext(ctx)
-	uc, _ := loadUser(username)
 	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	var ownerID *uint
-	if uc.ID > 0 {
-		ownerID = &uc.ID
-	}
-	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, ownerID, username, imageModel, "search")
+	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, &user.ID, username, imageModel, "search")
 
 	etag := fmt.Sprintf(`"%d"`, artifact.UpdatedAt.UnixMilli())
 

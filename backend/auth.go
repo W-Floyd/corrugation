@@ -72,9 +72,20 @@ type contextKey string
 
 const usernameContextKey contextKey = "username"
 
-func UsernameFromContext(ctx context.Context) string {
-	v, _ := ctx.Value(usernameContextKey).(string)
-	return v
+func UsernameFromContext(ctx context.Context) (username string) {
+	username, _ = ctx.Value(usernameContextKey).(string)
+	return
+}
+
+func UserFromContext(ctx context.Context) (username string, user User, err error) {
+	username = UsernameFromContext(ctx)
+	if username != "" {
+		user, err = loadUser(username)
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 func newJWKSet(jwksURL string, insecureSkipVerify bool) jwk.Set {

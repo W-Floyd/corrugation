@@ -47,7 +47,7 @@ var GetRecordOperation = huma.Operation{
 
 func GetRecord(ctx context.Context, input *struct {
 	conditional.Params
-	ID         uint `path:"id" example:"1" doc:"ID to delete"`
+	ID         uint `path:"id" example:"1" doc:"ID to get"`
 	Timestamps bool `query:"timestamps" doc:"Include CreatedAt and UpdatedAt in response" required:"false"`
 }) (output *RecordOutput, err error) {
 	var records []Record
@@ -64,6 +64,10 @@ func GetRecord(ctx context.Context, input *struct {
 		},
 	}, nil)
 	if err != nil {
+		return
+	}
+	if len(records) == 0 {
+		err = huma.Error404NotFound(errorRecordNotFound + " " + strconv.Itoa(int(input.ID)))
 		return
 	}
 	recordResp := toRecordResponse(records[0], input.Timestamps)
@@ -350,7 +354,7 @@ func PatchRecord(ctx context.Context, input *struct {
 	}
 
 	// Update Artifacts if provided
-	if input.Body.Artifacts != nil && len(input.Body.Artifacts) > 0 {
+	if len(input.Body.Artifacts) > 0 {
 		var artifacts []*Artifact
 		for _, artifactID := range input.Body.Artifacts {
 			var foundArtifact Artifact
@@ -419,18 +423,24 @@ var GetNextReferenceNumberOperation = huma.Operation{
 func GetNextReferenceNumber(ctx context.Context, input *struct {
 	ExcludeIDs []uint `query:"excludeIDs"`
 }) (output *UIntOutput, err error) {
+	username := UsernameFromContext(ctx)
+	var userID *uint
+	if username != "" {
+		var user User
+		if user, err = loadUser(username); err != nil {
+			return
+		}
+		userID = &user.ID
+	}
+
 	var refs []string
 	q := db.Model(&Record{}).Where("reference_number NOT NULL")
 	if len(input.ExcludeIDs) > 0 {
 		q = q.Not("id IN ?", input.ExcludeIDs)
 	}
 	q = q.Order("CAST(reference_number AS unsigned)")
-	if username := UsernameFromContext(ctx); username != "" {
-		var user User
-		if user, err = loadUser(username); err != nil {
-			return
-		}
-		q = q.Where("owner_id = ?", user.ID)
+	if userID != nil {
+		q = q.Where("owner_id = ?", userID)
 	}
 	if tx := q.Pluck("reference_number", &refs); tx.Error != nil {
 		err = tx.Error
@@ -476,13 +486,13 @@ func DeleteRecord(ctx context.Context, input *struct {
 }) (output *EmptyOutput, err error) {
 	username := UsernameFromContext(ctx)
 	chain := gorm.G[Record](db).Where("id = ?", input.ID)
+	var user User
 	if username != "" {
-		var user User
 		user, err = loadUser(username)
 		if err != nil {
 			return
 		}
-		chain = gorm.G[Record](db).Where("id = ? AND owner_id = ?", input.ID, user.ID)
+		chain = chain.Where("owner_id = ?", user.ID)
 	}
 
 	records, err := chain.Find(dbCtx)
@@ -500,16 +510,13 @@ func DeleteRecord(ctx context.Context, input *struct {
 	newParentID := records[0].ParentID
 
 	// Children inherit parentID if available
-	if newParentID != nil {
-		_, err = gorm.G[Record](db).Where("parent_id = ?", input.ID).Update(dbCtx, "parent_id", *newParentID)
-		if err != nil {
-			return
-		}
-	} else {
-		_, err = gorm.G[Record](db).Where("parent_id = ?", input.ID).Update(dbCtx, "parent_id", nil)
-		if err != nil {
-			return
-		}
+	q := gorm.G[Record](db).Where("parent_id = ?", input.ID)
+	if username != "" {
+		q = q.Where("owner_id = ?", user.ID)
+	}
+	_, err = q.Update(dbCtx, "parent_id", newParentID)
+	if err != nil {
+		return
 	}
 
 	tx := db.Unscoped().Where("id = ?", input.ID).Delete(&Record{})

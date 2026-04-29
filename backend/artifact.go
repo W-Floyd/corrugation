@@ -42,6 +42,7 @@ type Artifact struct {
 	LargePreview   *Artifact `json:"-" gorm:"foreignKey:LargePreviewID"`
 
 	RecordID *uint `json:",omitempty" gorm:"index"`
+	OwnerID  *uint `json:",omitempty" gorm:"index"`
 }
 
 func GetArtifactFromDB(ID uint) (artifact Artifact, err error) {
@@ -100,7 +101,15 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 		return
 	}
 
+	// Get owner_id for the artifact
+	uc, _ := loadUser(UsernameFromContext(ctx))
+	var ownerID *uint
+	if uc.ID > 0 {
+		ownerID = &uc.ID
+	}
+
 	a := Artifact(*i)
+	a.OwnerID = ownerID
 
 	err = gorm.G[Artifact](db).Create(dbCtx, &a)
 	if err != nil {
@@ -110,12 +119,7 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 
 	*i = Image(a)
 
-	uc, _ := loadUser(UsernameFromContext(ctx))
 	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	var ownerID *uint
-	if uc.ID > 0 {
-		ownerID = &uc.ID
-	}
 	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, ownerID, UsernameFromContext(ctx), imageModel, "store")
 
 	return
