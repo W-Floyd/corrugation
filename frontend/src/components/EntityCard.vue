@@ -278,8 +278,6 @@ const handleMoveKeydown = (e: KeyboardEvent): void => {
         }
         // Block H and U shortcuts when typing in input
         if (e.key === "h" || e.key === "H" || e.key === "u" || e.key === "U") {
-            // e.preventDefault();
-            // e.stopImmediatePropagation();
             return;
         }
     }
@@ -473,7 +471,7 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
         await entitiesStore.reload();
         editMode.value = false;
         emit("entityUpdated", props.entity);
-        toastsStore.add("Artifact captured and added");
+        toastsStore.add("Artifact captured and added", "info");
     } catch (error) {
         console.error("Failed to capture artifact:", error);
         toastsStore.add("Failed to capture artifact");
