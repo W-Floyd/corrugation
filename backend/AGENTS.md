@@ -1,245 +1,317 @@
-# Backend Architecture
+# Corrugation Backend - Technical Documentation
 
-## Tech Stack
+This file provides guidance to developers working on the Corrugation backend.
 
-- **Framework**: Huma v2 + Echo for HTTP API
+## Overview
+
+Corrugation backend is a Go-based REST API server using the Huma framework. It provides entity management with hierarchical organization, AI-powered embedding search via Infinity, and real-time WebSocket updates.
+
+## Technology Stack
+
+- **Framework**: Huma v2 (built on `net/http`)
 - **Database**: SQLite with GORM ORM
-- **Authentication**: OIDC/JWT via Authentik
+- **Connection Pool**: 10 idle, 10 open connections (via `SetMaxIdleConns`, `SetMaxOpenConns`)
+- **Journal Mode**: WAL (Write-Ahead Logging) for concurrent reads
+- **Cache Size**: -64000 pages (~64MB)
+- **Authentication**: OIDC/JWT via Authentik (optional)
 - **Embeddings**: Infinity server (OpenAI CLIP, BGE models)
-- **Concurrency**: Goroutine workers, semaphore-controlled embedding pool
+- **Concurrency**: Goroutine worker pools with semaphores
+- **WebSocket**: Hub pattern with username-based routing
+- **Compression**: Gzip for imports/exports
 
 ## Core Data Models
 
 ### Record
-- ID, Quantity, ReferenceNumber (unique) flag
-- Title, Description, ParentID (hierarchical)
-- Tags (many-to-many), Artifacts (references), OwnerID
-- SearchConfidenceImage, SearchConfidenceText (computed scores)
-- Owner relationship (User)
+Defined in `record.go` as the `Record` struct with fields: Quantity, ReferenceNumber, Title, Description, Tags, Artifacts, ParentID, OwnerID. `SearchConfidenceImage` and `SearchConfidenceText` are computed at runtime (marked `gorm:"-"`, not persisted). ReferenceNumber is unique per owner via `idx_owner_ref` index. ParentID creates hierarchical tree structure.
 
 ### Tag
-- Title (PK), Color
-- Records (many-to-many)
+Defined in `tag.go` as the `Tag` struct with Title as primary key and no duplicate titles allowed. Join table: `record_tags(record_id, tag_title)`.
 
 ### Artifact
-- ID, Data, OriginalFilename, ContentType
-- SmallPreviewID, LargePreviewID (preview images)
-- RecordID (link to record)
-- Supports image previews (WebP, resized)
+Defined in `artifact.go` as the `Artifact` struct with Data, OriginalFilename, ContentType, SmallPreviewID, SmallPreview, LargePreviewID, LargePreview, RecordID fields. Supports image previews (625000 max pixel count WebP, 1250000 max pixel count WebP). Implements `ArtifactInterface` for image handling. Preview sizes are maximum pixel counts, not dimensions.
 
 ### Embedding
-- RecordID, ArtifactID (both nullable)
-- EmbedModel (model identifier)
-- Data (binary vector), Hash (dedup key)
+Defined in `embedding.go` as the `Embedding` struct with RecordID, ArtifactID, EmbedModel, Data, Hash fields. Composite index on `(record_id, artifact_id, embed_model)`. Deduplication by `hash` field using SHA-256.
 
 ### EmbeddingJob
-- JobType (record/artifact), TargetID, EmbedModel
-- Status (pending/processing/done/failed)
-- OwnerID, Username, Source (store/search/backfill)
+Defined in `embedding-queue.go` as the `EmbeddingJob` struct with JobType, TargetID, OwnerID, Username, Status, ErrorMsg, RetryCount, EmbedModel, Source fields. Index on `(job_type, target_id, embed_model)` for deduplication. Retry mechanism: up to 5 retries on failure. Status transitions: pending → processing → done/failed.
 
 ### User
-- Username (unique), Infinity config overrides per-user
+Defined in `users.go` as the `User` struct with Username, InfinityTextModel, InfinityImageModel, InfinityTextQueryPrefix, InfinityTextDocumentPrefix fields. Username empty string means anonymous access. Per-user Infinity model overrides supported. Cached in `userCache sync.Map`.
 
-### GlobalConfig (singleton ID=1)
-- LogLevel, GenerateEmbeddingsOnStart
+### GlobalConfig (Singleton)
+Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and GenerateEmbeddingsOnStart fields. Always ID=1 (first create or update). Stores global server settings.
 
 ## API Endpoints
 
+### Backfill
+- `GET /api/v2/config/global` - Get global config with `generateEmbeddingsOnStart` flag
+- Backfill runs on startup when `generateEmbeddingsOnStart` is true
+
 ### Records
-- `GET /api/v2/record/{id}` - Single record
-- `GET /api/v2/records` - List with query params (search, depth, levels)
-- `POST /api/v2/record` - Create
-- `POST /api/v2/record/{id}` - Update
-- `DELETE /api/v2/record/{id}` - Delete
+- `GET /api/v2/record/{id}` - Get single record by ID
+- `GET /api/v2/records` - List records
+  - Query params: `id`, `global`, `childrenDepth`, `parentDepth`, `search`, `searchImage`, `searchTextEmbedded`, `searchTextSubstring`, `minImageScore`, `minTextScore`, `timestamps`
+  - Returns 207 Multi-Status for partial search results
+- `POST /api/v2/record` - Create record (returns 409 on duplicate reference number)
+- `POST /api/v2/record/{id}` - Update record (full replace)
+- `DELETE /api/v2/record/{id}` - Delete record
 
 ### Artifacts
-- `GET /api/v2/artifacts` - List
-- `POST /api/v2/artifact` - Create (multipart)
-- `GET /api/v2/artifact` - Get
-- `DELETE /api/v2/artifact/{id}` - Delete
+- `POST /api/v2/artifact` - Create artifact (multipart form)
+- `GET /api/v2/artifact/{id}` - Get artifact (returns WebP preview, ETag support)
 
 ### Tags
-- `GET /api/v2/tags` - List
-- `GET /api/v2/tags` - Get
-- `POST /api/v2/tags` - Create
-- `DELETE /api/v2/tags/{id}` - Delete
+- `GET /api/v2/tags` - List all tags
+- `GET /api/v2/tag/{id}` - Get tag by title
+- `POST /api/v2/tag` - Create tag
+- `DELETE /api/v2/tag/{id}` - Delete tag by title
 
 ### Config
-- `GET /api/v2/config/global` - Global settings
-- `PUT /api/v2/config/global` - Update global
-- `GET /api/v2/config/user` - User config
+- `GET /api/v2/config/global` - Get global config
+- `PUT /api/v2/config/global` - Update global config
+- `GET /api/v2/config/user` - Get user config
 - `PUT /api/v2/config/user` - Update user config
 
 ### Auth
-- `GET /api/auth/config` - OIDC config for frontend
-
-### Legacy Store API (Entity-style)
-- `GET /api/store` - Export full store
-- `POST /api/store` - Create entity
-- `POST /api/store/{id}` - Replace/Patch entity
-- `GET /api/store/{id}` - Get entity
-- `DELETE /api/store/{id}` - Delete
-- `GET /api/store/{id}/qr` - QR code
+- `GET /api/auth/config` - Get OIDC config (enabled, endpoints, client ID)
 
 ### Embeddings
+- `GET /api/v2/embeddings/progress` - Get job status counts (total, pending, processing, done, failed)
+- `GET /api/v2/embeddings/search-progress` - Get search embedding progress by scope
+   - Query params: `id`, `global`, `childrenDepth`, `searchImage`, `searchTextEmbedded`
+   - Returns record and artifact completion status per user
 - `POST /api/v2/embeddings/flush` - Delete stale embeddings
-- `GET /api/v2/embeddings/progress` - Check job progress
-- `GET /api/v2/embeddings/search-progress` - Search progress
 
 ### Import
 - `POST /api/import` - Import legacy tar.gz
+   - Query params: `reset` (clear existing data first)
+   - Supports `store.json` and `artifacts/*.webp` from previous Corrugation installs
 
 ### Visualization
-- `GET /api/v2/records/visualize` - HTML graph view
+- `GET /api/v2/records/visualize` - Generate HTML entity graph
+- `GET /api/v2/tags/visualize` - Generate HTML tag graph
 
-## Embedding System
+## Embedding System Architecture
 
-### Architecture
-- Embedded worker pool (default 4 concurrency) controlled by semaphore
-- Two job queues: `embeddingJobQueue` (regular), `embeddingSearchJobQueue` (search)
-- Deduplication at DB level (job for same target+model+status)
-- Fast-path: check existing embedding before enqueuing
+### Worker Pool
+- Default 4 workers (configurable via `--embedding-concurrency`)
+- Semaphore-controlled via `embeddingSemaphore chan struct{}`
+- Two job queues: `embeddingJobQueue` (regular) and `embeddingSearchJobQueue` (search)
 
-### Workers
-1. Process artifact embeddings via `Image.GenerateEmbeddings()`
-2. Process record embeddings via `Record.GenerateEmbeddings()`
-3. Broadcast progress via websocket (`embedding_progress:{type}:{id}`)
+### Embedding Flow
+1. **Enqueue**: `EnqueueEmbeddingJob()` checks for pending/processing jobs via WHERE clause (not database constraint)
+2. **Health Check**: Workers block until Infinity server `/health` returns 200 OK
+3. **Claim**: Atomic update from pending → processing via `RowsAffected == 0` check
+4. **Fast Dedup**: Skip if embedding exists for target+model (counts existing)
+5. **Generate**: Call Infinity `/embeddings` endpoint with model, encoding_format, input, modality
+6. **Save**: Store embedding with SHA-256 hash key for deduplication
+7. **Broadcast**: WebSocket message `embedding_progress:{type}:{id}` to user
 
 ### Models
-- **Infinity Image**: `openai/clip-vit-large-patch14`
-- **Infinity Text**: `BAAI/bge-large-en-v1.5`
-- Configurable per-user or global via `SetInfinityConfig()`
+- **Infinity Text**: `BAAI/bge-large-en-v1.5` (configurable)
+- **Infinity Image**: `openai/clip-vit-large-patch14` (configurable)
+- Per-user overrides supported via `User` model
 
-### Backfill
-- Runs on startup if `generateEmbeddingsOnStart=true`
-- Groups records by owner for per-user model overrides
-- Skips already-embedded items via hash comparison
+### Deduplication
+- Database level: Regular indexes on `(job_type, target_id, embed_model)` fields for deduplication queries (no UNIQUE constraint)
+- Cache: `embeddingsCache sync.Map` with SHA-256 hash keys for vectors
+- Skip existing embeddings before enqueuing via `Count` query
 
-## Search Flow
-
-### Text Search
-1. Query → text prefix → embed
-2. Dot product with record embeddings
-3. Filter by `minTextScore` (default 0.9)
-
-### Image Search
-1. Query image → clip embed
-2. Dot product with artifact embeddings
-3. Map artifact→record via `artifactRecordMap`
-4. Filter by `minImageScore` (default 0.2)
-
-### Hybrid
-- Combines text + image results
-- Supports substring matching (`searchTextSubstring`)
-- Respects record hierarchy (`childrenDepth`, `parentDepth`)
-
-## Entity Store Legacy
-
-Old entity model (still supported):
-- Entity → Record wrapper
-- `/api/store` endpoints mirror entity API
-- `ToEntity()` converts Record→legacy format
-
-## Auth
-
-### OIDC Flow
-- Discovery URL → JWKS cache
-- Bearer token validation → username context
-- Middleware guards `/api/*` (excludes `/api/auth/`)
-- Token cache with 10min refresh
-
-### Anonymous
-- Empty username when auth disabled
-- All requests treated as anonymous
-
-## Config System
-
-### Global Config
-- `LogLevel`: silent/panic/error/warn/info/debug
-- `GenerateEmbeddingsOnStart`: backfill flag
-
-### Per-User Config
-- Override Infinity models per user
-- Custom query/document prefixes
-- Falls back to global/env defaults
-
-## Workers & Concurrency
-
-- **Embedding workers**: Fixed pool (default 4), semaphore-gated
-- **WebSocket broadcaster**: `BroadcastToUser()` for real-time progress
-- **DB pool**: 10 idle/open connections, WAL mode, 64MB cache
-- **Dedup**: Only one pending/processing job per target+model
+### Retry Mechanism
+- Failed jobs retry up to 5 times (`maxEmbeddingRetries`)
+- Periodic scan (30s interval) rescues pending jobs from channel overflow
+- `retryTrigger` channel coalesces rapid failures (10s interval for retry check)
 
 ## Database Schema
 
-```sql
-records: id, quantity, reference_number (unique), title, description, parent_id, owner_id, timestamps
-tags: title (pk), color, timestamps
-artifacts: id, data, original_filename, content_type, small_preview_id, large_preview_id, record_id, timestamps
-embeddings: record_id, artifact_id, embed_model, data, hash, timestamps
-embedding_jobs: job_type, target_id, owner_id, username, status, error_msg, embed_model, source, timestamps
-users: id, username (unique), infinity config columns, timestamps
-global_config: id=1, log_level, generate_embeddings_on_start
-record_tags: record_id, tag_title (junction)
-```
+All database tables are managed via GORM models defined in the backend source files. Note that `SearchConfidenceImage` and `SearchConfidenceText` fields in the Record struct are marked `gorm:"-"` and are not persisted to the database.
+
+- `records` → `record.go` Record struct
+- `tags` → `tag.go` Tag struct  
+- `record_tags` → Join table for `record.go` many-to-many with `tag.go`
+- `artifacts` → `artifact.go` Artifact struct
+- `embeddings` → `embedding.go` Embedding struct
+- `embedding_jobs` → `embedding-queue.go` EmbeddingJob struct
+- `users` → `users.go` User struct
+- `global_config` → `global-config.go` GlobalConfig struct (singleton ID=1)
+
+## Database Configuration
+
+- **Connection Pool**: 10 idle, 10 open connections
+- **Journal Mode**: WAL (Write-Ahead Logging) for concurrent reads
+- **Cache Size**: -64000 pages (~64MB)
+- **File Mode**: SQLite file only (no network)
+
+## Authentication
+
+### OIDC Flow
+1. Frontend fetches `/api/auth/config` at startup
+2. Frontend performs PKCE OAuth flow to Authentik
+3. Backend validates JWT via JWKS (cached, 10min refresh)
+4. Username stored in context via `UsernameFromContext()`
+5. Auth disabled when `OIDCDiscoveryURL` flag omitted
+
+### Middleware
+- Guards `/api/*` paths (excludes `/api/auth/`)
+- Extracts token from: query param, Authorization header, or `auth_token` cookie
+- Returns 401 Unauthorized on invalid tokens
+
+### Anonymous Mode
+- Empty username allows all operations
+- Context key `usernameContextKey` returns ""
+- WebSocket connections treated as anonymous
+
+### WebSocket Protocol
+
+### Hub Pattern
+Defined in `ws.go` as the `hub` struct with `mu` sync.Mutex and `clients map[*websocket.Conn]string`. Single `wsHub` instance manages all connections. Username-based routing for targeted broadcasts. **No auto-reconnect** - frontend must implement reconnection logic. Token extracted from `?token=` query param (WebSocket cannot set headers).
+
+### Messages
+- `update` - Reload entity list (all clients)
+- `embedding_server_online` - Embedding server available
+- `embedding_server_offline` - Embedding server unavailable
+- `embedding_progress:{type}:{id}` - Job progress for specific item
+
+### Connection Handling
+- Token extracted from `?token=` query param (WebSocket cannot set headers)
+- `ws.Upgrader` allows all origins (no origin validation)
+
+## CLI Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port` | `8083` | HTTP listen port |
+| `--address` | `0.0.0.0` | HTTP listen address |
+| `--dist` | `./dist` | Frontend static files path |
+| `--data` | `./data` | Database directory |
+| `--oidc-discovery-url` | N/A | OIDC discovery URL |
+| `--oidc-client-id` | N/A | OAuth2 client ID |
+| `--oidc-insecure-skip-verify` | `false` | Skip TLS verify for OIDC |
+| `--log-level` | `warn` | Log level (silent, error, warn, info, debug) |
+| `--generate-embeddings-on-start` | `false` | Run backfill on startup |
+| `--embedding-concurrency` | `4` | Max parallel embedding requests |
+| `--infinity-address` | `http://localhost:8002` | Infinity server URL |
+| `--infinity-text-model` | `BAAI/bge-large-en-v1.5` | Text embedding model |
+| `--infinity-image-model` | `openai/clip-vit-large-patch14` | Image embedding model |
+| `--infinity-text-query-prefix` | `Represent this sentence for searching relevant passages: ` | Query prefix |
+| `--infinity-text-document-prefix` | `` | Document prefix |
+| `--legacy-import-user` | `legacy` | Username for legacy imports |
+| `--pprof-addr` | `` | pprof HTTP listener |
 
 ## Key Functions
 
-- `ConnectDB()`: SQLite connection with WAL, pool optimization
-- `InitAndMigrateDB()`: AutoMigrate all models
-- `StartEmbeddingWorkers()`: Launch worker goroutines
-- `BackfillEmbeddings()`: Full backfill for all records/artifacts
-- `GenerateRecordEmbeddings()`, `GenerateArtifactEmbeddings()`: Per-entity embedding
-- `SearchByRecord()`, `SearchByArtifact()`: Vector search
-- `ImportFromReader()`: Legacy tar.gz import
-- `RegisterHandlers()`: Register all Huma endpoints
+Refer to the actual source files for implementation details:
+- `constants.go`: Error strings, Infinity defaults, SetInfinityConfig(), SetEmbeddingConcurrency()
+- `db.go`: ConnectDB(), InitAndMigrateDB()
+- `record.go`: Record model, GenerateEmbeddings(), GetRecordEmbeddings()
+- `artifact.go`: Artifact model, ArtifactInterface, Image type, GenerateEmbeddings()
+- `embedding.go`: Embedding model, saveEmbedding()
+- `embedding-queue.go`: Worker pool, EnqueueEmbeddingJob(), StartEmbeddingWorkers()
+- `embedding-handler.go`: GetEmbeddingProgress(), GetSearchEmbeddingProgress()
+- `infinity.go`: Infinity client calls, embeddingsCache, GenerateTextDocumentEmbeddingsCtx(), GenerateTextQueryEmbeddingsCtx(), GenerateImageQueryEmbeddingsCtx()
+- `search.go`: SearchByRecord(), SearchByArtifact()
+- `import.go`: ImportFromReader()
+- `ws.go`: Broadcast(), BroadcastAll(), BroadcastToUser(), WsHandler()
+- `record-handler.go`: ListRecords(), GetRecord(), CreateRecord(), UpdateRecord(), PatchRecord(), DeleteRecord()
+- `tag-handler.go`: ListTags(), GetTag(), CreateTag(), DeleteTag()
+- `config-handler.go`: GetGlobalConfig(), PutGlobalConfig(), GetUserConfig(), PutUserConfig()
+- `auth.go`: GetAuthConfigHandler(), NewAuthMiddleware(), FetchOIDCConfig()
+- `backfill.go`: BackfillEmbeddings(), backfillRecordEmbeddings(), backfillArtifactEmbeddings()
+
+### Database
+- `ConnectDB(path)` - Open SQLite connection with WAL mode
+- `InitAndMigrateDB()` - AutoMigrate all models on startup
+
+### Embedding
+- `StartEmbeddingWorkers()` - Launch worker goroutines (4 default, configurable)
+- `BackfillEmbeddings()` - Full backfill for all records/artifacts by owner
+- `EnqueueEmbeddingJob(jobType, targetID, ownerID, username, embedModel, source)` - Add to queue
+- `GetRecordEmbeddings(ctx, scopedIDs)` - Fetch record embeddings for scope
+- `GetArtifactEmbeddings(ctx, artifactRecordMap)` - Fetch artifact embeddings
+- `GenerateTextDocumentEmbeddingsCtx`, `GenerateTextQueryEmbeddingsCtx`, `GenerateImageQueryEmbeddingsCtx` - Infinity client calls
+
+### Search
+- `SearchByRecord(ctx, query, scopedIDs)` - Text embedding search
+- `SearchByArtifact(ctx, query, artifactRecordMap)` - Image embedding search
+- `GetRecordEmbeddings(ctx, scopedIDs)` - Fetch record embeddings
+- `GetArtifactEmbeddings(ctx, artifactRecordMap)` - Fetch artifact embeddings
+
+### Import
+- `ImportFromReader(ctx, r, reset, username)` - Import legacy tar.gz
+
+### WebSocket
+- `Broadcast()` - Signal all clients to reload
+- `BroadcastAll(msg)` - Broadcast to all clients
+- `BroadcastToUser(username, msg)` - Broadcast to specific user
 
 ## Entry Point (`main.go`)
 
-1. Parse CLI flags (port, data path, OIDC, Infinity config)
-2. Connect DB + migrate
-3. Setup OIDC if configured
-4. Register handlers + auth middleware
-5. Start embedding workers
-6. Trigger backfill if flag set
-7. Listen on `:8083`
+1. Parse CLI flags via `humacli`
+2. Set Infinity config and embedding concurrency globally
+3. Create data directory if missing
+4. Connect to SQLite database with WAL mode, 10 conn pool, -64000 cache size
+5. Run auto-migrations for all models
+6. Initialize auth config (OIDC discovery, JWKS cache with 10min refresh)
+7. Register Huma handlers at `/api/v2/*` paths
+8. Register WebSocket handler at `/ws` (allows all origins)
+9. Start embedding workers (waits for Infinity health check)
+10. Trigger backfill if `generateEmbeddingsOnStart` flag set
+11. Listen on `:8083` (configurable via `--port`, `--address`)
 
 ## File Structure
 
 ```
 backend/
-├── artifact*.go        # Artifact model, preview handling
-├── auth.go             # OIDC middleware, token validation
-├── backfill.go         # Backfill logic for embeddings
-├── config-handler.go   # Global/user config endpoints
-├── constants.go        # Infinity URLs, defaults
-├── db.go               # DB connection, migrations
-├── embedding*.go       # Embedding model, queue, workers
-├── export.go           # Export endpoints
-├── handlers.go         # Register all API routes
-├── import.go           # Legacy import handler
-├── infinity.go         # Infinity client calls
-├── logger.go           # Structured logging
-├── record*.go          # Record model, embedding gen
-├── search.go           # Vector search logic
-├── store.go            # Legacy entity API
-├── tag*.go             # Tag model/handlers
-├── users.go            # User config, cache
-├── utils.go            # Helpers
-└── ws.go               # WebSocket broadcaster
+├── artifact.go           # Artifact model, ArtifactInterface, Image type
+├── artifact-handler.go   # Artifact CRUD endpoints
+├── auth.go               # OIDC config, AuthFrontendConfig, NewAuthMiddleware
+├── backfill.go           # BackfillEmbeddings() logic
+├── config-handler.go     # Global/user config endpoints
+├── constants.go          # Error strings, Infinity defaults
+├── db.go                 # ConnectDB(), InitAndMigrateDB()
+├── embedding.go          # Embedding model, saveEmbedding()
+├── embedding-handler.go  # Embedding progress endpoints
+├── embedding-queue.go    # Worker pool, job queue, dedup
+├── global-config.go      # GlobalConfig singleton
+├── handlers.go           # Register all Huma endpoints
+├── import.go             # Legacy tar.gz import
+├── infinity.go           # Infinity client calls, embeddings cache
+├── logger.go             # Structured logging
+├── record.go             # Record model, embedding gen
+├── record-handler.go     # Record CRUD, next reference
+├── record-helper.go      # Search query builder, hierarchy
+├── search.go              # Vector search implementation
+├── tag.go                 # Tag model
+├── tag-handler.go         # Tag CRUD endpoints
+├── tag-helper.go          # Tag query helpers
+├── users.go              # User model, cache, effective config
+├── utils.go              # Helper functions
+└── ws.go                 # WebSocket hub, broadcast logic
 ```
-
-## Integration with Frontend
-
-- Frontend fetches `/api/auth/config` to trigger OIDC flow
-- Real-time embedding progress via WebSocket (`ws://.../ws`)
-- Config endpoints for user preferences
-- Import endpoint for bulk data load
 
 ## Design Patterns
 
-- **Repository**: GORM generic `gorm.G[T](db)` pattern
-- **Worker Pool**: Fixed goroutines + channel queue
-- **Cache-Aside**: `embeddingsCache` sync.Map for vectors
-- **Singleton**: GlobalConfig always ID=1
-- **Facade**: Backend package abstracts DB/embedding complexity
+- **Repository Pattern**: GORM `gorm.G[T](db)` for all CRUD operations
+- **Worker Pool**: Fixed goroutines with buffered channel queue (4096 capacity, 4 workers default)
+- **Cache-Aside**: `embeddingsCache sync.Map` for vector caching with SHA-256 hash keys
+- **Singleton**: `GlobalConfig` always ID=1 for server-wide settings
+- **Facade**: Backend package abstracts complex database and embedding logic
+- **Hub Pattern**: WebSocket connection management with username-based routing
+- **JWT Validation**: OIDC auth via JWKS cache with 10-minute refresh interval
+
+## Integration with Frontend
+
+- Frontend fetches `/api/auth/config` for OIDC configuration
+- Real-time embedding progress via WebSocket
+- Config endpoints for user preferences
+- Import endpoint for bulk data load
+- Entity synchronization via WebSocket `update` messages
+
+## Error Handling
+
+- Huma response objects with status codes
+- JSON error responses with `detail` field
+- Custom error strings (e.g., `errorRecordNotFound`)
+- Toast notifications on frontend for API errors
+- Automatic token refresh on 401 responses

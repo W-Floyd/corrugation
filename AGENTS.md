@@ -30,7 +30,7 @@ Work on backend/API tasks:
 - Workers and concurrency (embedding queue, WebSocket broadcast)
 - Migration scripts or data import/export
 
-**Key files**: `main.go`, `backend/handlers.go`, `backend/record*.go`, `backend/artifact*.go`, `backend/embedding*.go`, `backend/db.go`
+**Key files**: `corrugation/main.go`, `corrugation/backend/handlers.go`, `corrugation/backend/record*.go`, `corrugation/backend/artifact*.go`, `corrugation/backend/embedding*.go`, `corrugation/backend/db.go`, `corrugation/backend/constants.go`, `corrugation/backend/import.go`
 
 ### When to read `frontend/AGENTS.md`
 
@@ -81,13 +81,13 @@ Use this top-level file for:
 ## Build Output
 - Frontend builds to `../dist` (served by backend)
 - Backend compiled binary: `main`
-- Data directory: `./data/db.sqlite`
+- Data directory: `./data/db.sqlite` (created by `--data ./data` flag)
 
 ## Getting Started
 
 ### Backend
 ```bash
-cd corrugation/backend
+cd corrugation
 go run main.go --port 8083 --data ./data
 ```
 
