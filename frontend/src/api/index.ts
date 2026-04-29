@@ -100,7 +100,7 @@ export const api = {
 
   async updateRecord(id: number, body: RecordBody): Promise<BackendRecord> {
     const response = await apiFetch(`/api/v2/record/${id}`, {
-      method: "POST",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -113,9 +113,13 @@ export const api = {
 
   async moveRecord(id: number, locationId: number): Promise<void> {
     await apiFetch(`/api/v2/record/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ParentID: locationId || null }),
+      method: "PATCH",
+      headers: { "Content-Type": "application/merge-patch+json" },
+      body: JSON.stringify(
+        {
+          ParentID: locationId || null
+        }
+      ),
     });
   },
 

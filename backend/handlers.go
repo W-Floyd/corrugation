@@ -28,6 +28,7 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, GetRecordOperation, GetRecord)
 	huma.Register(api, CreateRecordOperation, CreateRecord)
 	huma.Register(api, UpdateRecordOperation, UpdateRecord)
+	huma.Register(api, PatchRecordOperation, PatchRecord)
 	huma.Register(api, DeleteRecordOperation, DeleteRecord)
 	huma.Register(api, GetNextReferenceNumberOperation, GetNextReferenceNumber)
 

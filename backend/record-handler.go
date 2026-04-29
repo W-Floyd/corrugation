@@ -2,13 +2,17 @@ package backend
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/conditional"
 	"gorm.io/gorm"
 )
 
@@ -28,6 +32,7 @@ type ListRecordsInput struct {
 
 type RecordOutput struct {
 	Body RecordResponse
+	ETag string `header:"ETag" yaml:"ETag"`
 }
 
 type RecordsOutput struct {
@@ -41,6 +46,7 @@ var GetRecordOperation = huma.Operation{
 }
 
 func GetRecord(ctx context.Context, input *struct {
+	conditional.Params
 	ID         uint `path:"id" example:"1" doc:"ID to delete"`
 	Timestamps bool `query:"timestamps" doc:"Include CreatedAt and UpdatedAt in response" required:"false"`
 }) (output *RecordOutput, err error) {
@@ -60,9 +66,12 @@ func GetRecord(ctx context.Context, input *struct {
 	if err != nil {
 		return
 	}
-	output = &RecordOutput{
-		Body: toRecordResponse(records[0], input.Timestamps),
-	}
+	recordResp := toRecordResponse(records[0], input.Timestamps)
+	output = &RecordOutput{Body: recordResp}
+
+	jsonBytes, _ := json.Marshal(recordResp)
+	etag := fmt.Sprintf(`"%x"`, sha256.Sum256(jsonBytes))
+	output.ETag = etag
 	return
 }
 
@@ -186,7 +195,7 @@ func CreateRecord(ctx context.Context, input *struct {
 }
 
 var UpdateRecordOperation = huma.Operation{
-	Method: http.MethodPost,
+	Method: http.MethodPut,
 	Path:   "/api/v2/record/{id}",
 }
 
@@ -248,6 +257,150 @@ func UpdateRecord(ctx context.Context, input *struct {
 		updateOwnerID = &updateUC.ID
 	}
 	EnqueueEmbeddingJob(JobTypeRecord, r.ID, updateOwnerID, updateUsername, textModel, "store")
+
+	output = &RecordOutput{Body: toRecordResponse(r, true)}
+	return
+}
+
+var PatchRecordOperation = huma.Operation{
+	Method: http.MethodPatch,
+	Path:   "/api/v2/record/{id}",
+}
+
+func PatchRecord(ctx context.Context, input *struct {
+	ID   uint `path:"id"`
+	Body RecordInput
+}) (output *RecordOutput, err error) {
+	records, _, err := GetRecords(ctx, &input.ID, nil, nil, nil, []struct {
+		q string
+		h func(db gorm.PreloadBuilder) error
+	}{
+		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
+		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
+	}, nil)
+	if err != nil {
+		return
+	}
+
+	if len(records) == 0 {
+		err = huma.Error404NotFound(errorRecordNotFound + " " + strconv.Itoa(int(input.ID)))
+		return
+	}
+
+	r := records[0]
+
+	// Validate reference number if provided
+	if input.Body.ReferenceNumber != nil {
+		if err = checkReferenceNumberAvailable(*input.Body.ReferenceNumber, r.OwnerID, &r.ID); err != nil {
+			return
+		}
+	}
+
+	updates := make(map[string]any)
+
+	// Only update non-nil fields
+	if input.Body.Quantity != nil {
+		updates["quantity"] = *input.Body.Quantity
+	}
+	if input.Body.ReferenceNumber != nil {
+		updates["reference_number"] = *input.Body.ReferenceNumber
+	}
+	if input.Body.Title != nil {
+		updates["title"] = *input.Body.Title
+	}
+	if input.Body.Description != nil {
+		updates["description"] = *input.Body.Description
+	}
+	if input.Body.ParentID != nil {
+		updates["parent_id"] = *input.Body.ParentID
+	}
+
+	// Update Tags if provided
+	if input.Body.Tags != nil {
+		var foundTags []*Tag
+
+		for _, tag := range input.Body.Tags {
+			var tagResults []Tag
+			tagResults, err = gorm.G[Tag](db).Where("title = ?", tag.Title).Find(dbCtx)
+			if err != nil {
+				return
+			} else if len(tagResults) > 1 {
+				err = huma.Error500InternalServerError(errorMoreTagsThanExpected)
+				return
+			} else if len(tagResults) == 1 {
+				foundTags = append(foundTags, &tagResults[0])
+			} else {
+				var newtag Tag
+				newtag, err = tag.Convert()
+				if err != nil {
+					return
+				}
+				err = gorm.G[Tag](db).Create(dbCtx, &newtag)
+				if err != nil {
+					return
+				}
+				foundTags = append(foundTags, &newtag)
+			}
+		}
+		err = db.Model(&r).Association("Tags").Replace(foundTags)
+		if err != nil {
+			return
+		}
+		r.Tags = foundTags
+	}
+
+	// Update Artifacts if provided
+	if input.Body.Artifacts != nil && len(input.Body.Artifacts) > 0 {
+		var artifacts []*Artifact
+		for _, artifactID := range input.Body.Artifacts {
+			var foundArtifact Artifact
+			foundArtifact, err = GetArtifactFromDB(*artifactID)
+			if err != nil {
+				return
+			}
+			artifacts = append(artifacts, &foundArtifact)
+		}
+		r.Artifacts = artifacts
+	}
+
+	// Perform the partial update
+	if len(updates) > 0 {
+		err = db.Model(&r).Updates(updates).Error
+		if err != nil {
+			return
+		}
+	}
+
+	// Re-fetch the record with all associations after updates
+	records, _, err = GetRecords(ctx, &input.ID, nil, nil, nil, []struct {
+		q string
+		h func(db gorm.PreloadBuilder) error
+	}{
+		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
+		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
+	}, nil)
+	if err != nil {
+		return
+	}
+
+	if len(records) == 0 {
+		err = huma.Error404NotFound(errorRecordNotFound + " " + strconv.Itoa(int(input.ID)))
+		return
+	}
+
+	r = records[0]
+
+	// Notify embedding service if text fields were updated
+	if updates["title"] != nil || updates["description"] != nil || updates["reference_number"] != nil {
+		patchUsername := UsernameFromContext(ctx)
+		patchUC, _ := loadUser(patchUsername)
+		textModel, _, _, _ := effectiveInfinityConfig(patchUC)
+		var patchOwnerID *uint
+		if patchUC.ID > 0 {
+			patchOwnerID = &patchUC.ID
+		}
+		EnqueueEmbeddingJob(JobTypeRecord, r.ID, patchOwnerID, patchUsername, textModel, "store")
+	}
 
 	output = &RecordOutput{Body: toRecordResponse(r, true)}
 	return
