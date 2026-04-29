@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -261,7 +262,11 @@ func GetNextReferenceNumber(ctx context.Context, input *struct {
 	ExcludeIDs []uint `query:"excludeIDs"`
 }) (output *UIntOutput, err error) {
 	var refs []string
-	q := db.Model(&Record{}).Where("reference_number IS NOT NULL AND id NOT IN ?", input.ExcludeIDs).Order("reference_number")
+	q := db.Model(&Record{}).Where("reference_number NOT NULL")
+	if len(input.ExcludeIDs) > 0 {
+		q = q.Not("id IN ?", input.ExcludeIDs)
+	}
+	q = q.Order("CAST(reference_number AS unsigned)")
 	if username := UsernameFromContext(ctx); username != "" {
 		var user User
 		if user, err = loadUser(username); err != nil {
@@ -278,22 +283,24 @@ func GetNextReferenceNumber(ctx context.Context, input *struct {
 
 	for _, ref := range refs {
 		v, err := strconv.Atoi(strings.TrimSpace(ref))
-		if err != nil {
+		if err == nil {
 			nums = append(nums, v)
 		}
 	}
 
+	if len(nums) == 0 {
+		output = &UIntOutput{Body: 1}
+		return
+	}
+
+	sort.Ints(nums)
+
 	low := 1
-	high := len(nums) - 1
-
-	for low <= high {
-		mid := low + (high-low)/2
-
-		// If value matches index, missing element is on the right
-		if nums[mid] == mid {
-			low = mid + 1
-		} else {
-			high = mid - 1
+	for _, n := range nums {
+		if n == low {
+			low++
+		} else if n > low {
+			break
 		}
 	}
 
