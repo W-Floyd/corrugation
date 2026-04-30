@@ -117,7 +117,7 @@ onBeforeUnmount(() => {
             <input ref="searchInputEl" v-model="entitiesStore.searchtextpredebounce" @input="handleSearchInput"
                 @keydown.enter.stop="searchInputEl?.blur()" @keydown.esc.stop="searchInputEl?.blur()"
                 placeholder="Search for an entity..." type="search"
-                class="w-full px-4 py-2 rounded-full bg-white ring-1 ring-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:ring-gray-600 dark:text-white pr-10" />
+                class="w-full px-4 py-2 rounded-full bg-white ring-1 ring-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:ring-gray-600 dark:text-white pr-14" />
             <kbd v-if="props.showHint"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-sans bg-gray-800 text-white rounded px-1 leading-3.5 pointer-events-none shadow">/
             </kbd>
@@ -126,6 +126,16 @@ onBeforeUnmount(() => {
                 title="Clear search">
                 <CloseIcon :size="14" />
             </button>
+            <!-- Image search indicator badge -->
+            <div v-if="entitiesStore.apiSearchResults.length > 0 && entitiesStore.searchtext === '🔍'"
+                class="absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <div
+                    class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full">
+                    <ImageSearchIcon :size="12" />
+                    <span class="font-semibold">{{ entitiesStore.apiSearchResults.length }}</span>
+                    <span class="text-gray-500 dark:text-gray-400 text-[10px]">similar</span>
+                </div>
+            </div>
         </div>
 
         <!-- Command palette shortcut hint -->

@@ -168,6 +168,28 @@ export const api = {
     };
   },
 
+  async searchByImage(file: File): Promise<{
+    results: { entity: Entity; imageScore?: number }[];
+    partial: boolean;
+  }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiFetch("/api/v2/search/image", {
+      method: "POST",
+      body: formData,
+    });
+    const partial = response.status === 207;
+    const records: BackendRecord[] = await response.json();
+    return {
+      partial,
+      results: records.map((r) => ({
+        entity: recordToEntity(r),
+        imageScore: r.SearchConfidenceImage,
+        textScore: r.SearchConfidenceText,
+      })),
+    };
+  },
+
   async uploadArtifact(file: File): Promise<number> {
     const formData = new FormData();
     formData.append("file", file);

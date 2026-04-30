@@ -88,17 +88,23 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 	var records []Record
 	s := NewRecordQuery(input.Search)
 	search := &s
-	s.SearchImage = input.SearchImage
+	s.SearchImages = input.SearchImage
 	s.SearchTextEmbedded = input.SearchTextEmbedded
 	s.SearchTextSubstring = input.SearchTextSubstring
 	s.ChildrenDepth = input.ChildrenDepth
 	s.ParentDepth = input.ParentDepth
 	if input.MinImageScore > 0 {
-		s.MinImageScore = input.MinImageScore
+		s.MinTextToImageScore = input.MinImageScore
 	}
 	if input.MinTextScore > 0 {
 		s.MinTextScore = input.MinTextScore
 	}
+
+	// // Prevent using text and image search simultaneously
+	// if s.SearchImages && s.SearchTextEmbedded {
+	// 	return nil, huma.Error400BadRequest("cannot use both image search and text search simultaneously")
+	// }
+
 	var ID *uint
 	if !input.Global {
 		if input.ID >= 0 {
@@ -161,15 +167,9 @@ func checkReferenceNumberAvailable(refNum string, ownerID *uint, excludeID *uint
 func CreateRecord(ctx context.Context, input *struct {
 	Body RecordInput
 }) (output *RecordOutput, err error) {
-	username := UsernameFromContext(ctx)
-	var userID *uint
-	if username != "" {
-		var user User
-		user, err = loadUser(username)
-		if err != nil {
-			return
-		}
-		userID = &user.ID
+	username, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return
 	}
 
 	if input.Body.ReferenceNumber != nil {
@@ -188,8 +188,8 @@ func CreateRecord(ctx context.Context, input *struct {
 	if err != nil {
 		return
 	}
-	uc, _ := loadUser(username)
-	textModel, _, _, _ := effectiveInfinityConfig(uc)
+
+	textModel, _, _, _ := effectiveInfinityConfig(user)
 	EnqueueEmbeddingJob(JobTypeRecord, record.ID, userID, username, textModel, "store")
 	err = nil
 	output = &RecordOutput{
@@ -253,14 +253,12 @@ func UpdateRecord(ctx context.Context, input *struct {
 		return
 	}
 
-	updateUsername := UsernameFromContext(ctx)
-	updateUC, _ := loadUser(updateUsername)
-	textModel, _, _, _ := effectiveInfinityConfig(updateUC)
-	var updateOwnerID *uint
-	if updateUC.ID > 0 {
-		updateOwnerID = &updateUC.ID
+	username, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return
 	}
-	EnqueueEmbeddingJob(JobTypeRecord, r.ID, updateOwnerID, updateUsername, textModel, "store")
+	textModel, _, _, _ := effectiveInfinityConfig(user)
+	EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
 
 	output = &RecordOutput{Body: toRecordResponse(r, true)}
 	return
@@ -401,14 +399,16 @@ func PatchRecord(ctx context.Context, input *struct {
 
 	// Notify embedding service if text fields were updated
 	if updates["title"] != nil || updates["description"] != nil || updates["reference_number"] != nil {
-		patchUsername := UsernameFromContext(ctx)
-		patchUC, _ := loadUser(patchUsername)
-		textModel, _, _, _ := effectiveInfinityConfig(patchUC)
-		var patchOwnerID *uint
-		if patchUC.ID > 0 {
-			patchOwnerID = &patchUC.ID
+		var username string
+		var user *User
+		var userID *uint
+		username, user, userID, err = UserFromContext(ctx)
+		if err != nil {
+			return
 		}
-		EnqueueEmbeddingJob(JobTypeRecord, r.ID, patchOwnerID, patchUsername, textModel, "store")
+		textModel, _, _, _ := effectiveInfinityConfig(user)
+
+		EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
 	}
 
 	output = &RecordOutput{Body: toRecordResponse(r, true)}

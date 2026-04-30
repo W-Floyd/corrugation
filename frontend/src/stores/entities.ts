@@ -24,6 +24,7 @@ export const useEntitiesStore = defineStore("entities", () => {
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
   const apiSearchResults = ref<Entity[]>([]);
+  const apiSearchResultsPartial = ref<boolean>(false);
   const apiSearchScores = ref<
     Record<number, { image?: number; text?: number }>
   >({});
@@ -231,6 +232,33 @@ export const useEntitiesStore = defineStore("entities", () => {
       router.push({ query: entityId === 0 ? {} : { entity: entityId } });
     });
     searchtext.value = "";
+  }
+
+  async function searchByImage(file: File): Promise<void> {
+    try {
+      // Set a placeholder search term to trigger display of image search results
+      searchtextpredebounce.value = "🔍";
+      searchtext.value = "🔍";
+      searching.value = true;
+      filterToMissingImage.value = false;
+      filterToOnlyImage.value = false;
+      apiSearchResults.value = [];
+      apiSearchResultsPartial.value = false;
+      apiSearchScores.value = {};
+      const { results, partial } = await api.searchByImage(file);
+      apiSearchResults.value = results.map((r) => r.entity);
+      // Store image scores for display on cards
+      for (const r of results) {
+        apiSearchScores.value[r.entity.id] = { image: r.imageScore };
+      }
+      apiSearchResultsPartial.value = partial;
+      searching.value = false;
+    } catch (e) {
+      console.error("Image search failed:", e);
+      searching.value = false;
+      apiSearchResults.value = [];
+      apiSearchResultsPartial.value = false;
+    }
   }
 
   function readname(entityId: number): string {
@@ -453,6 +481,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     searchTextEmbedded,
     searchTextSubstring,
     apiSearchResults,
+    apiSearchResultsPartial,
     apiSearchScores,
     filterToMissingImage,
     filterToOnlyImage,
@@ -461,6 +490,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     reload,
     connectWS,
     setCurrentEntity,
+    searchByImage,
     readname,
     hasChildren,
     listChildLocations,

@@ -41,8 +41,11 @@ type Artifact struct {
 	LargePreviewID *uint     `json:"-" gorm:"index"`
 	LargePreview   *Artifact `json:"-" gorm:"foreignKey:LargePreviewID"`
 
-	RecordID *uint `json:",omitempty" gorm:"index"`
-	OwnerID  *uint `json:",omitempty" gorm:"index"`
+	RecordID *uint   `json:",omitempty" gorm:"index"`
+	Record   *Record `json:"-" gorm:"foreignKey:RecordID"`
+
+	OwnerID *uint `json:",omitempty" gorm:"index"`
+	Owner   *User `json:"-" gorm:"foreignKey:OwnerID"`
 }
 
 func GetArtifactFromDB(ID uint) (artifact Artifact, err error) {
@@ -102,15 +105,13 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 	}
 
 	// Get owner_id for the artifact
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	var ownerID *uint
-	if uc.ID > 0 {
-		ownerID = &uc.ID
+	_, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		Log.Error(err)
+		return
 	}
 
 	a := Artifact(*i)
-	a.OwnerID = ownerID
-
 	err = gorm.G[Artifact](db).Create(dbCtx, &a)
 	if err != nil {
 		Log.Error(err)
@@ -119,8 +120,8 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 
 	*i = Image(a)
 
-	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, ownerID, UsernameFromContext(ctx), imageModel, "store")
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
+	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, userID, UsernameFromContext(ctx), imageModel, "store")
 
 	return
 }
@@ -351,7 +352,10 @@ func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint
 		embeddedIDs[id] = true
 	}
 
-	enqueuedIDs := generateMissingArtifactEmbeddings(ctx, artifactIDs, embeddedIDs, "search")
+	enqueuedIDs, err := generateMissingArtifactEmbeddings(ctx, artifactIDs, embeddedIDs, "search")
+	if err != nil {
+		return
+	}
 
 	partial = len(enqueuedIDs) > 0
 
@@ -360,20 +364,17 @@ func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint
 
 // generateMissingArtifactEmbeddings enqueues embedding jobs for artifact IDs not in embeddedIDs.
 // Returns the IDs that were enqueued.
-func generateMissingArtifactEmbeddings(ctx context.Context, artifactIDs []uint, embeddedIDs map[uint]bool, source string) []uint {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	var ownerID *uint
-	if uc.ID > 0 {
-		ownerID = &uc.ID
+func generateMissingArtifactEmbeddings(ctx context.Context, artifactIDs []uint, embeddedIDs map[uint]bool, source string) (enqueued []uint, err error) {
+	username, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return
 	}
-	username := UsernameFromContext(ctx)
-	var enqueued []uint
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
 	for _, id := range artifactIDs {
 		if !embeddedIDs[id] {
-			EnqueueEmbeddingJob(JobTypeArtifact, id, ownerID, username, imageModel, source)
+			EnqueueEmbeddingJob(JobTypeArtifact, id, userID, username, imageModel, source)
 			enqueued = append(enqueued, id)
 		}
 	}
-	return enqueued
+	return
 }

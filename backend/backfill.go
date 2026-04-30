@@ -31,7 +31,11 @@ func backfillRecordEmbeddings() {
 	}
 	var owners []User
 	if len(ownerIDs) > 0 {
-		db.Where("id IN ?", ownerIDs).Find(&owners)
+		err = db.Where("id IN ?", ownerIDs).Find(&owners).Error
+		if err != nil {
+			Log.Errorw("backfill: failed to fetch owners", "owner_ids", ownerIDs, "error", err)
+			return
+		}
 	}
 	userByID := map[uint]User{}
 	for _, u := range owners {
@@ -57,7 +61,7 @@ func backfillRecordEmbeddings() {
 		if key.valid {
 			u = userByID[key.id]
 		}
-		textModel, _, _, docPrefix := effectiveInfinityConfig(u)
+		textModel, _, _, docPrefix := effectiveInfinityConfig(&u)
 		ctx := context.WithValue(dbCtx, usernameContextKey, u.Username)
 		backfillRecordEmbeddingsForUser(ctx, textModel, docPrefix, ownerRecords)
 	}

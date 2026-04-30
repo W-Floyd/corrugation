@@ -76,23 +76,34 @@ func (i *infinityEmbeddingsRequest) GenerateEmbeddings() (e Embeddings, err erro
 }
 
 func GenerateTextDocumentEmbeddingsCtx(ctx context.Context, input string) (e Embeddings, fullInput string, err error) {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, _, _, docPrefix := effectiveInfinityConfig(uc)
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, _, _, docPrefix := effectiveInfinityConfig(user)
 	fullInput = docPrefix + input
 	e, err = generateTextEmbeddings(fullInput, textModel)
 	return
 }
 
-func GenerateTextQueryEmbeddingsCtx(ctx context.Context, input string) (Embeddings, error) {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, _, queryPrefix, _ := effectiveInfinityConfig(uc)
-	return generateTextEmbeddings(queryPrefix+input, textModel)
+func GenerateTextQueryEmbeddingsCtx(ctx context.Context, input string) (embeddings Embeddings, err error) {
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, _, queryPrefix, _ := effectiveInfinityConfig(user)
+	embeddings, err = generateTextEmbeddings(queryPrefix+input, textModel)
+	return
 }
 
-func GenerateImageQueryEmbeddingsCtx(ctx context.Context, input string) (Embeddings, error) {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	return generateTextEmbeddings(input, imageModel)
+func GenerateImageQueryEmbeddingsCtx(ctx context.Context, input string) (embeddings Embeddings, err error) {
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
+	embeddings, err = generateTextEmbeddings(input, imageModel)
+	return
 }
 
 func generateTextEmbeddings(input string, model string) (e Embeddings, err error) {
@@ -116,8 +127,11 @@ func (i *Image) GenerateEmbeddings(ctx context.Context) (err error) {
 		return
 	}
 
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	_, imageModel, _, _ := effectiveInfinityConfig(uc)
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
 
 	base64Image := base64.StdEncoding.EncodeToString(*i.Data)
 	base64Image = "data:" + http.DetectContentType(*i.Data) + ";base64," + base64Image

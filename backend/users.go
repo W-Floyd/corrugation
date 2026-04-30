@@ -50,23 +50,25 @@ func saveUser(u User) error {
 }
 
 // effectiveInfinityConfig returns the infinity config for a user, falling back to env defaults for nil fields.
-func effectiveInfinityConfig(u User) (text, image, queryPrefix, docPrefix string) {
+func effectiveInfinityConfig(u *User) (text, image, queryPrefix, docPrefix string) {
 	text = infinityTextModel
 	image = infinityImageModel
 	queryPrefix = infinityTextQueryPrefix
 	docPrefix = infinityTextDocumentPrefix
 
-	if u.InfinityTextModel != nil {
-		text = *u.InfinityTextModel
-	}
-	if u.InfinityImageModel != nil {
-		image = *u.InfinityImageModel
-	}
-	if u.InfinityTextQueryPrefix != nil {
-		queryPrefix = *u.InfinityTextQueryPrefix
-	}
-	if u.InfinityTextDocumentPrefix != nil {
-		docPrefix = *u.InfinityTextDocumentPrefix
+	if u != nil {
+		if u.InfinityTextModel != nil {
+			text = *u.InfinityTextModel
+		}
+		if u.InfinityImageModel != nil {
+			image = *u.InfinityImageModel
+		}
+		if u.InfinityTextQueryPrefix != nil {
+			queryPrefix = *u.InfinityTextQueryPrefix
+		}
+		if u.InfinityTextDocumentPrefix != nil {
+			docPrefix = *u.InfinityTextDocumentPrefix
+		}
 	}
 	return
 }

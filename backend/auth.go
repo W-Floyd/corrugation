@@ -77,13 +77,16 @@ func UsernameFromContext(ctx context.Context) (username string) {
 	return
 }
 
-func UserFromContext(ctx context.Context) (username string, user User, err error) {
+func UserFromContext(ctx context.Context) (username string, user *User, userID *uint, err error) {
 	username = UsernameFromContext(ctx)
 	if username != "" {
-		user, err = loadUser(username)
+		var u User
+		u, err = loadUser(username)
 		if err != nil {
 			return
 		}
+		user = &u
+		userID = &user.ID
 	}
 	return
 }

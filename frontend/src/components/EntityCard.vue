@@ -17,6 +17,7 @@ import CheckIcon from "vue-material-design-icons/Check.vue";
 import CloseIcon from "vue-material-design-icons/Close.vue";
 import ArrowUpIcon from "vue-material-design-icons/ArrowUp.vue";
 import AlertIcon from "vue-material-design-icons/Alert.vue";
+import ImageSearchIcon from "vue-material-design-icons/ImageSearch.vue";
 
 const props = defineProps<{
     entity: Entity;
@@ -478,6 +479,33 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
     }
 };
 
+const handleSearchByImage = async (): Promise<void> => {
+    if (!props.entity.artifacts || props.entity.artifacts.length === 0) return;
+
+    try {
+        const artifactId = props.entity.artifacts[0];
+        const response = await fetch(`/api/v2/artifact/${artifactId}`);
+        const artifactFile = await response.blob();
+        const file = new File([artifactFile], `artifact-${artifactId}.jpg`, {
+            type: "image/jpeg",
+        });
+
+        await entitiesStore.searchByImage(file);
+
+        if (entitiesStore.apiSearchResults.length > 0) {
+            const message = `Found ${entitiesStore.apiSearchResults.length} similar record(s)`;
+            toastsStore.add(message, "info");
+            console.log("Similar records:", entitiesStore.apiSearchResults);
+            console.log("Partial:", entitiesStore.apiSearchResultsPartial);
+        } else {
+            toastsStore.add("No similar records found", "info");
+        }
+    } catch (error) {
+        console.error("Image search failed:", error);
+        toastsStore.add("Failed to search for similar records");
+    }
+};
+
 const handleQuickCaptureNewChild = async (): Promise<void> => {
     await new Promise<void>((resolve) => {
         cameraStore.open(async (files: File[]) => {
@@ -787,50 +815,58 @@ defineExpose({ cardEl });
 
         <!-- Action buttons -->
         <div class="p-4 flex flex-wrap gap-2">
-            <button v-if="!editMode" @click.stop="emit('requestDelete')"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-red-500 rounded-full shadow hover:bg-red-600 active:shadow-lg text-white"
-                title="Delete entity">
-                <TrashCanIcon :size="20" />
-                <KbdHint contents="Del" :show="showHint && isSelected" />
-            </button>
+            <template v-if="!editMode">
+                <button @click.stop="emit('requestDelete')"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-red-500 rounded-full shadow hover:bg-red-600 active:shadow-lg text-white"
+                    title="Delete entity">
+                    <TrashCanIcon :size="20" />
+                    <KbdHint contents="Del" :show="showHint && isSelected" />
+                </button>
 
-            <button v-if="!editMode" @click.stop="emit('requestMove', entity.id)"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
-                title="Move entity">
-                <FolderMoveIcon :size="20" />
-                <KbdHint contents="M" :show="showHint && isSelected" />
-            </button>
+                <button @click.stop="emit('requestMove', entity.id)"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
+                    title="Move entity">
+                    <FolderMoveIcon :size="20" />
+                    <KbdHint contents="M" :show="showHint && isSelected" />
+                </button>
 
-            <button v-if="!editMode" @click.stop="handleEditToggle"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
-                title="Edit entity">
-                <PencilIcon :size="20" />
-                <KbdHint contents="Enter" :show="showHint && isSelected" />
-            </button>
+                <button @click.stop="handleEditToggle"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
+                    title="Edit entity">
+                    <PencilIcon :size="20" />
+                    <KbdHint contents="Enter" :show="showHint && isSelected" />
+                </button>
 
-            <button v-if="!editMode" @click.stop="handleQuickCapture"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
-                title="Quick capture (add photo to this entity)">
-                <CameraIcon :size="20" />
-                <KbdHint contents="P" :show="showHint && isSelected" />
-            </button>
+                <button @click.stop="handleQuickCapture"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
+                    title="Quick capture (add photo to this entity)">
+                    <CameraIcon :size="20" />
+                    <KbdHint contents="P" :show="showHint && isSelected" />
+                </button>
 
-            <button v-if="!editMode" @click.stop="handleQuickCaptureNewChild"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
-                title="Quick capture new child entity">
-                <CameraPlusIcon :size="20" />
-                <KbdHint contents="⇧C" :show="showHint && isSelected" />
-            </button>
+                <button @click.stop="handleQuickCaptureNewChild"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
+                    title="Quick capture new child entity">
+                    <CameraPlusIcon :size="20" />
+                    <kbdHint contents="⇧C" :show="showHint && isSelected" />
+                </button>
 
-            <button v-if="!editMode" @click.stop="emit('createChild', entity.id)"
-                class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
-                title="New entity as child">
-                <PlusIcon :size="20" />
-                <KbdHint contents="⇧N" :show="showHint && isSelected" />
-            </button>
+                <button @click.stop="handleSearchByImage" v-if="entity.artifacts && entity.artifacts.length > 0"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-purple-500 rounded-full shadow hover:bg-purple-600 active:shadow-lg text-white"
+                    title="Search for similar records">
+                    <ImageSearchIcon :size="20" />
+                    <kbdHint contents="⇧S" :show="showHint && isSelected" />
+                </button>
 
-            <!-- Edit mode controls -->
-            <template v-if="editMode">
+                <button @click.stop="emit('createChild', entity.id)"
+                    class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
+                    title="New entity as child">
+                    <PlusIcon :size="20" />
+                    <kbdHint contents="⇧N" :show="showHint && isSelected" />
+                </button>
+            </template>
+
+            <template v-else>
                 <button @click.stop="handleSave"
                     class="relative h-10 w-10 p-0 m-0 flex items-center justify-center bg-blue-500 rounded-full shadow hover:bg-blue-600 active:shadow-lg text-white"
                     title="Save">

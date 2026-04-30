@@ -118,8 +118,11 @@ func GetSearchEmbeddingProgress(ctx context.Context, input *struct {
 		}
 	}
 
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, imageModel, _, _ := effectiveInfinityConfig(uc)
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, imageModel, _, _ := effectiveInfinityConfig(user)
 
 	var p SearchEmbeddingProgress
 

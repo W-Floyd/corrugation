@@ -53,12 +53,14 @@ func ConnectDB(dbFilePath string) (err error) {
 
 func InitAndMigrateDB() (err error) {
 	Log.Info("running DB migrations")
-	db.AutoMigrate(&Record{})
-	db.AutoMigrate(&Tag{})
-	db.AutoMigrate(&Artifact{})
-	db.AutoMigrate(&Embedding{})
-	db.AutoMigrate(&GlobalConfig{})
-	db.AutoMigrate(&User{})
-	db.AutoMigrate(&EmbeddingJob{})
+	db.AutoMigrate(
+		&Artifact{},
+		&EmbeddingJob{},
+		&Embedding{},
+		&GlobalConfig{},
+		&Record{},
+		&Tag{},
+		&User{},
+	)
 	return nil
 }

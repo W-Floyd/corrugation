@@ -9,26 +9,18 @@ import (
 	"image"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/labstack/gommon/log"
 	"gorm.io/gorm"
 )
 
 // ImageSearchInput represents the input for the POST /api/v2/search/image endpoint
 type ImageSearchInput struct {
-	Body struct {
-		File huma.FormFile `form:"file" required:"true" doc:"Image file to search for similar records"`
-	}
-}
-
-// ImageSearchOutput represents the output for the image search endpoint
-type ImageSearchOutput struct {
-	Status int `yaml:"-"`
-	Body   []struct {
-		RecordID   uint    `json:"recordId"`
-		Confidence float64 `json:"confidence"`
-	} `json:"results"`
+	RawBody huma.MultipartFormFiles[struct {
+		File huma.FormFile `form:"file" required:"true"`
+	}]
 }
 
 // SearchByImageOperation defines the POST /api/v2/search/image endpoint for image-based record search
@@ -54,9 +46,9 @@ var SearchByImageOperation = huma.Operation{
 }
 
 // SearchByImageHandler handles image upload and similarity search
-func SearchByImageHandler(ctx context.Context, input *ImageSearchInput) (output *ImageSearchOutput, err error) {
+func SearchByImageHandler(ctx context.Context, input *ImageSearchInput) (output *RecordsOutput, err error) {
 	// Read the uploaded image file
-	file := input.Body.File
+	file := input.RawBody.Data().File
 	imageData, err := io.ReadAll(file)
 	if err != nil {
 		return nil, huma.Error400BadRequest("failed to read image file", err)
@@ -74,121 +66,16 @@ func SearchByImageHandler(ctx context.Context, input *ImageSearchInput) (output 
 		return nil, huma.Error500InternalServerError("search failed", err)
 	}
 
-	// Convert to ImageSearchOutput format
-	outputResults := make([]struct {
-		RecordID   uint    `json:"recordId"`
-		Confidence float64 `json:"confidence"`
-	}, len(results))
-	for i, result := range results {
-		outputResults[i].RecordID = result.ID
-		if result.SearchConfidenceImage != nil {
-			outputResults[i].Confidence = *result.SearchConfidenceImage
-		}
-	}
-
-	output = &ImageSearchOutput{
+	output = &RecordsOutput{
 		Status: http.StatusOK,
-		Body:   outputResults,
+		Body:   results,
 	}
 
 	return output, nil
 }
 
-// SearchByImage searches for records using image embedding similarity
-// Returns records sorted by confidence score, filtered by minimumImageSearchConfidence threshold
-func SearchByImage(ctx context.Context, imageData []byte) (results []struct {
-	RecordID   uint    `json:"recordId"`
-	Confidence float64 `json:"confidence"`
-}, err error) {
-	// Get current user
-	username := UsernameFromContext(ctx)
-	var userID *uint
-	if username != "" {
-		var user User
-		user, err = loadUser(username)
-		if err != nil {
-			return nil, err
-		}
-		userID = &user.ID
-	}
-
-	// Generate image embedding from uploaded image
-	imageEmbeddings, err := generateImageEmbeddingFromBytes(imageData)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get record image embeddings from database, scoped by user
-	var embeddings []Embedding
-	if userID != nil {
-		// First get the record IDs we're allowed to search
-		var allowedRecordIDs []uint
-		if err = db.Model(&Record{}).Where("owner_id = ?", *userID).Pluck("id", &allowedRecordIDs).Error; err != nil {
-			return nil, err
-		}
-
-		// Get embeddings for allowed records
-		if err = db.Where("record_id IS NOT NULL AND record_id IN ? AND embed_model = ?", allowedRecordIDs, infinityImageModel).Find(&embeddings).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		// Anonymous user: search all records
-		if err = db.Where("record_id IS NOT NULL AND embed_model = ?", infinityImageModel).Find(&embeddings).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	// Compute similarity scores for all embeddings
-	type recordScore struct {
-		recordID uint
-		score    float64
-	}
-	scores := make([]recordScore, 0)
-
-	for _, emb := range embeddings {
-		if emb.RecordID == nil {
-			continue
-		}
-		var recordVec []float64
-		if cached, ok := embeddingsCache.Load(emb.Hash); ok {
-			recordVec = cached.(Embeddings)
-		} else {
-			if err = json.Unmarshal(emb.Data, &recordVec); err != nil {
-				continue
-			}
-			embeddingsCache.Store(emb.Hash, Embeddings(recordVec))
-		}
-		score, err := dotProduct(recordVec, imageEmbeddings)
-		if err != nil {
-			continue
-		}
-		scores = append(scores, recordScore{recordID: *emb.RecordID, score: score})
-	}
-
-	// Filter by minimum confidence threshold
-	var filtered []struct {
-		RecordID   uint    `json:"recordId"`
-		Confidence float64 `json:"confidence"`
-	}
-	for _, s := range scores {
-		if s.score >= minimumImageSearchConfidence {
-			filtered = append(filtered, struct {
-				RecordID   uint    `json:"recordId"`
-				Confidence float64 `json:"confidence"`
-			}{RecordID: s.recordID, Confidence: s.score})
-		}
-	}
-
-	// Sort by confidence score (descending)
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].Confidence > filtered[j].Confidence
-	})
-
-	return filtered, nil
-}
-
 // generateImageEmbeddingFromBytes creates an image embedding from raw image bytes
-func generateImageEmbeddingFromBytes(imageData []byte) ([]float64, error) {
+func generateImageEmbeddingFromBytes(user *User, imageData []byte) ([]float64, error) {
 	// Decode the image to validate it
 	img, _, err := image.Decode(bytes.NewReader(imageData))
 	if err != nil || img == nil {
@@ -199,9 +86,9 @@ func generateImageEmbeddingFromBytes(imageData []byte) ([]float64, error) {
 	base64Image := base64.StdEncoding.EncodeToString(imageData)
 	base64Image = "data:image/jpeg;base64," + base64Image
 
-	// Generate embedding using Infinity
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
 	request := infinityEmbeddingsRequest{
-		Model:          infinityImageModel,
+		Model:          imageModel,
 		EncodingFormat: "float",
 		Input:          []string{base64Image},
 		Modality:       "image",
@@ -217,61 +104,109 @@ func generateImageEmbeddingFromBytes(imageData []byte) ([]float64, error) {
 
 // GetRecordsWithImageSimilarity retrieves records with their image similarity scores
 // Returns a list of RecordResponse objects with SearchConfidenceImage set
-func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) ([]RecordResponse, error) {
-	scores, err := SearchByImage(ctx, imageData)
+func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (results []RecordResponse, err error) {
+	// Get current user
+	_, user, userID, err := UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		log.Error(err)
+		return
 	}
 
-	if len(scores) == 0 {
-		return []RecordResponse{}, nil
+	// Generate image embedding from uploaded image
+	imageEmbeddings, err := generateImageEmbeddingFromBytes(user, imageData)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	// Get record image embeddings from database, scoped by user
+	var recordEmbeddings []struct {
+		Record        `gorm:"embedded"`
+		EmbeddingData *[]byte `gorm:"column:embedding_data"`
+		EmbeddingHash *string `gorm:"column:embedding_hash"`
 	}
 
-	recordIDs := make([]uint, len(scores))
-	for i, s := range scores {
-		recordIDs[i] = s.RecordID
-	}
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
 
-	// Fetch records from database, scoped by user
-	username := UsernameFromContext(ctx)
-	var userID *uint
-	if username != "" {
-		var user User
-		user, err = loadUser(username)
-		if err != nil {
-			return nil, err
-		}
-		userID = &user.ID
-	}
+	q := db.Table("embeddings").
+		Select("records.*, embeddings.data as embedding_data, embeddings.hash as embedding_hash").
+		Joins("JOIN artifacts ON artifacts.id = embeddings.artifact_id").
+		Joins("JOIN records ON records.id = artifacts.record_id").
+		Where("embeddings.embed_model = ?", imageModel)
 
-	var records []Record
 	if userID != nil {
-		// Only fetch records owned by the user
-		records, err = gorm.G[Record](db).Where("id IN ? AND owner_id = ?", recordIDs, *userID).Find(dbCtx)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// Anonymous user: fetch all records
-		records, err = gorm.G[Record](db).Where("id IN ?", recordIDs).Find(dbCtx)
-		if err != nil {
-			return nil, err
-		}
+		q = q.Where("records.owner_id = ?", userID)
 	}
 
-	// Build a map of record IDs to scores
-	scoreMap := make(map[uint]float64)
-	for _, s := range scores {
-		scoreMap[s.RecordID] = s.Confidence
+	if err = q.Find(&recordEmbeddings).Error; err != nil {
+		log.Error(err)
+		return
 	}
 
-	// Build responses with similarity scores
-	var responses []RecordResponse
-	for _, record := range records {
-		score := scoreMap[record.ID]
+	ids := []uint{}
+
+	for _, r := range recordEmbeddings {
+		ids = append(ids, r.Record.ID)
+	}
+
+	records := []Record{}
+	records, err = gorm.G[Record](db).Where("id IN ?", ids).
+		Preload("Artifacts",
+			func(db gorm.PreloadBuilder) error {
+				db.Select("id", "record_id")
+				return nil
+			},
+		).Find(dbCtx)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	recordMap := map[uint]*Record{}
+
+	for _, r := range records {
+		recordMap[r.ID] = &r
+	}
+
+	for _, r := range recordEmbeddings {
+		var recordVec []float64
+		if cached, ok := embeddingsCache.Load(*r.EmbeddingHash); ok {
+			recordVec = cached.(Embeddings)
+		} else {
+			if err = json.Unmarshal(*r.EmbeddingData, &recordVec); err != nil {
+				log.Error(err)
+				return
+			}
+			embeddingsCache.Store(*r.EmbeddingHash, Embeddings(recordVec))
+		}
+		var score float64
+		score, err = dotProduct(recordVec, imageEmbeddings)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if score < minimumImageToImageSearchConfidence {
+			continue
+		}
+		record := toRecordResponse(*recordMap[r.ID], false)
 		record.SearchConfidenceImage = &score
-		responses = append(responses, toRecordResponse(record, true))
+		results = append(results, record)
 	}
 
-	return responses, nil
+	slices.SortFunc(results, func(a, b RecordResponse) int {
+		if a.SearchConfidenceImage == nil {
+			return 1
+		}
+		if b.SearchConfidenceImage == nil {
+			return -1
+		}
+		if *a.SearchConfidenceImage > *b.SearchConfidenceImage {
+			return -1
+		}
+		if *a.SearchConfidenceImage < *b.SearchConfidenceImage {
+			return 1
+		}
+		return 0
+	})
+
+	return
 }

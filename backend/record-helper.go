@@ -20,10 +20,10 @@ import (
 
 type RecordQuery struct {
 	Query               string
-	SearchImage         bool
+	SearchImages        bool
 	SearchTextEmbedded  bool
 	SearchTextSubstring bool
-	MinImageScore       float64
+	MinTextToImageScore float64
 	MinTextScore        float64
 	ChildrenDepth       int
 	ParentDepth         int
@@ -31,9 +31,9 @@ type RecordQuery struct {
 
 func NewRecordQuery(query string) RecordQuery {
 	return RecordQuery{
-		Query:         query,
-		MinImageScore: minimumImageSearchConfidence,
-		MinTextScore:  minimumTextSearchConfidence,
+		Query:               query,
+		MinTextToImageScore: minimumTextToImageSearchConfidence,
+		MinTextScore:        minimumTextSearchConfidence,
 	}
 }
 
@@ -229,7 +229,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		var artifactErr, recordErr error
 		var artifactPartial, recordPartial bool
 		var wg sync.WaitGroup
-		if search.SearchImage {
+		if search.SearchImages {
 			wg.Go(func() {
 				artifactSearch, artifactPartial, artifactErr = SearchByArtifact(ctx, search.Query, artifactRecordMap)
 			})
@@ -297,7 +297,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 
 		recordIDs := []uint{}
 		for id := range bestScore {
-			if bestImageScore[id] >= search.MinImageScore || textScore[id] >= search.MinTextScore {
+			if bestImageScore[id] >= search.MinTextToImageScore || textScore[id] >= search.MinTextScore {
 				recordIDs = append(recordIDs, id)
 			}
 		}

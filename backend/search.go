@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	minimumImageSearchConfidence float64 = 0.2
-	minimumTextSearchConfidence  float64 = 0.9
+	minimumImageToImageSearchConfidence float64 = 0.55
+	minimumTextToImageSearchConfidence  float64 = 0.2
+	minimumTextSearchConfidence         float64 = 0.9
 )
 
 func dotProduct(v1 []float64, v2 []float64) (result float64, err error) {

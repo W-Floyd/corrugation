@@ -61,20 +61,18 @@ func GetArtifact(ctx context.Context, input *struct {
 	conditional.Params
 	ID uint `path:"id" example:"1" doc:"Artifact ID to get"`
 }) (output *BytesOutput, err error) {
-	username, user, err := UserFromContext(ctx)
+	username, user, userID, err := UserFromContext(ctx)
 	if err != nil {
 		return
 	}
-
-	uc, _ := loadUser(username)
 
 	artifact, err := GetArtifactFromDB(input.ID)
 	if err != nil {
 		return
 	}
 
-	_, imageModel, _, _ := effectiveInfinityConfig(uc)
-	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, &user.ID, username, imageModel, "search")
+	_, imageModel, _, _ := effectiveInfinityConfig(user)
+	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, userID, username, imageModel, "search")
 
 	etag := fmt.Sprintf(`"%d"`, artifact.UpdatedAt.UnixMilli())
 

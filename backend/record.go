@@ -117,8 +117,11 @@ func (record *Record) PrettyString() (output string) {
 // Only jobs for those specific IDs are enqueued and waited on, so partial
 // reflects completeness within the requested scope only.
 func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]float64, partial bool, err error) {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, _, _, _ := effectiveInfinityConfig(uc)
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, _, _, _ := effectiveInfinityConfig(user)
 
 	if len(scopedIDs) == 0 {
 		return map[uint][]float64{}, false, nil
@@ -156,7 +159,10 @@ func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]fl
 		}
 	}
 
-	enqueuedIDs := generateMissingRecordEmbeddings(ctx, missingIDs, nil, "search")
+	enqueuedIDs, err := generateMissingRecordEmbeddings(ctx, missingIDs, nil, "search")
+	if err != nil {
+		return
+	}
 	partial = len(enqueuedIDs) > 0
 
 	return
@@ -164,24 +170,21 @@ func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]fl
 
 // generateMissingRecordEmbeddings enqueues embedding jobs for record IDs not in embeddedIDs.
 // Returns the IDs that were enqueued.
-func generateMissingRecordEmbeddings(ctx context.Context, recordIDs []uint, embeddedIDs map[uint]bool, source string) []uint {
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, _, _, _ := effectiveInfinityConfig(uc)
-	var ownerID *uint
-	if uc.ID > 0 {
-		ownerID = &uc.ID
+func generateMissingRecordEmbeddings(ctx context.Context, recordIDs []uint, embeddedIDs map[uint]bool, source string) (enqueued []uint, err error) {
+	username, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return
 	}
-	username := UsernameFromContext(ctx)
+	textModel, _, _, _ := effectiveInfinityConfig(user)
 
-	var enqueued []uint
 	for _, id := range recordIDs {
 		if !embeddedIDs[id] {
-			EnqueueEmbeddingJob(JobTypeRecord, id, ownerID, username, textModel, source)
+			EnqueueEmbeddingJob(JobTypeRecord, id, userID, username, textModel, source)
 			enqueued = append(enqueued, id)
 		}
 	}
 	Log.Infow("generateMissingRecordEmbeddings", "source", source, "username", username, "total", len(recordIDs), "enqueued", len(enqueued))
-	return enqueued
+	return
 }
 
 type RecordResponse struct {
@@ -239,8 +242,11 @@ func (r *Record) GenerateEmbeddings(ctx context.Context) (vec Embeddings, err er
 		return
 	}
 
-	uc, _ := loadUser(UsernameFromContext(ctx))
-	textModel, _, _, _ := effectiveInfinityConfig(uc)
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, _, _, _ := effectiveInfinityConfig(user)
 
 	var fullInput string
 	vec, fullInput, err = GenerateTextDocumentEmbeddingsCtx(ctx, text)
