@@ -85,12 +85,12 @@ export const api = {
     if (opts.parentDepth !== undefined)
       params.set("parentDepth", String(opts.parentDepth));
     if (opts.timestamps) params.set("timestamps", "true");
-    const response = await apiFetch(`/api/v2/records?${params}`);
+    const response = await apiFetch(`/api/records?${params}`);
     return response.json();
   },
 
   async createRecord(body: RecordBody): Promise<BackendRecord> {
-    const response = await apiFetch("/api/v2/record", {
+    const response = await apiFetch("/api/record", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -99,7 +99,7 @@ export const api = {
   },
 
   async updateRecord(id: number, body: RecordBody): Promise<BackendRecord> {
-    const response = await apiFetch(`/api/v2/record/${id}`, {
+    const response = await apiFetch(`/api/record/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -108,11 +108,11 @@ export const api = {
   },
 
   async deleteRecord(id: number): Promise<void> {
-    await apiFetch(`/api/v2/record/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/record/${id}`, { method: "DELETE" });
   },
 
   async moveRecord(id: number, locationId: number): Promise<void> {
-    await apiFetch(`/api/v2/record/${id}`, {
+    await apiFetch(`/api/record/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/merge-patch+json" },
       body: JSON.stringify(
@@ -124,7 +124,7 @@ export const api = {
   },
 
   async patchRecord(id: number, body: Partial<RecordBody>): Promise<void> {
-    await apiFetch(`/api/v2/record/${id}`, {
+    await apiFetch(`/api/record/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/merge-patch+json" },
       body: JSON.stringify(body),
@@ -155,7 +155,7 @@ export const api = {
       params.set("searchTextEmbedded", "true");
     if (opts.searchTextSubstring !== false)
       params.set("searchTextSubstring", "true");
-    const response = await apiFetch(`/api/v2/records?${params}`);
+    const response = await apiFetch(`/api/records?${params}`);
     const partial = response.status === 207;
     const records: BackendRecord[] = await response.json();
     return {
@@ -174,7 +174,7 @@ export const api = {
   }> {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiFetch("/api/v2/search/image", {
+    const response = await apiFetch("/api/search/image", {
       method: "POST",
       body: formData,
     });
@@ -193,7 +193,7 @@ export const api = {
   async uploadArtifact(file: File): Promise<number> {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiFetch("/api/v2/artifact", {
+    const response = await apiFetch("/api/artifact", {
       method: "POST",
       body: formData,
     });
@@ -202,7 +202,7 @@ export const api = {
   },
 
   async deleteArtifact(id: number): Promise<void> {
-    await apiFetch(`/api/v2/artifact/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/artifact/${id}`, { method: "DELETE" });
   },
 
   // Next available reference number not held by any labeled record
@@ -212,7 +212,7 @@ export const api = {
     if (excludeIDs != null) {
       params.set("excludeIDs", excludeIDs.toString())
     }
-    const response = await apiFetch(`/api/v2/records/nextref?${params}`);
+    const response = await apiFetch(`/api/records/nextref?${params}`);
     return response.json();
   },
 
@@ -234,7 +234,7 @@ export const api = {
     if (opts.searchImage) params.set("searchImage", "true");
     if (opts.searchTextEmbedded) params.set("searchTextEmbedded", "true");
     const response = await apiFetch(
-      `/api/v2/embeddings/search-progress?${params}`,
+      `/api/embeddings/search-progress?${params}`,
     );
     return response.json();
   },

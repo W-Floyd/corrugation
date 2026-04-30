@@ -484,7 +484,7 @@ const handleSearchByImage = async (): Promise<void> => {
 
     try {
         const artifactId = props.entity.artifacts[0];
-        const response = await fetch(`/api/v2/artifact/${artifactId}`);
+        const response = await fetch(`/api/artifact/${artifactId}`);
         const artifactFile = await response.blob();
         const file = new File([artifactFile], `artifact-${artifactId}.jpg`, {
             type: "image/jpeg",

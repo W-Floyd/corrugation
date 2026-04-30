@@ -42,7 +42,7 @@ type RecordsOutput struct {
 
 var GetRecordOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/record/{id}",
+	Path:   "/api/record/{id}",
 }
 
 func GetRecord(ctx context.Context, input *struct {
@@ -81,7 +81,7 @@ func GetRecord(ctx context.Context, input *struct {
 
 var ListRecordsOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/records",
+	Path:   "/api/records",
 }
 
 func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsOutput, err error) {
@@ -142,7 +142,7 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 
 var CreateRecordOperation = huma.Operation{
 	Method: http.MethodPost,
-	Path:   "/api/v2/record",
+	Path:   "/api/record",
 }
 
 func checkReferenceNumberAvailable(refNum string, ownerID *uint, excludeID *uint) error {
@@ -195,7 +195,7 @@ func CreateRecord(ctx context.Context, input *struct {
 
 var UpdateRecordOperation = huma.Operation{
 	Method: http.MethodPut,
-	Path:   "/api/v2/record/{id}",
+	Path:   "/api/record/{id}",
 }
 
 func UpdateRecord(ctx context.Context, input *struct {
@@ -261,7 +261,7 @@ func UpdateRecord(ctx context.Context, input *struct {
 
 var PatchRecordOperation = huma.Operation{
 	Method: http.MethodPatch,
-	Path:   "/api/v2/record/{id}",
+	Path:   "/api/record/{id}",
 }
 
 func PatchRecord(ctx context.Context, input *struct {
@@ -412,7 +412,7 @@ func PatchRecord(ctx context.Context, input *struct {
 
 var GetNextReferenceNumberOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/records/nextref",
+	Path:   "/api/records/nextref",
 }
 
 func GetNextReferenceNumber(ctx context.Context, input *struct {
@@ -473,7 +473,7 @@ func GetNextReferenceNumber(ctx context.Context, input *struct {
 
 var DeleteRecordOperation = huma.Operation{
 	Method: http.MethodDelete,
-	Path:   "/api/v2/record/{id}",
+	Path:   "/api/record/{id}",
 }
 
 func DeleteRecord(ctx context.Context, input *struct {
@@ -528,7 +528,7 @@ func DeleteRecord(ctx context.Context, input *struct {
 
 var FlushStaleEmbeddingsOperation = huma.Operation{
 	Method: http.MethodPost,
-	Path:   "/api/v2/embeddings/flush",
+	Path:   "/api/embeddings/flush",
 }
 
 func FlushStaleEmbeddings(ctx context.Context, _ *struct{}) (output *struct {
@@ -565,7 +565,7 @@ func FlushStaleEmbeddings(ctx context.Context, _ *struct{}) (output *struct {
 
 var VisualizeGraphRecordsOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/records/visualize",
+	Path:   "/api/records/visualize",
 }
 
 func VisualizeGraphRecords(ctx context.Context, input *ListRecordsInput) (output *BytesOutput, err error) {

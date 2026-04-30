@@ -25,7 +25,7 @@ async function load(id: number) {
         const cached = cache.get(id);
         const headers: HeadersInit = cached ? { "If-None-Match": cached.etag } : {};
 
-        const response = await apiFetch(`/api/v2/artifact/${id}`, { headers });
+        const response = await apiFetch(`/api/artifact/${id}`, { headers });
 
         if (response.status === 304 && cached) {
             objectUrl.value = cached.objectUrl;

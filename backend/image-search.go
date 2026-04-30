@@ -16,17 +16,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// ImageSearchInput represents the input for the POST /api/v2/search/image endpoint
+// ImageSearchInput represents the input for the POST /api/search/image endpoint
 type ImageSearchInput struct {
 	RawBody huma.MultipartFormFiles[struct {
 		File huma.FormFile `form:"file" required:"true"`
 	}]
 }
 
-// SearchByImageOperation defines the POST /api/v2/search/image endpoint for image-based record search
+// SearchByImageOperation defines the POST /api/search/image endpoint for image-based record search
 var SearchByImageOperation = huma.Operation{
 	Method:      "POST",
-	Path:        "/api/v2/search/image",
+	Path:        "/api/search/image",
 	Summary:     "Upload an image and search for similar records",
 	Description: `Accepts an image file via multipart form and searches the database for records with visually similar embeddings using the CLIP model. Returns matching records sorted by confidence score (dot product similarity). Images are processed through Infinity's embedding service and compared against existing record image embeddings.`,
 	Responses: map[string]*huma.Response{

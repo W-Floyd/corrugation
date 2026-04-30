@@ -45,43 +45,43 @@ Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and Gen
 ## API Endpoints
 
 ### Backfill
-- `GET /api/v2/config/global` - Get global config with `generateEmbeddingsOnStart` flag
+- `GET /api/config/global` - Get global config with `generateEmbeddingsOnStart` flag
 - Backfill runs on startup when `generateEmbeddingsOnStart` is true
 
 ### Records
-- `GET /api/v2/record/{id}` - Get single record by ID
-- `GET /api/v2/records` - List records
+- `GET /api/record/{id}` - Get single record by ID
+- `GET /api/records` - List records
   - Query params: `id`, `global`, `childrenDepth`, `parentDepth`, `search`, `searchImage`, `searchTextEmbedded`, `searchTextSubstring`, `minImageScore`, `minTextScore`, `timestamps`
   - Returns 207 Multi-Status for partial search results
-- `POST /api/v2/record` - Create record (returns 409 on duplicate reference number)
-- `POST /api/v2/record/{id}` - Update record (full replace)
-- `DELETE /api/v2/record/{id}` - Delete record
+- `POST /api/record` - Create record (returns 409 on duplicate reference number)
+- `POST /api/record/{id}` - Update record (full replace)
+- `DELETE /api/record/{id}` - Delete record
 
 ### Artifacts
-- `POST /api/v2/artifact` - Create artifact (multipart form)
-- `GET /api/v2/artifact/{id}` - Get artifact (returns WebP preview, ETag support)
+- `POST /api/artifact` - Create artifact (multipart form)
+- `GET /api/artifact/{id}` - Get artifact (returns WebP preview, ETag support)
 
 ### Tags
-- `GET /api/v2/tags` - List all tags
-- `GET /api/v2/tag/{id}` - Get tag by title
-- `POST /api/v2/tag` - Create tag
-- `DELETE /api/v2/tag/{id}` - Delete tag by title
+- `GET /api/tags` - List all tags
+- `GET /api/tag/{id}` - Get tag by title
+- `POST /api/tag` - Create tag
+- `DELETE /api/tag/{id}` - Delete tag by title
 
 ### Config
-- `GET /api/v2/config/global` - Get global config
-- `PUT /api/v2/config/global` - Update global config
-- `GET /api/v2/config/user` - Get user config
-- `PUT /api/v2/config/user` - Update user config
+- `GET /api/config/global` - Get global config
+- `PUT /api/config/global` - Update global config
+- `GET /api/config/user` - Get user config
+- `PUT /api/config/user` - Update user config
 
 ### Auth
 - `GET /api/auth/config` - Get OIDC config (enabled, endpoints, client ID)
 
 ### Embeddings
-- `GET /api/v2/embeddings/progress` - Get job status counts (total, pending, processing, done, failed)
-- `GET /api/v2/embeddings/search-progress` - Get search embedding progress by scope
+- `GET /api/embeddings/progress` - Get job status counts (total, pending, processing, done, failed)
+- `GET /api/embeddings/search-progress` - Get search embedding progress by scope
    - Query params: `id`, `global`, `childrenDepth`, `searchImage`, `searchTextEmbedded`
    - Returns record and artifact completion status per user
-- `POST /api/v2/embeddings/flush` - Delete stale embeddings
+- `POST /api/embeddings/flush` - Delete stale embeddings
 
 ### Import
 - `POST /api/import` - Import legacy tar.gz
@@ -89,8 +89,8 @@ Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and Gen
    - Supports `store.json` and `artifacts/*.webp` from previous Corrugation installs
 
 ### Visualization
-- `GET /api/v2/records/visualize` - Generate HTML entity graph
-- `GET /api/v2/tags/visualize` - Generate HTML tag graph
+- `GET /api/records/visualize` - Generate HTML entity graph
+- `GET /api/tags/visualize` - Generate HTML tag graph
 
 ## Embedding System Architecture
 
@@ -253,7 +253,7 @@ Refer to the actual source files for implementation details:
 4. Connect to SQLite database with WAL mode, 10 conn pool, -64000 cache size
 5. Run auto-migrations for all models
 6. Initialize auth config (OIDC discovery, JWKS cache with 10min refresh)
-7. Register Huma handlers at `/api/v2/*` paths
+7. Register Huma handlers at `/api/*` paths
 8. Register WebSocket handler at `/ws` (allows all origins)
 9. Start embedding workers (waits for Infinity health check)
 10. Trigger backfill if `generateEmbeddingsOnStart` flag set

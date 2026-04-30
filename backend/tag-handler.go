@@ -18,7 +18,7 @@ type TagsOutput struct {
 
 var GetTagOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/tag/{id}",
+	Path:   "/api/tag/{id}",
 }
 
 func GetTag(ctx context.Context, input *struct {
@@ -37,7 +37,7 @@ func GetTag(ctx context.Context, input *struct {
 
 var ListTagsOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/tags",
+	Path:   "/api/tags",
 }
 
 func ListTags(ctx context.Context, input *struct{}) (output *TagsOutput, err error) {
@@ -51,7 +51,7 @@ func ListTags(ctx context.Context, input *struct{}) (output *TagsOutput, err err
 
 var CreateTagOperation = huma.Operation{
 	Method: http.MethodPost,
-	Path:   "/api/v2/tag",
+	Path:   "/api/tag",
 }
 
 func CreateTag(ctx context.Context, input *struct {
@@ -71,7 +71,7 @@ func CreateTag(ctx context.Context, input *struct {
 
 var DeleteTagOperation = huma.Operation{
 	Method: http.MethodDelete,
-	Path:   "/api/v2/tag/{id}",
+	Path:   "/api/tag/{id}",
 }
 
 func DeleteTag(ctx context.Context, input *struct {
@@ -108,5 +108,5 @@ func DeleteTag(ctx context.Context, input *struct {
 
 var VisualizeGraphTagsOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/tags/visualize",
+	Path:   "/api/tags/visualize",
 }

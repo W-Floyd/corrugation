@@ -64,7 +64,7 @@ See [`src/stores/toasts.ts`](src/stores/toasts.ts) for the complete implementati
 
 ## API Client
 
-See [`src/api/index.ts`](src/api/index.ts) for the complete implementation. Provides methods for all backend endpoints under `/api/v2/`:
+See [`src/api/index.ts`](src/api/index.ts) for the complete implementation. Provides methods for all backend endpoints under `/api/`:
 - Record operations: `getRecords()`, `createRecord()`, `updateRecord()`, `deleteRecord()`, `moveRecord()`, `patchRecord()`
 - Search: `searchRecords()` with embedding and substring options (returns 207 for partial results)
 - Filter syntax: `filter:missing-image` shows only entities without images, `filter:only-image` shows only entities with images

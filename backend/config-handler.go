@@ -35,7 +35,7 @@ func SetInitialLogLevel(level string) error {
 
 var GetGlobalConfigOperation = huma.Operation{
 	Method:        http.MethodGet,
-	Path:          "/api/v2/config/global",
+	Path:          "/api/config/global",
 	DefaultStatus: http.StatusOK,
 }
 
@@ -54,7 +54,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 
 var PutGlobalConfigOperation = huma.Operation{
 	Method:        http.MethodPut,
-	Path:          "/api/v2/config/global",
+	Path:          "/api/config/global",
 	DefaultStatus: http.StatusOK,
 }
 
@@ -78,7 +78,7 @@ func PutGlobalConfig(_ context.Context, input *struct {
 
 var GetUserConfigOperation = huma.Operation{
 	Method:        http.MethodGet,
-	Path:          "/api/v2/config/user",
+	Path:          "/api/config/user",
 	DefaultStatus: http.StatusOK,
 }
 
@@ -98,7 +98,7 @@ func GetUserConfig(ctx context.Context, _ *struct{}) (output *struct{ Body UserC
 
 var PutUserConfigOperation = huma.Operation{
 	Method:        http.MethodPut,
-	Path:          "/api/v2/config/user",
+	Path:          "/api/config/user",
 	DefaultStatus: http.StatusOK,
 }
 

@@ -13,7 +13,7 @@ import (
 
 var CreateArtifactOperation = huma.Operation{
 	Method: http.MethodPost,
-	Path:   "/api/v2/artifact",
+	Path:   "/api/artifact",
 }
 
 func CreateArtifact(ctx context.Context, input *struct {
@@ -54,7 +54,7 @@ func CreateArtifact(ctx context.Context, input *struct {
 
 var GetArtifactOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/artifact/{id}",
+	Path:   "/api/artifact/{id}",
 }
 
 func GetArtifact(ctx context.Context, input *struct {
@@ -100,7 +100,7 @@ func GetArtifact(ctx context.Context, input *struct {
 
 var DeleteArtifactOperation = huma.Operation{
 	Method: http.MethodDelete,
-	Path:   "/api/v2/artifact/{id}",
+	Path:   "/api/artifact/{id}",
 }
 
 func DeleteArtifact(ctx context.Context, input *struct {

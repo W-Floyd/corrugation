@@ -10,7 +10,7 @@ import (
 
 var GetEmbeddingProgressOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/embeddings/progress",
+	Path:   "/api/embeddings/progress",
 }
 
 type EmbeddingProgress struct {
@@ -60,7 +60,7 @@ func GetEmbeddingProgress(ctx context.Context, _ *struct{}) (output *struct{ Bod
 
 var GetSearchEmbeddingProgressOperation = huma.Operation{
 	Method: http.MethodGet,
-	Path:   "/api/v2/embeddings/search-progress",
+	Path:   "/api/embeddings/search-progress",
 }
 
 type SearchEmbeddingProgress struct {
