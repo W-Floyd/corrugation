@@ -14,10 +14,11 @@ type PlaintextOutput struct {
 }
 
 type BytesOutput struct {
-	ContentType  string `header:"Content-Type"`
-	CacheControl string `header:"Cache-Control"`
-	ETag         string `header:"ETag"`
-	Body         []byte
+	ContentType        string `header:"Content-Type"`
+	CacheControl       string `header:"Cache-Control"`
+	ETag               string `header:"ETag"`
+	ContentDisposition string `header:"Content-Disposition"`
+	Body               []byte
 }
 
 func RegisterHandlers(api huma.API) {

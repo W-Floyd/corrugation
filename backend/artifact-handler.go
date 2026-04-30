@@ -59,7 +59,8 @@ var GetArtifactOperation = huma.Operation{
 
 func GetArtifact(ctx context.Context, input *struct {
 	conditional.Params
-	ID uint `path:"id" example:"1" doc:"Artifact ID to get"`
+	ID       uint `path:"id" example:"1" doc:"Artifact ID to get"`
+	Original bool `query:"original" doc:"Return the original file instead of the preview" required:"false"`
 }) (output *BytesOutput, err error) {
 	username, user, userID, err := UserFromContext(ctx)
 	if err != nil {
@@ -84,16 +85,35 @@ func GetArtifact(ctx context.Context, input *struct {
 
 	i, err := artifact.GetInterface()
 
-	ob, err := i.GetSmallPreviewContents()
+	var ob *[]byte
+	if input.Original {
+		ob, err = i.GetOriginalContents()
+	} else {
+		ob, err = i.GetSmallPreviewContents()
+	}
 	if err != nil {
 		return
 	}
 
 	output = &BytesOutput{}
 	output.Body = *ob
-	output.ContentType = http.DetectContentType(output.Body)
 	output.CacheControl = "public, max-age=604800"
 	output.ETag = etag
+
+	if input.Original {
+		ct, ctErr := i.GetContentType()
+		if ctErr == nil && ct != "" {
+			output.ContentType = ct
+		} else {
+			output.ContentType = http.DetectContentType(output.Body)
+		}
+		fn, fnErr := i.GetOriginalFilename()
+		if fnErr == nil && fn != "" {
+			output.ContentDisposition = fmt.Sprintf(`attachment; filename=%q`, filepath.Base(fn))
+		}
+	} else {
+		output.ContentType = http.DetectContentType(output.Body)
+	}
 
 	return
 }
