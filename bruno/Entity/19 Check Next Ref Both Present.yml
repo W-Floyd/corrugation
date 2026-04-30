@@ -1,0 +1,32 @@
+info:
+  name: 20 Check Next Ref With Both Present
+  type: http
+  seq: 20
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/records/nextref"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        // State: refs "1" (A) and "2" (B) both exist — next gap is 3
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Next ref is 3 (refs 1 and 2 are taken)", function() {
+          expect(res.body).to.equal(3);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

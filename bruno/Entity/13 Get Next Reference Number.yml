@@ -1,11 +1,11 @@
 info:
-  name: Child Relocated to Grandparent
+  name: 13 Get Next Reference Number
   type: http
-  seq: 5
+  seq: 13
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/record/{{reparentChildId}}"
+  url: "{{baseUrl}}/api/records/nextref"
   headers:
     - name: accept
       value: application/json
@@ -20,6 +20,12 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Child ParentID is now grandparent", function() {
-          expect(String(res.body.ParentID)).to.equal(bru.getVar("reparentGrandparentId"));
+        test("Next reference number is 1 (no references exist yet)", function() {
+          expect(res.body).to.equal(1);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

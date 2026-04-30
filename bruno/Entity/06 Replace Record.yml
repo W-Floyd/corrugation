@@ -1,0 +1,57 @@
+info:
+  name: 06 Replace Entity
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/record/{{entityId}}"
+  headers:
+    - name: content-type
+      value: application/json
+    - name: accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "Title": "Bruno Test Box (replaced)",
+        "Description": "Updated by PUT",
+        "Quantity": 5,
+        "Tags": [{"Title": "test"}, {"Title": "replaced"}]
+      }
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const e = res.body;
+
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("ID is correct", function() {
+          expect(e.ID).to.equal(parseInt(bru.getEnvVar("entityId")));
+        });
+        test("Title is updated", function() {
+          expect(e.Title).to.equal("Bruno Test Box (replaced)");
+        });
+        test("Description is updated", function() {
+          expect(e.Description).to.equal("Updated by PUT");
+        });
+        test("Quantity is updated", function() {
+          expect(e.Quantity).to.equal(5);
+        });
+        test("Tags are updated", function() {
+          const titles = e.Tags.map(t => t.Title);
+          expect(titles).to.have.members(["test", "replaced"]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

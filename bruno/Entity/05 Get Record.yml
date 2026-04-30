@@ -1,0 +1,49 @@
+info:
+  name: 05 Get Entity
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/record/{{entityId}}"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const e = res.body;
+
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("ID is correct", function() {
+          expect(e.ID).to.equal(parseInt(bru.getEnvVar("entityId")));
+        });
+        test("Title is correct", function() {
+          expect(e.Title).to.equal("Bruno Test Box");
+        });
+        test("Description is correct", function() {
+          expect(e.Description).to.equal("Created by Bruno test suite");
+        });
+        test("Quantity is correct", function() {
+          expect(e.Quantity).to.equal(3);
+        });
+        test("Tags are correct", function() {
+          const titles = e.Tags.map(t => t.Title);
+          expect(titles).to.have.members(["test", "bruno"]);
+        });
+        test("No parent (top-level)", function() {
+          expect(e.ParentID).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

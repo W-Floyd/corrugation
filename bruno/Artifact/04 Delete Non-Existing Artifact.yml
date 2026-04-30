@@ -1,11 +1,11 @@
 info:
-  name: Cleanup Child
+  name: Delete Non-Existing Artifact
   type: http
-  seq: 7
+  seq: 4
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/record/{{reparentChildId}}"
+  url: "{{baseUrl}}/api/artifact/9999"
   headers:
     - name: accept
       value: application/json
@@ -17,6 +17,6 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("Returns 200", function() {
-          expect(res.status).to.equal(200);
+        test("Returns 404 for non-existing artifact", function() {
+          expect(res.status).to.equal(404);
         });

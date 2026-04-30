@@ -1,7 +1,7 @@
 info:
-  name: Create Grandparent
+  name: 18 Create Referenced Entity A
   type: http
-  seq: 1
+  seq: 18
 
 http:
   method: POST
@@ -15,7 +15,8 @@ http:
     type: json
     data: |-
       {
-        "Title": "Grandparent Box",
+        "Title": "Referenced Entity A",
+        "ReferenceNumber": "1",
         "Quantity": 1
       }
   auth:
@@ -27,13 +28,19 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setVar("reparentGrandparentId", String(res.body.ID));
+          bru.setEnvVar("labeledEntityIdA", String(res.body.ID));
         }
     - type: tests
       code: |-
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns ID", function() {
-          expect(res.body.ID).to.be.a("number").and.greaterThan(0);
+        test("ReferenceNumber is set", function() {
+          expect(res.body.ReferenceNumber).to.equal("1");
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

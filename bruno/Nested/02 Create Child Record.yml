@@ -1,7 +1,7 @@
 info:
-  name: Create Grandparent
+  name: Create Child Entity
   type: http
-  seq: 1
+  seq: 2
 
 http:
   method: POST
@@ -15,8 +15,11 @@ http:
     type: json
     data: |-
       {
-        "Title": "Grandparent Box",
-        "Quantity": 1
+        "Title": "Child Box",
+        "Description": "Nested inside Parent Box",
+        "ParentID": {{parentId}},
+        "Quantity": 1,
+        "Tags": [{"Title": "child"}]
       }
   auth:
     type: bearer
@@ -27,13 +30,17 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setVar("reparentGrandparentId", String(res.body.ID));
+          bru.setVar("childId", String(res.body.ID));
+          bru.setEnvVar("childId", String(res.body.ID));
         }
     - type: tests
       code: |-
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns ID", function() {
+        test("Returns child record ID", function() {
           expect(res.body.ID).to.be.a("number").and.greaterThan(0);
+        });
+        test("ParentID is set correctly", function() {
+          expect(res.body.ParentID).to.equal(parseInt(bru.getVar("parentId")));
         });

@@ -1,0 +1,37 @@
+info:
+  name: 04 List Top Level Records
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/records"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Returns an array", function() {
+          expect(res.body).to.be.an("array");
+        });
+        test("Returns exactly one top-level record", function() {
+          expect(res.body).to.have.lengthOf(1);
+        });
+        test("Record has no parent", function() {
+          expect(res.body[0].ParentID).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

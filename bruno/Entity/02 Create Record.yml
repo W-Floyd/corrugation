@@ -1,0 +1,61 @@
+info:
+  name: 02 Create Entity
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/record"
+  headers:
+    - name: content-type
+      value: application/json
+    - name: accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "Title": "Bruno Test Box",
+        "Description": "Created by Bruno test suite",
+        "Quantity": 3,
+        "Tags": [{"Title": "test"}, {"Title": "bruno"}]
+      }
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          bru.setVar("entityId", String(res.body.ID));
+          bru.setEnvVar("entityId", String(res.body.ID));
+        }
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Returns record ID", function() {
+          expect(res.body.ID).to.be.a("number").and.greaterThan(0);
+        });
+        test("Title is correct", function() {
+          expect(res.body.Title).to.equal("Bruno Test Box");
+        });
+        test("Description is correct", function() {
+          expect(res.body.Description).to.equal("Created by Bruno test suite");
+        });
+        test("Quantity is correct", function() {
+          expect(res.body.Quantity).to.equal(3);
+        });
+        test("Tags are correct", function() {
+          const titles = res.body.Tags.map(t => t.Title);
+          expect(titles).to.have.members(["test", "bruno"]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

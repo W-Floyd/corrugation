@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/api/entity"
+  url: "{{baseUrl}}/api/record"
   headers:
     - name: content-type
       value: application/json
@@ -15,9 +15,9 @@ http:
     type: json
     data: |-
       {
-        "name": "Child Box",
-        "location": {{reparentParentId}},
-        "metadata": { "quantity": 1, "owners": [], "tags": [], "islabeled": false }
+        "Title": "Child Box",
+        "ParentID": {{reparentParentId}},
+        "Quantity": 1
       }
   auth:
     type: bearer
@@ -28,13 +28,13 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setVar("reparentChildId", res.body);
+          bru.setVar("reparentChildId", String(res.body.ID));
         }
     - type: tests
       code: |-
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns ID as string", function() {
-          expect(res.body).to.be.a("string");
+        test("Returns ID", function() {
+          expect(res.body.ID).to.be.a("number").and.greaterThan(0);
         });

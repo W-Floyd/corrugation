@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/entity/{{reparentGrandparentId}}/contains"
+  url: "{{baseUrl}}/api/records?id={{reparentGrandparentId}}&childrenDepth=1"
   headers:
     - name: accept
       value: application/json
@@ -17,7 +17,7 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const ids = res.body.map(String);
+        const ids = res.body.map(r => String(r.ID));
 
         test("Returns 200", function() {
           expect(res.status).to.equal(200);

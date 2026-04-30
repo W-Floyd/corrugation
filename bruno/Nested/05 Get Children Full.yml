@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/entity/find/children/{{parentId}}/full"
+  url: "{{baseUrl}}/api/records?id={{parentId}}&childrenDepth=1"
   headers:
     - name: accept
       value: application/json
@@ -17,17 +17,17 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const child = res.body[0];
+        const child = res.body.find(r => String(r.ID) === bru.getVar("childId"));
 
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns exactly one direct child", function() {
-          expect(res.body).to.be.an("array").with.lengthOf(1);
+        test("Response contains parent and direct child", function() {
+          expect(res.body).to.be.an("array").with.lengthOf(2);
         });
-        test("Child name is correct", function() {
-          expect(child.name).to.equal("Child Box");
+        test("Child title is correct", function() {
+          expect(child.Title).to.equal("Child Box");
         });
-        test("Child location is correct", function() {
-          expect(String(child.location)).to.equal(bru.getVar("parentId"));
+        test("Child ParentID is correct", function() {
+          expect(String(child.ParentID)).to.equal(bru.getVar("parentId"));
         });

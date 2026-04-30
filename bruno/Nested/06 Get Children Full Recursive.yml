@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/entity/find/children/{{parentId}}/full/recursive"
+  url: "{{baseUrl}}/api/records?id={{parentId}}&childrenDepth=-1"
   headers:
     - name: accept
       value: application/json
@@ -20,12 +20,12 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns both child and grandchild", function() {
-          expect(res.body).to.be.an("array").with.lengthOf(2);
+        test("Returns parent, child, and grandchild", function() {
+          expect(res.body).to.be.an("array").with.lengthOf(3);
         });
-        test("Contains child by name", function() {
-          expect(res.body.map(e => e.name)).to.include("Child Box");
+        test("Contains child by title", function() {
+          expect(res.body.map(r => r.Title)).to.include("Child Box");
         });
-        test("Contains grandchild by name", function() {
-          expect(res.body.map(e => e.name)).to.include("Grandchild Box");
+        test("Contains grandchild by title", function() {
+          expect(res.body.map(r => r.Title)).to.include("Grandchild Box");
         });

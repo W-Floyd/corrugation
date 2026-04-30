@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/entity/{{reparentGrandparentId}}"
+  url: "{{baseUrl}}/api/record/{{reparentGrandparentId}}"
   headers:
     - name: accept
       value: application/json

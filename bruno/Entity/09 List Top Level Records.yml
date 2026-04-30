@@ -1,0 +1,46 @@
+info:
+  name: 09 Get Children Full
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/records"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const e = res.body[0];
+
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Returns exactly one top-level record", function() {
+          expect(res.body).to.be.an("array").with.lengthOf(1);
+        });
+        test("Title is correct", function() {
+          expect(e.Title).to.equal("Bruno Test Box (patched)");
+        });
+        test("Description is correct", function() {
+          expect(e.Description).to.equal("Updated by PUT");
+        });
+        test("Quantity is correct", function() {
+          expect(e.Quantity).to.equal(7);
+        });
+        test("Tags are correct", function() {
+          const titles = e.Tags.map(t => t.Title);
+          expect(titles).to.have.members(["test", "replaced"]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

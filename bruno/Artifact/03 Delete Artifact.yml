@@ -1,11 +1,11 @@
 info:
-  name: Cleanup Child
+  name: Delete Artifact
   type: http
-  seq: 7
+  seq: 3
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/record/{{reparentChildId}}"
+  url: "{{baseUrl}}/api/artifact/{{artifactId}}"
   headers:
     - name: accept
       value: application/json

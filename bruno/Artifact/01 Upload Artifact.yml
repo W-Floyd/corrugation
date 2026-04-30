@@ -16,9 +16,6 @@ http:
         value:
           - ./fixtures/sample.jpg
         type: file
-      - name: entityId
-        value: "{{entityId}}"
-        type: text
   auth:
     type: bearer
     token: "{{authToken}}"
@@ -36,6 +33,6 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns artifact ID as string", function() {
-          expect(res.body).to.be.a("string");
+        test("Returns artifact ID as number", function() {
+          expect(res.body).to.be.a("number").and.greaterThan(0);
         });

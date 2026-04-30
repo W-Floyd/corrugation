@@ -1,0 +1,32 @@
+info:
+  name: 25 Check Next Ref After Deleting B
+  type: http
+  seq: 25
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/records/nextref"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        // State: no references remain — next ref is 1
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Next ref is 1 (no references remain)", function() {
+          expect(res.body).to.equal(1);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

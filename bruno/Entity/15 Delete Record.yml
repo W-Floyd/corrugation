@@ -1,11 +1,11 @@
 info:
-  name: Cleanup Child
+  name: 16 Delete Entity
   type: http
-  seq: 7
+  seq: 16
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/record/{{reparentChildId}}"
+  url: "{{baseUrl}}/api/record/{{entityId}}"
   headers:
     - name: accept
       value: application/json
@@ -20,3 +20,9 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
