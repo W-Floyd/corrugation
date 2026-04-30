@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/labstack/gommon/log"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
@@ -60,12 +61,45 @@ var GetAuthConfigOperation = huma.Operation{
 	Summary:     "Get OIDC auth configuration for the frontend",
 }
 
+var LoginLocalOperation = huma.Operation{
+	Method:      http.MethodPost,
+	Path:        "/api/auth/local/login",
+	OperationID: "local-login",
+	Summary:     "Login with username only (for local testing)",
+}
+
 func GetAuthConfigHandler(_ context.Context, _ *struct{}) (*struct{ Body AuthFrontendConfig }, error) {
 	return &struct{ Body AuthFrontendConfig }{Body: globalAuthConfig}, nil
 }
 
+func LoginLocalHandler(_ context.Context, input *struct {
+	Body struct {
+		Username string `json:"username" required:"true" doc:"Username for local login"`
+	}
+}) (*struct {
+	Body struct {
+		Username string `json:"username"`
+	}
+}, error) {
+	cfg, err := loadGlobalConfig()
+	if err != nil {
+		return nil, err
+	}
+	if !cfg.AllowLocalUsernameLogin {
+		return nil, huma.Error403Forbidden("local username login is disabled")
+	}
+	return &struct {
+		Body struct {
+			Username string `json:"username"`
+		}
+	}{Body: struct {
+		Username string `json:"username"`
+	}{Username: input.Body.Username}}, nil
+}
+
 func RegisterAuthHandlers(api huma.API) {
 	huma.Register(api, GetAuthConfigOperation, GetAuthConfigHandler)
+	huma.Register(api, LoginLocalOperation, LoginLocalHandler)
 }
 
 type contextKey string
@@ -166,11 +200,20 @@ func NewAuthMiddleware(api huma.API, issuer, jwksURL string, insecureSkipVerify 
 			}
 		}
 		if token == "" {
+			log.Warnf("[auth] missing token: %s %s", ctx.Method(), ctx.URL().Path)
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		// When local username login is enabled, treat the Bearer token as a plain username.
+		cfg, err := loadGlobalConfig()
+		if err == nil && cfg.AllowLocalUsernameLogin {
+			ctx = huma.WithValue(ctx, usernameContextKey, token)
+			next(ctx)
 			return
 		}
 		usernameStr, err := resolve(token)
 		if err != nil {
+			log.Warnf("[auth] invalid token: %s %s: %v", ctx.Method(), ctx.URL().Path, err)
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}

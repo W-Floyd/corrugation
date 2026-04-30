@@ -7,11 +7,12 @@ type GlobalConfig struct {
 	gorm.Model
 	LogLevel                  string
 	GenerateEmbeddingsOnStart bool
+	AllowLocalUsernameLogin   bool
 }
 
 func loadGlobalConfig() (GlobalConfig, error) {
 	var cfg GlobalConfig
-	err := db.FirstOrCreate(&cfg, GlobalConfig{Model: gorm.Model{ID: 1}}).Error
+	err := db.FirstOrCreate(&cfg, GlobalConfig{Model: gorm.Model{ID: 1}, AllowLocalUsernameLogin: false}).Error
 	return cfg, err
 }
 
@@ -27,6 +28,15 @@ func SetInitialGenerateEmbeddingsOnStart(enabled bool) error {
 		return err
 	}
 	cfg.GenerateEmbeddingsOnStart = enabled
+	return saveGlobalConfig(cfg)
+}
+
+func SetInitialAllowLocalUsernameLogin(enabled bool) error {
+	cfg, err := loadGlobalConfig()
+	if err != nil {
+		return err
+	}
+	cfg.AllowLocalUsernameLogin = enabled
 	return saveGlobalConfig(cfg)
 }
 

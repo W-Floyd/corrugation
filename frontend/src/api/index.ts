@@ -243,6 +243,16 @@ export const api = {
     const response = await apiFetch("/api/store/version");
     return response.json();
   },
+
+  // Local username login for testing (when AllowLocalUsernameLogin is enabled)
+  async login(username: string): Promise<{ username: string }> {
+    const response = await apiFetch("/api/auth/local/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+    return response.json();
+  },
 };
 
 export default api;

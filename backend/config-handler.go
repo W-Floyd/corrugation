@@ -10,6 +10,7 @@ import (
 type GlobalConfigBody struct {
 	LogLevel                  string `json:"logLevel" doc:"Log level: silent, panic, error, warn, info, debug"`
 	GenerateEmbeddingsOnStart bool   `json:"generateEmbeddingsOnStart" doc:"Run embedding backfill on server startup"`
+	AllowLocalUsernameLogin   bool   `json:"allowLocalUsernameLogin" doc:"Allow local username login without authentication for testing"`
 }
 
 type UserConfigBody struct {
@@ -46,6 +47,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 	output = &struct{ Body GlobalConfigBody }{Body: GlobalConfigBody{
 		LogLevel:                  cfg.LogLevel,
 		GenerateEmbeddingsOnStart: cfg.GenerateEmbeddingsOnStart,
+		AllowLocalUsernameLogin:   cfg.AllowLocalUsernameLogin,
 	}}
 	return
 }
@@ -59,7 +61,11 @@ var PutGlobalConfigOperation = huma.Operation{
 func PutGlobalConfig(_ context.Context, input *struct {
 	Body GlobalConfigBody
 }) (output *struct{ Body GlobalConfigBody }, err error) {
-	cfg := GlobalConfig{LogLevel: input.Body.LogLevel, GenerateEmbeddingsOnStart: input.Body.GenerateEmbeddingsOnStart}
+	cfg := GlobalConfig{
+		LogLevel:                  input.Body.LogLevel,
+		GenerateEmbeddingsOnStart: input.Body.GenerateEmbeddingsOnStart,
+		AllowLocalUsernameLogin:   input.Body.AllowLocalUsernameLogin,
+	}
 	if err = saveGlobalConfig(cfg); err != nil {
 		return
 	}

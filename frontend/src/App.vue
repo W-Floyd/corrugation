@@ -464,6 +464,7 @@ onMounted(() => {
             );
         if (route.name !== "callback") {
             entitiesStore.connectWS();
+            authStore.fetchConfig();
         }
     });
     window.addEventListener("keydown", handleKeydown);
@@ -503,6 +504,8 @@ watch(
 
 <template>
     <template v-if="routerReady">
+        <ToastContainer />
+
         <LoginView v-if="route.name === 'login'" />
 
         <RouterView v-else-if="route.name === 'callback'" />
@@ -623,8 +626,6 @@ watch(
                 " />
             <CommandDialog :visible="commandDialogVisible" @update:visible="commandDialogVisible = $event" />
 
-            <!-- Toast notifications -->
-            <ToastContainer />
         </div>
     </template>
 </template>

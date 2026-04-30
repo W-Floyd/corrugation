@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useToastsStore } from "./toasts";
 
 export interface AuthConfig {
   enabled: boolean;
@@ -99,6 +100,23 @@ export const useAuthStore = defineStore("auth", () => {
     window.location.href = url;
   }
 
+  async function localLogin(username: string): Promise<void> {
+    const response = await fetch("/api/auth/local/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      const message = error || "Local login failed";
+      clearToken();
+      useToastsStore().add(message, "error");
+      throw new Error(message);
+    }
+    const result = await response.json();
+    setToken(result.username);
+  }
+
   async function handleCallback(code: string, state: string): Promise<boolean> {
     DEBUG && console.log("[auth] handleCallback start, code:", code.slice(0, 8) + "…", "state:", state);
 
@@ -165,5 +183,6 @@ export const useAuthStore = defineStore("auth", () => {
     fetchConfig,
     startLogin,
     handleCallback,
+    localLogin,
   };
 });

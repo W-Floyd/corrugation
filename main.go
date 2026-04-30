@@ -28,6 +28,7 @@ type Options struct {
 	OIDCInsecureSkipVerify     bool   `help:"Skip TLS certificate verification for OIDC discovery and JWKS requests"`
 	LogLevel                   string `help:"Log level: silent, error, warn, info" default:"warn"`
 	GenerateEmbeddingsOnStart  bool   `help:"Run embedding backfill on server startup" default:"false"`
+	AllowLocalUsernameLogin    bool   `help:"Allow local username login without OIDC for testing" default:"false"`
 	EmbeddingConcurrency       int    `help:"Max parallel embedding requests" default:"4"`
 	InfinityAddress            string `help:"Infinity embeddings server address" default:"http://localhost:8002"`
 	InfinityTextModel          string `help:"Infinity text embeddings model ID" default:"BAAI/bge-large-en-v1.5"`
@@ -76,6 +77,9 @@ func main() {
 		}
 		if err = backend.SetInitialGenerateEmbeddingsOnStart(options.GenerateEmbeddingsOnStart); err != nil {
 			backend.Log.Fatalf("failed to persist generate-embeddings-on-start: %v", err)
+		}
+		if err = backend.SetInitialAllowLocalUsernameLogin(options.AllowLocalUsernameLogin); err != nil {
+			backend.Log.Fatalf("failed to persist allow-local-username-login: %v", err)
 		}
 
 		if !dbExists {
