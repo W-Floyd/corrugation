@@ -2,13 +2,11 @@ package backend
 
 import (
 	"sync"
-
-	"gorm.io/gorm"
 )
 
 // User stores user identity and per-user runtime-overridable settings. Username is empty when auth is disabled.
 type User struct {
-	gorm.Model
+	Model
 	Username                   string `gorm:"uniqueIndex"`
 	InfinityTextModel          *string
 	InfinityImageModel         *string

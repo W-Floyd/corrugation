@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"errors"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -63,4 +64,11 @@ func InitAndMigrateDB() (err error) {
 		&User{},
 	)
 	return nil
+}
+
+type Model struct {
+	ID        uint           `gorm:"primarykey"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }

@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // closed once the Infinity health check succeeds; workers block until then
@@ -54,7 +52,7 @@ const (
 )
 
 type EmbeddingJob struct {
-	gorm.Model
+	Model
 	JobType    string `gorm:"not null;index:idx_embedding_job_dedup"`
 	TargetID   uint   `gorm:"not null;index:idx_embedding_job_dedup"`
 	OwnerID    *uint  `gorm:"index"`

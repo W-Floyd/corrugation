@@ -7,7 +7,7 @@ import (
 )
 
 type Embedding struct {
-	gorm.Model
+	Model
 
 	RecordID   *uint  `gorm:"index:idx_composite,priority:1"`
 	ArtifactID *uint  `gorm:"index:idx_composite,priority:1"`

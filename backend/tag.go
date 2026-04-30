@@ -12,9 +12,9 @@ type TagInput struct {
 }
 
 type Tag struct {
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	Title string `gorm:"primarykey"`
 	Color string

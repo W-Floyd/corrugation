@@ -104,7 +104,7 @@ func generateImageEmbeddingFromBytes(user *User, imageData []byte) ([]float64, e
 
 // GetRecordsWithImageSimilarity retrieves records with their image similarity scores
 // Returns a list of RecordResponse objects with SearchConfidenceImage set
-func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (results []RecordResponse, err error) {
+func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (results []Record, err error) {
 	// Get current user
 	_, user, userID, err := UserFromContext(ctx)
 	if err != nil {
@@ -187,12 +187,12 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 		if score < minimumImageToImageSearchConfidence {
 			continue
 		}
-		record := toRecordResponse(*recordMap[r.ID], false)
+		record := *recordMap[r.ID]
 		record.SearchConfidenceImage = &score
 		results = append(results, record)
 	}
 
-	slices.SortFunc(results, func(a, b RecordResponse) int {
+	slices.SortFunc(results, func(a, b Record) int {
 		if a.SearchConfidenceImage == nil {
 			return 1
 		}

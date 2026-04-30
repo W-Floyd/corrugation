@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"gorm.io/gorm"
@@ -24,7 +23,7 @@ type RecordInput struct {
 }
 
 type Record struct {
-	gorm.Model
+	Model
 
 	Quantity        *uint   `json:",omitempty"`
 	ReferenceNumber *string `json:",omitempty" gorm:"uniqueIndex:idx_owner_ref"`
@@ -185,41 +184,6 @@ func generateMissingRecordEmbeddings(ctx context.Context, recordIDs []uint, embe
 	}
 	Log.Infow("generateMissingRecordEmbeddings", "source", source, "username", username, "total", len(recordIDs), "enqueued", len(enqueued))
 	return
-}
-
-type RecordResponse struct {
-	ID                    uint        `json:"ID"`
-	CreatedAt             *time.Time  `json:"CreatedAt,omitempty"`
-	UpdatedAt             *time.Time  `json:"UpdatedAt,omitempty"`
-	Quantity              *uint       `json:",omitempty"`
-	ReferenceNumber       *string     `json:",omitempty"`
-	Title                 *string     `json:",omitempty"`
-	Description           *string     `json:",omitempty"`
-	Tags                  []*Tag      `json:",omitempty"`
-	Artifacts             []*Artifact `json:",omitempty"`
-	ParentID              *uint       `json:",omitempty"`
-	SearchConfidenceImage *float64    `json:",omitempty"`
-	SearchConfidenceText  *float64    `json:",omitempty"`
-}
-
-func toRecordResponse(r Record, timestamps bool) RecordResponse {
-	resp := RecordResponse{
-		ID:                    r.ID,
-		Quantity:              r.Quantity,
-		ReferenceNumber:       r.ReferenceNumber,
-		Title:                 r.Title,
-		Description:           r.Description,
-		Tags:                  r.Tags,
-		Artifacts:             r.Artifacts,
-		ParentID:              r.ParentID,
-		SearchConfidenceImage: r.SearchConfidenceImage,
-		SearchConfidenceText:  r.SearchConfidenceText,
-	}
-	if timestamps {
-		resp.CreatedAt = &r.Model.CreatedAt
-		resp.UpdatedAt = &r.Model.UpdatedAt
-	}
-	return resp
 }
 
 func recordEmbeddingText(r Record) string {

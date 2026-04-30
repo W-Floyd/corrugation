@@ -1,18 +1,16 @@
 package backend
 
-import "gorm.io/gorm"
-
 // GlobalConfig is a singleton table (always ID=1) storing server-wide settings.
 type GlobalConfig struct {
-	gorm.Model
-	LogLevel                  string
-	BackfillOnStart bool
-	AllowLocalUsernameLogin   bool
+	Model
+	LogLevel                string
+	BackfillOnStart         bool
+	AllowLocalUsernameLogin bool
 }
 
 func loadGlobalConfig() (GlobalConfig, error) {
 	var cfg GlobalConfig
-	err := db.FirstOrCreate(&cfg, GlobalConfig{Model: gorm.Model{ID: 1}, AllowLocalUsernameLogin: false}).Error
+	err := db.FirstOrCreate(&cfg, GlobalConfig{Model: Model{ID: 1}, AllowLocalUsernameLogin: false}).Error
 	return cfg, err
 }
 

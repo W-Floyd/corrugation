@@ -27,17 +27,16 @@ type ListRecordsInput struct {
 	SearchTextSubstring bool    `query:"searchTextSubstring" doc:"Use substring matching in search" required:"false"`
 	MinImageScore       float64 `query:"minImageScore" doc:"Minimum image embedding score threshold" required:"false"`
 	MinTextScore        float64 `query:"minTextScore" doc:"Minimum text score threshold" required:"false"`
-	Timestamps          bool    `query:"timestamps" doc:"Include CreatedAt and UpdatedAt in response" required:"false"`
 }
 
 type RecordOutput struct {
-	Body RecordResponse
+	Body Record
 	ETag string `header:"ETag" yaml:"ETag"`
 }
 
 type RecordsOutput struct {
 	Status int `yaml:"-"`
-	Body   []RecordResponse
+	Body   []Record
 }
 
 var GetRecordOperation = huma.Operation{
@@ -47,8 +46,7 @@ var GetRecordOperation = huma.Operation{
 
 func GetRecord(ctx context.Context, input *struct {
 	conditional.Params
-	ID         uint `path:"id" example:"1" doc:"ID to get"`
-	Timestamps bool `query:"timestamps" doc:"Include CreatedAt and UpdatedAt in response" required:"false"`
+	ID uint `path:"id" example:"1" doc:"ID to get"`
 }) (output *RecordOutput, err error) {
 	var records []Record
 	records, _, err = GetRecords(ctx, &input.ID, nil, nil, nil, []struct {
@@ -71,7 +69,7 @@ func GetRecord(ctx context.Context, input *struct {
 		err = huma.Error404NotFound(errorRecordNotFound + " " + strconv.Itoa(int(input.ID)))
 		return
 	}
-	recordResp := toRecordResponse(records[0], input.Timestamps)
+	recordResp := records[0]
 	output = &RecordOutput{Body: recordResp}
 
 	jsonBytes, _ := json.Marshal(recordResp)
@@ -130,15 +128,11 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 	if err != nil {
 		return
 	}
-	responses := make([]RecordResponse, len(records))
-	for i, r := range records {
-		responses[i] = toRecordResponse(r, input.Timestamps)
-	}
 	status := http.StatusOK
 	if partial {
 		status = http.StatusMultiStatus
 	}
-	output = &RecordsOutput{Status: status, Body: responses}
+	output = &RecordsOutput{Status: status, Body: records}
 	return
 }
 
@@ -190,7 +184,7 @@ func CreateRecord(ctx context.Context, input *struct {
 	EnqueueEmbeddingJob(JobTypeRecord, record.ID, userID, username, textModel, "store")
 	err = nil
 	output = &RecordOutput{
-		Body: toRecordResponse(record, true),
+		Body: record,
 	}
 	return
 }
@@ -257,7 +251,7 @@ func UpdateRecord(ctx context.Context, input *struct {
 	textModel, _, _, _ := effectiveInfinityConfig(user)
 	EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
 
-	output = &RecordOutput{Body: toRecordResponse(r, true)}
+	output = &RecordOutput{Body: r}
 	return
 }
 
@@ -408,7 +402,7 @@ func PatchRecord(ctx context.Context, input *struct {
 		EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
 	}
 
-	output = &RecordOutput{Body: toRecordResponse(r, true)}
+	output = &RecordOutput{Body: r}
 	return
 }
 

@@ -30,7 +30,7 @@ type ArtifactInterface interface {
 }
 
 type Artifact struct {
-	gorm.Model
+	Model
 
 	Data             *[]byte `json:",omitempty"`
 	OriginalFilename *string `json:",omitempty"`
