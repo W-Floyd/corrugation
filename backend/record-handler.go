@@ -62,6 +62,7 @@ func GetRecord(ctx context.Context, input *struct {
 				return nil
 			},
 		},
+		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
@@ -124,6 +125,7 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 		h func(db gorm.PreloadBuilder) error
 	}{
 		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
+		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
