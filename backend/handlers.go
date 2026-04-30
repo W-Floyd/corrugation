@@ -23,6 +23,7 @@ type BytesOutput struct {
 func RegisterHandlers(api huma.API) {
 
 	huma.Register(api, ImportOperation, Import)
+	huma.Register(api, ResetStoreOperation, ResetStore)
 
 	huma.Register(api, ListRecordsOperation, ListRecords)
 	huma.Register(api, GetRecordOperation, GetRecord)

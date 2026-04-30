@@ -526,6 +526,39 @@ func DeleteRecord(ctx context.Context, input *struct {
 	return
 }
 
+var ResetStoreOperation = huma.Operation{
+	Method:      http.MethodPost,
+	Path:        "/api/reset",
+	OperationID: "reset-store",
+	Summary:     "Delete all records and artifacts owned by the current user",
+}
+
+func ResetStore(ctx context.Context, _ *struct{}) (output *EmptyOutput, err error) {
+	_, user, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+
+	var ownerFilter string
+	var ownerArgs []any
+	if user != nil {
+		ownerFilter = "owner_id = ?"
+		ownerArgs = []any{userID}
+	} else {
+		ownerFilter = "owner_id IS NULL"
+	}
+
+	if err = db.Unscoped().Where(ownerFilter, ownerArgs...).Delete(&Artifact{}).Error; err != nil {
+		return
+	}
+	if err = db.Unscoped().Where(ownerFilter, ownerArgs...).Delete(&Record{}).Error; err != nil {
+		return
+	}
+
+	output = &EmptyOutput{}
+	return
+}
+
 var FlushStaleEmbeddingsOperation = huma.Operation{
 	Method: http.MethodPost,
 	Path:   "/api/embeddings/flush",
