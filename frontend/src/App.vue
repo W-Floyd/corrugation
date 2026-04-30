@@ -19,6 +19,7 @@ import LoginView from "@/views/LoginView.vue";
 import PlusIcon from "vue-material-design-icons/Plus.vue";
 import CameraIcon from "vue-material-design-icons/Camera.vue";
 import LogoutIcon from "vue-material-design-icons/Logout.vue";
+import ImageSearchIcon from "vue-material-design-icons/ImageSearch.vue";
 import { api } from "@/api";
 import { useAuthStore } from "./stores/auth";
 
@@ -100,6 +101,23 @@ const handleFabCapture = async (): Promise<void> => {
         toastsStore.add("Entity created from photo", "info");
     } catch {
         toastsStore.add("Failed to create entity from photo");
+    }
+};
+
+const handleFabImageSearch = async (): Promise<void> => {
+    const capturedFiles: File[] = [];
+    await new Promise<void>((resolve) => {
+        cameraStore.open((files: File[]) => {
+            capturedFiles.push(...files);
+            resolve();
+        });
+    });
+    if (!capturedFiles[0]) return;
+    try {
+        await entitiesStore.searchByImage(capturedFiles[0]);
+        toastsStore.add("Image search complete", "info");
+    } catch {
+        toastsStore.add("Failed to search for similar records");
     }
 };
 
@@ -583,6 +601,12 @@ watch(
                     title="Quick capture (C)">
                     <CameraIcon :size="28" />
                     <KbdHint contents="C" :show="showHint" />
+                </button>
+                <button @click="handleFabImageSearch"
+                    class="relative h-14 w-14 flex items-center justify-center rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg active:shadow-xl"
+                    title="Image search (I)">
+                    <ImageSearchIcon :size="28" />
+                    <KbdHint contents="I" :show="showHint" />
                 </button>
             </div>
 
