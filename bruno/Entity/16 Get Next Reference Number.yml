@@ -1,11 +1,14 @@
 info:
-  name: 21 Delete Referenced Entity A
+  name: 16 Get Next Reference Number
   type: http
-  seq: 21
+  seq: 16
 
 http:
-  method: DELETE
-  url: "{{baseUrl}}/api/record/{{labeledEntityIdA}}"
+  method: GET
+  url: "{{baseUrl}}/api/records/nextref"
+  headers:
+    - name: accept
+      value: application/json
   auth:
     type: bearer
     token: "{{authToken}}"
@@ -16,6 +19,9 @@ runtime:
       code: |-
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
+        });
+        test("Next reference number is 1 (no references exist yet)", function() {
+          expect(res.body).to.equal(1);
         });
 
 settings:

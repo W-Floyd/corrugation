@@ -1,5 +1,5 @@
 info:
-  name: 07 Patch Entity
+  name: 07 Patch Title
   type: http
   seq: 7
 
@@ -15,8 +15,7 @@ http:
     type: json
     data: |-
       {
-        "Title": "Bruno Test Box (patched)",
-        "Quantity": 7
+        "Title": "Bruno Test Box (patched)"
       }
   auth:
     type: bearer
@@ -31,17 +30,14 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("ID is correct", function() {
-          expect(e.ID).to.equal(parseInt(bru.getEnvVar("entityId")));
-        });
         test("Title is updated", function() {
           expect(e.Title).to.equal("Bruno Test Box (patched)");
         });
         test("Description is preserved", function() {
           expect(e.Description).to.equal("Updated by PUT");
         });
-        test("Quantity is updated", function() {
-          expect(e.Quantity).to.equal(7);
+        test("Quantity is preserved", function() {
+          expect(e.Quantity).to.equal(5);
         });
         test("Tags are preserved", function() {
           const titles = e.Tags.map(t => t.Title);

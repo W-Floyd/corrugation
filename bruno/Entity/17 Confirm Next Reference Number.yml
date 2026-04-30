@@ -1,7 +1,7 @@
 info:
-  name: 26 Confirm Next Ref With None Remaining
+  name: 17 Confirm Next Reference Number
   type: http
-  seq: 26
+  seq: 17
 
 http:
   method: GET
@@ -17,11 +17,10 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        // No references remain — next ref is 1
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Next ref is 1 (empty)", function() {
+        test("Next reference number is 1", function() {
           expect(res.body).to.equal(1);
         });
 

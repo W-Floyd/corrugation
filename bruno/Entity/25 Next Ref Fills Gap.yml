@@ -1,7 +1,7 @@
 info:
-  name: 13 Get Next Reference Number
+  name: 25 Next Ref Fills Gap
   type: http
-  seq: 13
+  seq: 23
 
 http:
   method: GET
@@ -17,10 +17,11 @@ runtime:
   scripts:
     - type: tests
       code: |-
+        // Gaps are filled — next ref is still 1 (lowest gap)
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Next reference number is 1 (no references exist yet)", function() {
+        test("Next ref is still 1 (lowest available gap)", function() {
           expect(res.body).to.equal(1);
         });
 

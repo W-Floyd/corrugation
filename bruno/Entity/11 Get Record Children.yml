@@ -1,11 +1,11 @@
 info:
-  name: 20 Check Next Ref With Both Present
+  name: 11 Get Record Children
   type: http
-  seq: 20
+  seq: 11
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/records/nextref"
+  url: "{{baseUrl}}/api/records?id={{entityId}}&childrenDepth=1"
   headers:
     - name: accept
       value: application/json
@@ -17,12 +17,12 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        // State: refs "1" (A) and "2" (B) both exist — next gap is 3
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Next ref is 3 (refs 1 and 2 are taken)", function() {
-          expect(res.body).to.equal(3);
+        test("Returns only the entity itself (no children)", function() {
+          expect(res.body).to.be.an("array").with.lengthOf(1);
+          expect(res.body[0].ID).to.equal(parseInt(bru.getEnvVar("entityId")));
         });
 
 settings:

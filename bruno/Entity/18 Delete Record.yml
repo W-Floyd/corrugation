@@ -1,11 +1,11 @@
 info:
-  name: 17 Delete Non-Existing Entity
+  name: 18 Delete Record
   type: http
-  seq: 17
+  seq: 16
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/record/9999"
+  url: "{{baseUrl}}/api/record/{{entityId}}"
   headers:
     - name: accept
       value: application/json
@@ -17,8 +17,8 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("Returns 404 for non-existing record", function() {
-          expect(res.status).to.equal(404);
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
         });
 
 settings:

@@ -1,7 +1,7 @@
 info:
-  name: 22 Check Next Ref After Deleting A
+  name: 28 Next Ref When Empty
   type: http
-  seq: 22
+  seq: 26
 
 http:
   method: GET
@@ -17,11 +17,11 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        // State: ref "2" (B) exists, ref "1" (A) deleted — gap at 1 is now lowest
+        // No references remain — next ref is 1
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Next ref is 1 (gap reopened after deleting A)", function() {
+        test("Next ref is 1 (empty)", function() {
           expect(res.body).to.equal(1);
         });
 

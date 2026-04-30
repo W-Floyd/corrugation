@@ -1,11 +1,11 @@
 info:
-  name: 11 Find Locations
+  name: 27 Next Ref After Deleting B
   type: http
-  seq: 11
+  seq: 25
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/records"
+  url: "{{baseUrl}}/api/records/nextref"
   headers:
     - name: accept
       value: application/json
@@ -17,13 +17,12 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const ids = res.body.map(r => String(r.ID));
-
+        // State: no references remain — next ref is 1
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Entity appears in top-level records", function() {
-          expect(ids).to.include(bru.getEnvVar("entityId"));
+        test("Next ref is 1 (no references remain)", function() {
+          expect(res.body).to.equal(1);
         });
 
 settings:

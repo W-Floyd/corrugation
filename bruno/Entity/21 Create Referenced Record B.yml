@@ -1,7 +1,7 @@
 info:
-  name: 18 Create Referenced Entity A
+  name: 21 Create Referenced Record B
   type: http
-  seq: 18
+  seq: 19
 
 http:
   method: POST
@@ -15,8 +15,8 @@ http:
     type: json
     data: |-
       {
-        "Title": "Referenced Entity A",
-        "ReferenceNumber": "1",
+        "Title": "Referenced Entity B",
+        "ReferenceNumber": "2",
         "Quantity": 1
       }
   auth:
@@ -28,7 +28,7 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setEnvVar("labeledEntityIdA", String(res.body.ID));
+          bru.setEnvVar("labeledEntityIdB", String(res.body.ID));
         }
     - type: tests
       code: |-
@@ -36,7 +36,7 @@ runtime:
           expect(res.status).to.equal(200);
         });
         test("ReferenceNumber is set", function() {
-          expect(res.body.ReferenceNumber).to.equal("1");
+          expect(res.body.ReferenceNumber).to.equal("2");
         });
 
 settings:
