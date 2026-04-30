@@ -121,7 +121,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		if childrenDepth != nil {
 			for _, r := range records {
 				var sub []*Record
-				sub, err = GetChildrenRecurse(r.ID, *childrenDepth, 1)
+				sub, err = GetChildrenRecurse(r.ID, *childrenDepth, 1, preload)
 				if err != nil {
 					return
 				}
@@ -170,7 +170,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 
 		if childrenDepth != nil {
 			var recordPtrs []*Record
-			recordPtrs, err = GetChildrenRecurse(*ID, *childrenDepth, 0)
+			recordPtrs, err = GetChildrenRecurse(*ID, *childrenDepth, 0, preload)
 
 			for _, record := range recordPtrs {
 				records = append(records, *record)
@@ -348,7 +348,10 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 
 }
 
-func GetChildrenRecurse(parentID uint, searchDepth int, currentDepth int) (records []*Record, err error) {
+func GetChildrenRecurse(parentID uint, searchDepth int, currentDepth int, preload []struct {
+	q string
+	h func(db gorm.PreloadBuilder) error
+}) (records []*Record, err error) {
 	if currentDepth > maxSearchDepth {
 		err = errors.New("exceeded max search depth on children")
 		return
@@ -380,11 +383,39 @@ SELECT * FROM children ORDER BY depth, id
 	}
 
 	if len(records) > 0 {
-		var recordPtrs []*Record
-		for i := range records {
-			recordPtrs = append(recordPtrs, records[i])
+		// Apply preloads if provided
+		if len(preload) > 0 {
+			recordIDs := make([]uint, len(records))
+			for i := range records {
+				recordIDs[i] = records[i].ID
+			}
+			var loadedRecords []Record
+			var builder gorm.ChainInterface[Record]
+			for _, s := range preload {
+				if builder == nil {
+					builder = gorm.G[Record](db).Preload(s.q, s.h)
+				} else {
+					builder = builder.Preload(s.q, s.h)
+				}
+			}
+			if builder != nil {
+				var err error
+				loadedRecords, err = builder.Where("id IN ?", recordIDs).Find(dbCtx)
+				if err == nil && len(loadedRecords) > 0 {
+					var recordPtrs []*Record
+					for i := range loadedRecords {
+						recordPtrs = append(recordPtrs, &loadedRecords[i])
+					}
+					records = recordPtrs
+				}
+			} else {
+				var recordPtrs []*Record
+				for i := range records {
+					recordPtrs = append(recordPtrs, records[i])
+				}
+				records = recordPtrs
+			}
 		}
-		records = recordPtrs
 	}
 
 	return

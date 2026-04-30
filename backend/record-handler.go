@@ -100,11 +100,6 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 		s.MinTextScore = input.MinTextScore
 	}
 
-	// // Prevent using text and image search simultaneously
-	// if s.SearchImages && s.SearchTextEmbedded {
-	// 	return nil, huma.Error400BadRequest("cannot use both image search and text search simultaneously")
-	// }
-
 	var ID *uint
 	if !input.Global {
 		if input.ID >= 0 {
