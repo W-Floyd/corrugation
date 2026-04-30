@@ -97,3 +97,21 @@ func GetArtifact(ctx context.Context, input *struct {
 
 	return
 }
+
+var DeleteArtifactOperation = huma.Operation{
+	Method: http.MethodDelete,
+	Path:   "/api/v2/artifact/{id}",
+}
+
+func DeleteArtifact(ctx context.Context, input *struct {
+	ID uint `path:"id" example:"1" doc:"Artifact ID to delete"`
+}) (*EmptyOutput, error) {
+	err := DeleteArtifactFromDB(ctx, input.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	Broadcast()
+
+	return &EmptyOutput{}, nil
+}

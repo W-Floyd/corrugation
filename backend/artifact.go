@@ -64,6 +64,88 @@ func GetArtifactFromDB(ID uint) (artifact Artifact, err error) {
 	return
 }
 
+func DeleteArtifactFromDB(ctx context.Context, ID uint) (err error) {
+	_, _, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return huma.Error401Unauthorized("not authenticated")
+	}
+
+	var artifacts []Artifact
+	q := gorm.G[Artifact](db).Where("id = ?", ID)
+	if userID != nil {
+		q = q.Where("owner_id = ?", userID)
+	}
+	artifacts, err = q.Find(dbCtx)
+	if err != nil {
+		return
+	} else if len(artifacts) == 0 {
+		err = huma.Error404NotFound(errorArtifactNotFound)
+		return
+	} else if len(artifacts) > 1 {
+		err = huma.Error500InternalServerError(errorMoreArtifactsThanExpected)
+		return
+	}
+	var n int
+
+	for _, a := range artifacts {
+		if a.SmallPreviewID != nil {
+			n, err = gorm.G[Artifact](db).Where("id = ?", a.SmallPreviewID).Delete(dbCtx)
+			if err != nil {
+				Log.Error(err)
+				return
+			}
+			if n == 0 {
+				err = huma.Error404NotFound(errorArtifactNotFound)
+				return
+			}
+		}
+		if a.LargePreviewID != nil {
+			n, err = gorm.G[Artifact](db).Where("id = ?", a.LargePreviewID).Delete(dbCtx)
+			if err != nil {
+				Log.Error(err)
+				return
+			}
+			if n == 0 {
+				err = huma.Error404NotFound(errorArtifactNotFound)
+				return
+			}
+		}
+
+		if a.RecordID != nil {
+			records, _ := gorm.G[Record](db).Where("id = ?", *a.RecordID).Find(dbCtx)
+			if len(records) > 0 {
+				record := records[0]
+				foundIndex := -1
+				for i, recordArtifact := range record.Artifacts {
+					if recordArtifact != nil && recordArtifact.ID == a.ID {
+						foundIndex = i
+						break
+					}
+				}
+				if foundIndex != -1 {
+					record.Artifacts = append(record.Artifacts[:foundIndex], record.Artifacts[foundIndex+1:]...)
+					_, err = gorm.G[Record](db).Where("id = ?", *a.RecordID).Select("Artifacts").Updates(dbCtx, record)
+					if err != nil {
+						Log.Error(err)
+						return
+					}
+				}
+			}
+		}
+	}
+
+	n, err = gorm.G[Artifact](db).Where("id = ?", ID).Delete(dbCtx)
+	if err != nil {
+		return
+	}
+	if n == 0 {
+		err = huma.Error404NotFound(errorArtifactNotFound)
+	} else if n > 1 {
+		err = huma.Error500InternalServerError(errorMoreArtifactsThanExpected)
+	}
+	return
+}
+
 func (a *Artifact) GetInterface() (output ArtifactInterface, err error) {
 	if a.ContentType == nil {
 		err = huma.Error415UnsupportedMediaType("empty content type")
