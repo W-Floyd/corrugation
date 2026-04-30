@@ -125,9 +125,14 @@ func main() {
 		autopatch.AutoPatch(api)
 
 		// Catch-all: serve from dist on each request; fallback to index.html for SPA.
+		// Unknown /api/* paths get a 404 instead of the SPA HTML.
 		if _, err := os.Stat(options.Dist); err == nil {
 			dist := options.Dist
 			router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/api/") {
+					http.Error(w, "404 not found", http.StatusNotFound)
+					return
+				}
 				path := filepath.Join(dist, filepath.Clean(r.URL.Path))
 				if info, err := os.Stat(path); err == nil && !info.IsDir() {
 					http.ServeFile(w, r, path)
