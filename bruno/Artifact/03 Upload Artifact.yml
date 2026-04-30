@@ -1,0 +1,44 @@
+info:
+  name: 03 Upload Artifact
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/artifact"
+  headers:
+    - name: accept
+      value: application/json
+  body:
+    type: multipart-form
+    data:
+      - name: file
+        type: file
+        value:
+          - ./fixtures/sample.jpg
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          bru.setVar("artifactId", res.body);
+          bru.setEnvVar("artifactId", res.body);
+        }
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Returns artifact ID as number", function() {
+          expect(res.body).to.be.a("number").and.greaterThan(0);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

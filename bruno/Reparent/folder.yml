@@ -1,4 +1,6 @@
 info:
   name: Reparent on Delete
   type: folder
-  seq: 9
+  seq: 8
+
+request: {}

@@ -1,0 +1,34 @@
+info:
+  name: 05 Download Artifact
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/artifact/{{artifactId}}"
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Content-Type is image/webp", function() {
+          expect(res.headers["content-type"]).to.include("image/webp");
+        });
+        test("Response has WebP header", function() {
+          const buf = res.getDataBuffer();
+          const riff = buf.slice(0, 4).toString('ascii') === 'RIFF';
+          const webp = buf.slice(8, 12).toString('ascii') === 'WEBP';
+          expect(riff && webp).to.be.true;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

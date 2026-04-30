@@ -1,0 +1,64 @@
+info:
+  name: 07 Search by Image
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/search/image"
+  headers:
+    - name: accept
+      value: application/json
+  body:
+    type: multipart-form
+    data:
+      - name: file
+        type: file
+        value:
+          - ./fixtures/sample.jpg
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const maxAttempts = 30;
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        for (let i = 0; i < maxAttempts; i++) {
+          const res = await fetch(bru.getEnvVar("baseUrl") + "/api/embeddings/progress", {
+            headers: { "Authorization": "Bearer " + bru.getEnvVar("authToken") }
+          });
+          const data = await res.json();
+          if (data.pending === 0 && data.processing === 0) break;
+          await delay(1000);
+        }
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Returns an array", function() {
+          expect(res.body).to.be.an("array");
+        });
+        test("Each result has a record ID", function() {
+          res.body.forEach(function(r) {
+            expect(r.ID).to.be.a("number").and.greaterThan(0);
+          });
+        });
+        test("Each result has a search confidence score", function() {
+          res.body.forEach(function(r) {
+            expect(r.SearchConfidenceImage).to.be.a("number").and.greaterThan(0);
+          });
+        });
+        test("Artifact record appears in results", function() {
+          const ids = res.body.map(r => r.ID);
+          expect(ids).to.include(parseInt(bru.getEnvVar("artifactRecordId")));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

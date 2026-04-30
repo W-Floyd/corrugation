@@ -1,0 +1,40 @@
+info:
+  name: 04 Link Artifact to Record
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/record/{{artifactRecordId}}"
+  headers:
+    - name: content-type
+      value: application/json
+    - name: accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "Artifacts": [{{artifactId}}]
+      }
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Returns 200", function() {
+          expect(res.status).to.equal(200);
+        });
+        test("Artifact is linked to record", function() {
+          const ids = res.body.Artifacts.map(a => a.ID);
+          expect(ids).to.include(parseInt(bru.getEnvVar("artifactId")));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

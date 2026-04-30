@@ -1,0 +1,28 @@
+info:
+  name: 10 Delete Non-Existing Artifact
+  type: http
+  seq: 10
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/artifact/9999"
+  headers:
+    - name: accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{authToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Returns 404 for non-existing artifact", function() {
+          expect(res.status).to.equal(404);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
