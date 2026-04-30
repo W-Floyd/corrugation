@@ -29,3 +29,9 @@ runtime:
         test("QR code decodes to entity ID", function() {
           expect(qrData).to.equal(String(bru.getVar("entityId")));
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -23,3 +23,9 @@ runtime:
         test("Returns exactly one entity ID", function() {
           expect(res.body).to.deep.equal(["1"]);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/api/login"
+  url: "{{baseUrl}}/api/auth/local/login"
   headers:
     - name: content-type
       value: application/json
@@ -13,8 +13,7 @@ http:
     type: json
     data: |-
       {
-        "username": "{{username}}",
-        "password": "{{password}}"
+        "username": "{{username}}"
       }
   auth:
     type: none
@@ -23,17 +22,17 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        if (res.status === 200 && res.body.token) {
-          bru.setEnvVar("authToken", res.body.token);
+        if (res.status === 200 && res.body.username) {
+          bru.setEnvVar("authToken", res.body.username);
         }
     - type: tests
       code: |-
         test("Login succeeds", function() {
           expect(res.status).to.equal(200);
         });
-        test("Token property exists", function() {
-          expect(res.body).to.have.property("token");
+        test("Username is returned", function() {
+          expect(res.body).to.have.property("username");
         });
-        test("Token is a non-empty string", function() {
-          expect(res.body.token).to.be.a("string").and.not.empty;
+        test("Username matches", function() {
+          expect(res.body.username).to.equal(bru.getEnvVar("username"));
         });

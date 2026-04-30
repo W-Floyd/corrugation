@@ -23,3 +23,9 @@ runtime:
         test("First ID is 1", function() {
           expect(res.body).to.equal(1);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

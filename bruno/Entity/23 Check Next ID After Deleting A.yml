@@ -24,3 +24,9 @@ runtime:
         test("nextId unchanged after deleting A", function() {
           expect(res.body).to.equal(parseInt(bru.getEnvVar("expectedNextId")));
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

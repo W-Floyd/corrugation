@@ -20,3 +20,9 @@ runtime:
         test("Returns 204 for non-existing entity", function() {
           expect(res.status).to.equal(204);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

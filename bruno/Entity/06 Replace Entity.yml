@@ -72,3 +72,9 @@ runtime:
         test("lastmodified is a non-empty string", function() {
           expect(m.lastmodified).to.be.a("string").and.not.empty;
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

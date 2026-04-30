@@ -45,3 +45,9 @@ runtime:
         test("Returns entity ID as string", function() {
           expect(res.body).to.equal("1");
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

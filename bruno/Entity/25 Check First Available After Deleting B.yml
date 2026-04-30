@@ -24,3 +24,9 @@ runtime:
         test("firstAvailableId is 1 (no labeled entities remain)", function() {
           expect(res.body).to.equal(1);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

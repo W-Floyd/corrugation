@@ -23,3 +23,9 @@ runtime:
         test("Returns empty array (no named locations)", function() {
           expect(res.body).to.deep.equal([]);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

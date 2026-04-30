@@ -23,3 +23,9 @@ runtime:
         test("Next ID is 2", function() {
           expect(res.body).to.equal(2);
         });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

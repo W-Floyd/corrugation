@@ -4,18 +4,10 @@ variables:
     value: http://localhost:8083
   - name: wsUrl
     value: ws://localhost:8083
-  - secret: true
-    name: authToken
+  - name: authToken
+    value: bruno
   - name: username
-    value: admin
-  - secret: true
-    name: password
-  - name: oidcAuthorizationUrl
-    value: ""
-  - name: oidcTokenUrl
-    value: ""
-  - name: oidcClientId
-    value: ""
+    value: bruno
   - name: entityId
     value: "1"
   - name: artifactId
