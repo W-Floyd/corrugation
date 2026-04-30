@@ -27,7 +27,7 @@ type Options struct {
 	OIDCClientID               string `help:"OAuth2 client ID registered in Authentik"`
 	OIDCInsecureSkipVerify     bool   `help:"Skip TLS certificate verification for OIDC discovery and JWKS requests"`
 	LogLevel                   string `help:"Log level: silent, error, warn, info" default:"warn"`
-	GenerateEmbeddingsOnStart  bool   `help:"Run embedding backfill on server startup" default:"false"`
+	BackfillOnStart            bool   `help:"Run backfill on server startup" default:"false"`
 	AllowLocalUsernameLogin    bool   `help:"Allow local username login without OIDC for testing" default:"false"`
 	EmbeddingConcurrency       int    `help:"Max parallel embedding requests" default:"4"`
 	InfinityAddress            string `help:"Infinity embeddings server address" default:"http://localhost:8002"`
@@ -75,8 +75,8 @@ func main() {
 		if err = backend.SetInitialLogLevel(options.LogLevel); err != nil {
 			backend.Log.Fatalf("failed to persist log level: %v", err)
 		}
-		if err = backend.SetInitialGenerateEmbeddingsOnStart(options.GenerateEmbeddingsOnStart); err != nil {
-			backend.Log.Fatalf("failed to persist generate-embeddings-on-start: %v", err)
+		if err = backend.SetInitialBackfillOnStart(options.BackfillOnStart); err != nil {
+			backend.Log.Fatalf("failed to persist backfill-on-start: %v", err)
 		}
 		if err = backend.SetInitialAllowLocalUsernameLogin(options.AllowLocalUsernameLogin); err != nil {
 			backend.Log.Fatalf("failed to persist allow-local-username-login: %v", err)
@@ -148,7 +148,7 @@ func main() {
 		// Tell the CLI how to start your router.
 		hooks.OnStart(func() {
 			backend.StartEmbeddingWorkers()
-			if backend.ShouldGenerateEmbeddingsOnStart() {
+			if backend.ShouldBackfillOnStart() {
 				go backend.BackfillEmbeddings()
 			}
 			err := http.ListenAndServe(fmt.Sprintf("%s:%d", options.Address, options.Port), router)

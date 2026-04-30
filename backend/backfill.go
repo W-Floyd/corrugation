@@ -7,6 +7,7 @@ import (
 )
 
 func BackfillEmbeddings() {
+	backfillArtifactOwners()
 	backfillRecordEmbeddings()
 	backfillArtifactEmbeddings()
 }
@@ -97,6 +98,28 @@ func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix s
 	}
 
 	generateMissingRecordEmbeddings(ctx, recordIDs, embeddedIDs, "backfill")
+}
+
+func backfillArtifactOwners() {
+	var artifacts []Artifact
+	err := db.Select("artifacts.id, artifacts.record_id, records.owner_id").
+		Joins("JOIN records ON records.id = artifacts.record_id AND records.owner_id IS NOT NULL").
+		Where("artifacts.owner_id IS NULL AND artifacts.record_id IS NOT NULL").
+		Find(&artifacts).Error
+	if err != nil {
+		Log.Errorw("backfill: failed to fetch ownerless artifacts", "error", err)
+		return
+	}
+	if len(artifacts) == 0 {
+		return
+	}
+
+	for _, a := range artifacts {
+		if err := db.Model(&Artifact{}).Where("id = ?", a.ID).Update("owner_id", a.OwnerID).Error; err != nil {
+			Log.Errorw("backfill: failed to update artifact owner", "artifact_id", a.ID, "owner_id", a.OwnerID, "error", err)
+		}
+	}
+	Log.Infow("backfill: assigned owners to ownerless artifacts", "count", len(artifacts))
 }
 
 func backfillArtifactEmbeddings() {

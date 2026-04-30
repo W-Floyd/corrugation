@@ -194,6 +194,7 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 	}
 
 	a := Artifact(*i)
+	a.OwnerID = userID
 	err = gorm.G[Artifact](db).Create(dbCtx, &a)
 	if err != nil {
 		Log.Error(err)

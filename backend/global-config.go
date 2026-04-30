@@ -6,7 +6,7 @@ import "gorm.io/gorm"
 type GlobalConfig struct {
 	gorm.Model
 	LogLevel                  string
-	GenerateEmbeddingsOnStart bool
+	BackfillOnStart bool
 	AllowLocalUsernameLogin   bool
 }
 
@@ -21,13 +21,13 @@ func saveGlobalConfig(cfg GlobalConfig) error {
 	return db.Save(&cfg).Error
 }
 
-// SetInitialGenerateEmbeddingsOnStart is called at startup with the flag value. Always persists to DB.
-func SetInitialGenerateEmbeddingsOnStart(enabled bool) error {
+// SetInitialBackfillOnStart is called at startup with the flag value. Always persists to DB.
+func SetInitialBackfillOnStart(enabled bool) error {
 	cfg, err := loadGlobalConfig()
 	if err != nil {
 		return err
 	}
-	cfg.GenerateEmbeddingsOnStart = enabled
+	cfg.BackfillOnStart = enabled
 	return saveGlobalConfig(cfg)
 }
 
@@ -40,10 +40,10 @@ func SetInitialAllowLocalUsernameLogin(enabled bool) error {
 	return saveGlobalConfig(cfg)
 }
 
-func ShouldGenerateEmbeddingsOnStart() bool {
+func ShouldBackfillOnStart() bool {
 	cfg, err := loadGlobalConfig()
 	if err != nil {
 		return false
 	}
-	return cfg.GenerateEmbeddingsOnStart
+	return cfg.BackfillOnStart
 }
