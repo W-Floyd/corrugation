@@ -34,10 +34,6 @@ runtime:
         test("Quantity is correct", function() {
           expect(e.Quantity).to.equal(10);
         });
-        test("Tags are correct", function() {
-          const titles = e.Tags.map(t => t.Title);
-          expect(titles).to.have.members(["test", "patched"]);
-        });
 
 settings:
   encodeUrl: true

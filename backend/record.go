@@ -13,13 +13,12 @@ import (
 const maxSearchDepth = 100
 
 type RecordInput struct {
-	Quantity        *uint       `required:"false"`
-	ReferenceNumber *string     `required:"false"`
-	Title           *string     `required:"false"`
-	Description     *string     `required:"false"`
-	Tags            []*TagInput `required:"false"`
-	ParentID        *uint       `required:"false"`
-	Artifacts       []*uint     `required:"false"`
+	Quantity        *uint   `required:"false"`
+	ReferenceNumber *string `required:"false"`
+	Title           *string `required:"false"`
+	Description     *string `required:"false"`
+	ParentID        *uint   `required:"false"`
+	Artifacts       []*uint `required:"false"`
 }
 
 type Record struct {
@@ -29,7 +28,6 @@ type Record struct {
 	ReferenceNumber *string `json:",omitempty" gorm:"uniqueIndex:idx_owner_ref"`
 	Title           *string `json:",omitempty" gorm:"index"`
 	Description     *string `json:",omitempty"`
-	Tags            []*Tag  `json:",omitempty" gorm:"many2many:record_tags;"`
 
 	Artifacts []*Artifact `json:",omitempty"`
 
@@ -62,33 +60,6 @@ func (i *RecordInput) Convert() (o Record, err error) {
 			return
 		}
 		o.ParentID = i.ParentID
-	}
-
-	var foundTags []Tag
-	var foundTag *Tag
-
-	for _, tag := range i.Tags {
-		foundTags, err = gorm.G[Tag](db).Where("title = ?", tag.Title).Find(dbCtx)
-		if err != nil {
-			return
-		} else if len(foundTags) > 1 {
-			err = huma.Error500InternalServerError(errorMoreTagsThanExpected)
-			return
-		} else if len(foundTags) == 1 {
-			foundTag = &foundTags[0]
-		} else {
-			var newtag Tag
-			newtag, err = tag.Convert()
-			if err != nil {
-				return
-			}
-			err = gorm.G[Tag](db).Create(dbCtx, &newtag)
-			if err != nil {
-				return
-			}
-			foundTag = &newtag
-		}
-		o.Tags = append(o.Tags, foundTag)
 	}
 
 	for _, artifact := range i.Artifacts {

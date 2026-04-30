@@ -17,8 +17,7 @@ http:
       {
         "Title": "Parent Box",
         "Description": "Top-level container",
-        "Quantity": 1,
-        "Tags": [{"Title": "parent"}]
+        "Quantity": 1
       }
   auth:
     type: bearer

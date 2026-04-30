@@ -32,7 +32,6 @@ const handleQuickCapture = async (entityId: number): Promise<void> => {
                         metadata: {
                             quantity: null,
                             owner: null,
-                            tags: null,
                             referenceNumber: null,
                             lastModified: null,
                         },

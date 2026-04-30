@@ -17,8 +17,7 @@ http:
       {
         "Title": "Bruno Test Box (replaced)",
         "Description": "Updated by PUT",
-        "Quantity": 5,
-        "Tags": [{"Title": "test"}, {"Title": "replaced"}]
+        "Quantity": 5
       }
   auth:
     type: bearer
@@ -44,10 +43,6 @@ runtime:
         });
         test("Quantity is updated", function() {
           expect(e.Quantity).to.equal(5);
-        });
-        test("Tags are updated", function() {
-          const titles = e.Tags.map(t => t.Title);
-          expect(titles).to.have.members(["test", "replaced"]);
         });
 
 settings:

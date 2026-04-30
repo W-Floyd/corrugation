@@ -227,7 +227,6 @@ const filteredMoveEntities = computed(() => {
         metadata: {
             quantity: null,
             owner: null,
-            tags: null,
             lastModified: null,
             referenceNumber: null,
         },

@@ -75,7 +75,7 @@ Use this top-level file for:
 
 ### Database
 - SQLite with WAL mode for concurrent reads
-- GORM models: `Record`, `Artifact`, `Tag`, `Embedding`, `User`
+- GORM models: `Record`, `Artifact`, `Embedding`, `User`
 - Config stored in singleton `GlobalConfig` (ID=1)
 
 ## Build Output

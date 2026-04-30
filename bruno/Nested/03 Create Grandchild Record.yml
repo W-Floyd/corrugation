@@ -18,8 +18,7 @@ http:
         "Title": "Grandchild Box",
         "Description": "Nested inside Child Box",
         "ParentID": {{childId}},
-        "Quantity": 1,
-        "Tags": [{"Title": "grandchild"}]
+        "Quantity": 1
       }
   auth:
     type: bearer

@@ -39,10 +39,6 @@ runtime:
         test("Description is preserved", function() {
           expect(e.Description).to.equal("Updated by PATCH");
         });
-        test("Tags are preserved", function() {
-          const titles = e.Tags.map(t => t.Title);
-          expect(titles).to.have.members(["test", "replaced"]);
-        });
 
 settings:
   encodeUrl: true

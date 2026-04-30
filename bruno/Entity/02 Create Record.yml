@@ -17,8 +17,7 @@ http:
       {
         "Title": "Bruno Test Box",
         "Description": "Created by Bruno test suite",
-        "Quantity": 3,
-        "Tags": [{"Title": "test"}, {"Title": "bruno"}]
+        "Quantity": 3
       }
   auth:
     type: bearer
@@ -48,10 +47,6 @@ runtime:
         });
         test("Quantity is correct", function() {
           expect(res.body.Quantity).to.equal(3);
-        });
-        test("Tags are correct", function() {
-          const titles = res.body.Tags.map(t => t.Title);
-          expect(titles).to.have.members(["test", "bruno"]);
         });
 
 settings:

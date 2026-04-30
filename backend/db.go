@@ -60,7 +60,6 @@ func InitAndMigrateDB() (err error) {
 		&Embedding{},
 		&GlobalConfig{},
 		&Record{},
-		&Tag{},
 		&User{},
 	)
 	return nil

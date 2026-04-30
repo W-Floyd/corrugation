@@ -60,7 +60,6 @@ func GetRecord(ctx context.Context, input *struct {
 				return nil
 			},
 		},
-		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
@@ -123,7 +122,6 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 		h func(db gorm.PreloadBuilder) error
 	}{
 		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
-		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
@@ -203,7 +201,6 @@ func UpdateRecord(ctx context.Context, input *struct {
 		h func(db gorm.PreloadBuilder) error
 	}{
 		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
-		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
@@ -224,13 +221,6 @@ func UpdateRecord(ctx context.Context, input *struct {
 
 	if updated.Artifacts != nil {
 		r.Artifacts = updated.Artifacts
-	}
-
-	if input.Body.Tags != nil {
-		if err = db.Model(&r).Association("Tags").Replace(updated.Tags); err != nil {
-			return
-		}
-		r.Tags = updated.Tags
 	}
 
 	err = db.Model(&r).Updates(map[string]any{
@@ -269,7 +259,6 @@ func PatchRecord(ctx context.Context, input *struct {
 		h func(db gorm.PreloadBuilder) error
 	}{
 		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
-		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return
@@ -308,40 +297,6 @@ func PatchRecord(ctx context.Context, input *struct {
 		updates["parent_id"] = *input.Body.ParentID
 	}
 
-	// Update Tags if provided
-	if input.Body.Tags != nil {
-		var foundTags []*Tag
-
-		for _, tag := range input.Body.Tags {
-			var tagResults []Tag
-			tagResults, err = gorm.G[Tag](db).Where("title = ?", tag.Title).Find(dbCtx)
-			if err != nil {
-				return
-			} else if len(tagResults) > 1 {
-				err = huma.Error500InternalServerError(errorMoreTagsThanExpected)
-				return
-			} else if len(tagResults) == 1 {
-				foundTags = append(foundTags, &tagResults[0])
-			} else {
-				var newtag Tag
-				newtag, err = tag.Convert()
-				if err != nil {
-					return
-				}
-				err = gorm.G[Tag](db).Create(dbCtx, &newtag)
-				if err != nil {
-					return
-				}
-				foundTags = append(foundTags, &newtag)
-			}
-		}
-		err = db.Model(&r).Association("Tags").Replace(foundTags)
-		if err != nil {
-			return
-		}
-		r.Tags = foundTags
-	}
-
 	// Update Artifacts if provided
 	if len(input.Body.Artifacts) > 0 {
 		var artifacts []*Artifact
@@ -375,7 +330,6 @@ func PatchRecord(ctx context.Context, input *struct {
 		h func(db gorm.PreloadBuilder) error
 	}{
 		{q: "Artifacts", h: func(db gorm.PreloadBuilder) error { db.Select("id", "record_id"); return nil }},
-		{q: "Tags", h: func(db gorm.PreloadBuilder) error { return nil }},
 	}, nil)
 	if err != nil {
 		return

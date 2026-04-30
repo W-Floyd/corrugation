@@ -48,11 +48,6 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, GetUserConfigOperation, GetUserConfig)
 	huma.Register(api, PutUserConfigOperation, PutUserConfig)
 
-	huma.Register(api, ListTagsOperation, ListTags)
-	huma.Register(api, GetTagOperation, GetTag)
-	huma.Register(api, CreateTagOperation, CreateTag)
-	huma.Register(api, DeleteTagOperation, DeleteTag)
-
 	// Image search endpoint
 	huma.Register(api, SearchByImageOperation, SearchByImageHandler)
 }

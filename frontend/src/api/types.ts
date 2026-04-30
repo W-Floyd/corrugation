@@ -1,7 +1,6 @@
 export interface Metadata {
   quantity: number | null;
   owner: string | null;
-  tags: string[] | null;
   lastModified: string | null;
   referenceNumber: string | null;
 }
@@ -27,11 +26,6 @@ export interface BackendArtifactRef {
   ID: number;
 }
 
-export interface BackendTag {
-  Title: string;
-  Color?: string;
-}
-
 export interface BackendRecord {
   ID: number;
   CreatedAt?: string;
@@ -40,7 +34,6 @@ export interface BackendRecord {
   Title?: string;
   Description?: string;
   Quantity?: number;
-  Tags?: BackendTag[];
   Artifacts?: BackendArtifactRef[];
   ParentID?: number;
   SearchConfidenceImage?: number;
@@ -66,7 +59,6 @@ export function recordToEntity(r: BackendRecord): Entity {
     metadata: {
       quantity: r.Quantity ?? null,
       owner: null,
-      tags: r.Tags?.map((t) => t.Title) ?? null,
       referenceNumber: r.ReferenceNumber ?? null,
       lastModified: r.UpdatedAt ?? null,
     },

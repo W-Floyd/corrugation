@@ -22,10 +22,8 @@ Corrugation backend is a Go-based REST API server using the Huma framework. It p
 ## Core Data Models
 
 ### Record
-Defined in `record.go` as the `Record` struct with fields: Quantity, ReferenceNumber, Title, Description, Tags, Artifacts, ParentID, OwnerID. `SearchConfidenceImage` and `SearchConfidenceText` are computed at runtime (marked `gorm:"-"`, not persisted). ReferenceNumber is unique per owner via `idx_owner_ref` index. ParentID creates hierarchical tree structure.
+Defined in `record.go` as the `Record` struct with fields: Quantity, ReferenceNumber, Title, Description, Artifacts, ParentID, OwnerID. `SearchConfidenceImage` and `SearchConfidenceText` are computed at runtime (marked `gorm:"-"`, not persisted). ReferenceNumber is unique per owner via `idx_owner_ref` index. ParentID creates hierarchical tree structure.
 
-### Tag
-Defined in `tag.go` as the `Tag` struct with Title as primary key and no duplicate titles allowed. Join table: `record_tags(record_id, tag_title)`.
 
 ### Artifact
 Defined in `artifact.go` as the `Artifact` struct with Data, OriginalFilename, ContentType, SmallPreviewID, SmallPreview, LargePreviewID, LargePreview, RecordID fields. Supports image previews (625000 max pixel count WebP, 1250000 max pixel count WebP). Implements `ArtifactInterface` for image handling. Preview sizes are maximum pixel counts, not dimensions.
@@ -61,12 +59,6 @@ Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and Gen
 - `POST /api/artifact` - Create artifact (multipart form)
 - `GET /api/artifact/{id}` - Get artifact (returns WebP preview, ETag support)
 
-### Tags
-- `GET /api/tags` - List all tags
-- `GET /api/tag/{id}` - Get tag by title
-- `POST /api/tag` - Create tag
-- `DELETE /api/tag/{id}` - Delete tag by title
-
 ### Config
 - `GET /api/config/global` - Get global config
 - `PUT /api/config/global` - Update global config
@@ -90,7 +82,6 @@ Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and Gen
 
 ### Visualization
 - `GET /api/records/visualize` - Generate HTML entity graph
-- `GET /api/tags/visualize` - Generate HTML tag graph
 
 ## Embedding System Architecture
 
@@ -128,8 +119,6 @@ Defined in `global-config.go` as the `GlobalConfig` struct with LogLevel and Gen
 All database tables are managed via GORM models defined in the backend source files. Note that `SearchConfidenceImage` and `SearchConfidenceText` fields in the Record struct are marked `gorm:"-"` and are not persisted to the database.
 
 - `records` → `record.go` Record struct
-- `tags` → `tag.go` Tag struct  
-- `record_tags` → Join table for `record.go` many-to-many with `tag.go`
 - `artifacts` → `artifact.go` Artifact struct
 - `embeddings` → `embedding.go` Embedding struct
 - `embedding_jobs` → `embedding-queue.go` EmbeddingJob struct
@@ -214,7 +203,6 @@ Refer to the actual source files for implementation details:
 - `import.go`: ImportFromReader()
 - `ws.go`: Broadcast(), BroadcastAll(), BroadcastToUser(), WsHandler()
 - `record-handler.go`: ListRecords(), GetRecord(), CreateRecord(), UpdateRecord(), PatchRecord(), DeleteRecord()
-- `tag-handler.go`: ListTags(), GetTag(), CreateTag(), DeleteTag()
 - `config-handler.go`: GetGlobalConfig(), PutGlobalConfig(), GetUserConfig(), PutUserConfig()
 - `auth.go`: GetAuthConfigHandler(), NewAuthMiddleware(), FetchOIDCConfig()
 - `backfill.go`: BackfillEmbeddings(), backfillRecordEmbeddings(), backfillArtifactEmbeddings()
@@ -282,9 +270,6 @@ backend/
 ├── record-handler.go     # Record CRUD, next reference
 ├── record-helper.go      # Search query builder, hierarchy
 ├── search.go              # Vector search implementation
-├── tag.go                 # Tag model
-├── tag-handler.go         # Tag CRUD endpoints
-├── tag-helper.go          # Tag query helpers
 ├── users.go              # User model, cache, effective config
 ├── utils.go              # Helper functions
 └── ws.go                 # WebSocket hub, broadcast logic

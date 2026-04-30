@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
-	"gorm.io/gorm"
 )
 
 type legacyMetadata struct {
@@ -124,7 +123,7 @@ func ImportFromReader(ctx context.Context, r io.Reader, reset bool, legacyImport
 	}
 
 	if reset {
-		tables := []string{"record_tags", "artifacts", "records", "tags"}
+		tables := []string{"artifacts", "records", "embeddings"}
 		for _, table := range tables {
 			if e := db.Exec("DELETE FROM " + table).Error; e != nil {
 				err = e
@@ -205,22 +204,6 @@ func ImportFromReader(ctx context.Context, r io.Reader, reset bool, legacyImport
 			var a Artifact
 			if tx := db.First(&a, aid); tx.Error == nil {
 				r.Artifacts = append(r.Artifacts, &a)
-			}
-		}
-
-		// Tags
-		for _, tagTitle := range le.Metadata.Tags {
-			if tagTitle == "" {
-				continue
-			}
-			var found []Tag
-			if tx := db.Where("title = ?", tagTitle).Find(&found); tx.Error == nil && len(found) > 0 {
-				r.Tags = append(r.Tags, &found[0])
-			} else {
-				t := Tag{Title: tagTitle}
-				if e := gorm.G[Tag](db).Create(dbCtx, &t); e == nil {
-					r.Tags = append(r.Tags, &t)
-				}
 			}
 		}
 
