@@ -17,7 +17,6 @@ interface CacheEntry {
 }
 
 const cache = new Map<number, CacheEntry>();
-
 const objectUrl = ref<string | null>(null);
 
 async function load(id: number) {
@@ -49,13 +48,16 @@ async function load(id: number) {
   }
 }
 
-watch(() => props.artifactId, load, { immediate: true });
+watch(
+  [props.artifactId],
+  (newVal) => {
+    if (newVal?.[0]) load(newVal[0]);
+  },
+  { immediate: true },
+);
 
 onUnmounted(() => {
-  if (
-    objectUrl.value &&
-    cache.get(props.artifactId)?.objectUrl !== objectUrl.value
-  ) {
+  if (objectUrl.value) {
     URL.revokeObjectURL(objectUrl.value);
   }
 });

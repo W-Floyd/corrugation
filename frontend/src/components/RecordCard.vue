@@ -4,7 +4,7 @@ import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
 import { useToast } from "primevue/usetoast";
 import { api } from "@/api";
-import type { BackendRecord } from "@/api/types";
+import type { BackendRecord, BackendArtifactRef } from "@/api/types";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import KbdHint from "@/components/KbdHint.vue";
 import ArtifactImage from "@/components/ArtifactImage.vue";
@@ -174,8 +174,9 @@ const handleDragLeave = (e: DragEvent): void => {
 const handleDrop = async (e: DragEvent): Promise<void> => {
   e.preventDefault();
   isDragOver.value = false;
-  const draggedId = parseInt(e.dataTransfer?.getData("recordId") ?? "");
+  const draggedId = parseInt(e.dataTransfer?.getData("recordId") ?? "0");
   if (isNaN(draggedId) || draggedId === props.appRecord.ID) return;
+  if (draggedId === 0) return;
   if (isDescendantOf(props.appRecord.ID, draggedId)) return;
   // Child dragged back over its own children box — leave it where it is
   if (draggingChildId.value !== null && isDragOverChildren.value) return;
@@ -184,6 +185,7 @@ const handleDrop = async (e: DragEvent): Promise<void> => {
     draggingChildId.value !== null
       ? props.appRecord.ParentID
       : props.appRecord.ID;
+  if (!targetId) return;
   try {
     await api.moveRecord(draggedId, targetId);
     await recordsStore.reload();
@@ -266,7 +268,6 @@ const filteredMoveRecords = computed(() => {
     Artifacts: [],
     ParentID: 0,
     ReferenceNumber: null,
-    lastModified: null,
   };
   const candidates: BackendRecord[] = [
     ...Object.values(recordsStore.recordMap).filter(
@@ -458,9 +459,9 @@ const handleUpdate = async (): Promise<void> => {
     await Promise.all(
       [...pendingDeletions.value].map((id) => api.deleteArtifact(id)),
     );
-    const artifacts = (localRecord.value.Artifacts ?? []).filter(
-      (id) => !pendingDeletions.value.has(id),
-    );
+    const artifacts = (localRecord.value.Artifacts ?? [])
+      .filter(({ ID }) => !pendingDeletions.value.has(ID))
+      .map(({ ID }) => ID);
     await api.updateRecord(props.appRecord.ID, {
       Title: e.Title || null,
       ReferenceNumber: e.ReferenceNumber || null,
@@ -503,8 +504,15 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
   if (files.length === 0 || !files[0]) return;
   try {
     const artifactId = await api.uploadArtifact(files[0]);
-    const artifacts = [...(props.appRecord.Artifacts ?? []), artifactId];
-    await api.patchRecord(props.appRecord.ID, { Artifacts: artifacts });
+    const artifacts = [
+      ...(props.appRecord.Artifacts ?? []).map((a) =>
+        "ID" in a ? a : { ID: a },
+      ),
+      { ID: artifactId },
+    ];
+    await api.patchRecord(props.appRecord.ID, {
+      Artifacts: artifacts.map((a) => a.ID),
+    });
     await recordsStore.reload();
     editMode.value = false;
     emit("recordUpdated", props.appRecord);
@@ -626,9 +634,16 @@ const images = computed(() => {
 const handleEditArtifact = async (file: File): Promise<void> => {
   try {
     const artifactId = await api.uploadArtifact(file);
-    const artifacts = [...(localRecord.value.Artifacts ?? []), artifactId];
+    const artifacts = [
+      ...(localRecord.value.Artifacts ?? []).map((a) =>
+        "ID" in a ? a : { ID: a },
+      ),
+      { ID: artifactId },
+    ];
     localRecord.value = { ...localRecord.value, Artifacts: artifacts };
-    await api.updateRecord(props.appRecord.ID, { Artifacts: artifacts });
+    await api.updateRecord(props.appRecord.ID, {
+      Artifacts: artifacts.map((a) => a.ID),
+    });
     await recordsStore.reload();
     emit("recordUpdated", localRecord.value);
     toast.add({
@@ -949,14 +964,14 @@ defineExpose({ cardEl });
       </div>
 
       <!-- Description -->
-      <div v-if="!editMode && appRecord.description">
+      <div v-if="!editMode && appRecord.Description">
         <p class="text-gray-600 dark:text-gray-400">
-          {{ appRecord.description }}
+          {{ appRecord.Description }}
         </p>
       </div>
       <div v-else-if="editMode">
         <textarea
-          v-model="localRecord.description"
+          v-model="localRecord.Description"
           class="w-full rounded-sm bg-white ring-1 dark:bg-gray-900"
           rows="3"
           placeholder="Description"
@@ -1133,31 +1148,41 @@ defineExpose({ cardEl });
     <!-- Images -->
     <div class="flex w-full flex-row justify-center">
       <template v-if="!editMode && images.length > 0">
-        <template v-for="n in images" :key="n">
+        <template v-for="n in images" :key="'ID' in n ? n.ID : n">
           <ArtifactImage
             class="h-56 w-full flex-1 rounded-xl object-cover"
-            :artifact-id="n"
-            :alt="`Artifact ${n}`"
+            :artifact-id="Number((n as BackendArtifactRef).ID)"
+            :alt="`Artifact ${Number((n as BackendArtifactRef).ID)}`"
           />
         </template>
       </template>
 
       <template v-else-if="editMode && images.length > 0">
-        <template v-for="n in images" :key="n">
+        <template v-for="n in images" :key="'ID' in n ? n.ID : n">
           <div class="relative flex-1">
             <ArtifactImage
               class="h-56 w-full rounded-xl object-cover transition-opacity"
-              :class="pendingDeletions.has(n) ? 'opacity-30' : 'opacity-100'"
-              :artifact-id="n"
-              :alt="`Artifact ${n}`"
+              :class="
+                pendingDeletions.has(Number((n as BackendArtifactRef).ID))
+                  ? 'opacity-30'
+                  : 'opacity-100'
+              "
+              :artifact-id="Number((n as BackendArtifactRef).ID)"
+              :alt="`Artifact ${Number((n as BackendArtifactRef).ID)}`"
             />
             <PrimeVueButton
-              @click.stop="toggleArtifactDeletion(n)"
+              @click.stop="toggleArtifactDeletion((n as BackendArtifactRef).ID)"
               rounded
-              :severity="pendingDeletions.has(n) ? 'secondary' : 'danger'"
+              :severity="
+                pendingDeletions.has((n as BackendArtifactRef).ID)
+                  ? 'secondary'
+                  : 'danger'
+              "
               class="absolute top-1 right-1 h-6 w-6 p-0 text-sm leading-none"
               :title="
-                pendingDeletions.has(n) ? 'Undo removal' : 'Remove artifact'
+                pendingDeletions.has((n as BackendArtifactRef).ID)
+                  ? 'Undo removal'
+                  : 'Remove artifact'
               "
             >
               <CloseIcon :size="16" />

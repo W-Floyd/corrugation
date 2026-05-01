@@ -43,7 +43,7 @@ const refTaken = computed(() => {
   const v = referenceNumber.value.trim();
   if (!v) return false;
   return Object.values(recordsStore.recordMap).some(
-    (e) => e.metadata.referenceNumber === v,
+    (e) => e.ReferenceNumber === v,
   );
 });
 
