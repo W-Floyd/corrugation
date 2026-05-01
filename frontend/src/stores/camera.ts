@@ -101,7 +101,7 @@ export const useCameraStore = defineStore("camera", () => {
     try {
       // Check if camera device exists before attempting to open
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasCamera = devices.some(device => device.kind === 'videoinput');
+      const hasCamera = devices.some((device) => device.kind === "videoinput");
       if (!hasCamera) {
         console.warn("No camera device found");
         _reset();

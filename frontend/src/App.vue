@@ -15,33 +15,33 @@ const recordsStore = useRecordsStore();
 const authStore = useAuthStore();
 
 onMounted(() => {
-    router.isReady().then(() => {
-        routerReady.value = true;
-        DEBUG &&
-            console.log(
-                "[app] router ready, route:",
-                route.name,
-                "token:",
-                !!localStorage.getItem("auth_token"),
-            );
-        if (route.name !== "callback") {
-            recordsStore.connectWS();
-            authStore.fetchConfig();
-        }
-    });
+  router.isReady().then(() => {
+    routerReady.value = true;
+    DEBUG &&
+      console.log(
+        "[app] router ready, route:",
+        route.name,
+        "token:",
+        !!localStorage.getItem("auth_token"),
+      );
+    if (route.name !== "callback") {
+      recordsStore.connectWS();
+      authStore.fetchConfig();
+    }
+  });
 });
 </script>
 
 <template>
-    <template v-if="routerReady">
-        <ToastContainer />
+  <template v-if="routerReady">
+    <ToastContainer />
 
-        <LoginView v-if="route.name === 'login'" />
+    <LoginView v-if="route.name === 'login'" />
 
-        <RouterView v-else-if="route.name === 'callback'" />
+    <RouterView v-else-if="route.name === 'callback'" />
 
-        <SettingsView v-else-if="route.name === 'settings'" />
+    <SettingsView v-else-if="route.name === 'settings'" />
 
-        <RecordsView v-else />
-    </template>
+    <RecordsView v-else />
+  </template>
 </template>

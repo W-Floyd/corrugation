@@ -13,7 +13,11 @@ export interface Toast {
 export const useToastsStore = defineStore("toasts", () => {
   const items = ref<Toast[]>([]);
 
-  function add(message: string, level: ToastLevel = "error", persistent = false): number {
+  function add(
+    message: string,
+    level: ToastLevel = "error",
+    persistent = false,
+  ): number {
     const id = Date.now();
     items.value = [...items.value, { id, message, level, persistent }];
     if (!persistent) setTimeout(() => remove(id), 5000);

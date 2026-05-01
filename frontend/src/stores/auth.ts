@@ -36,7 +36,11 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => token.value !== null);
 
-  DEBUG && console.log("[auth] store init, token in localStorage:", !!localStorage.getItem("auth_token"));
+  DEBUG &&
+    console.log(
+      "[auth] store init, token in localStorage:",
+      !!localStorage.getItem("auth_token"),
+    );
   if (token.value) {
     document.cookie = `auth_token=${token.value}; path=/; SameSite=Strict`;
   }
@@ -52,7 +56,8 @@ export const useAuthStore = defineStore("auth", () => {
     DEBUG && console.log("[auth] clearToken");
     token.value = null;
     localStorage.removeItem("auth_token");
-    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie =
+      "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
   }
 
   async function fetchMe(): Promise<void> {
@@ -62,11 +67,18 @@ export const useAuthStore = defineStore("auth", () => {
         headers: { Authorization: `Bearer ${token.value}` },
       });
       if (resp.ok) {
-        const data: { username: string; isAdmin: boolean; justBecameAdmin: boolean } = await resp.json();
+        const data: {
+          username: string;
+          isAdmin: boolean;
+          justBecameAdmin: boolean;
+        } = await resp.json();
         username.value = data.username;
         isAdmin.value = data.isAdmin;
         if (data.justBecameAdmin) {
-          useToastsStore().add("You are the first user — you have been granted admin access.", "success");
+          useToastsStore().add(
+            "You are the first user — you have been granted admin access.",
+            "success",
+          );
         }
       }
     } catch (e) {
@@ -140,17 +152,33 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function handleCallback(code: string, state: string): Promise<boolean> {
-    DEBUG && console.log("[auth] handleCallback start, code:", code.slice(0, 8) + "…", "state:", state);
+    DEBUG &&
+      console.log(
+        "[auth] handleCallback start, code:",
+        code.slice(0, 8) + "…",
+        "state:",
+        state,
+      );
 
     const storedState = sessionStorage.getItem("pkce_state");
     const verifier = sessionStorage.getItem("pkce_verifier");
-    DEBUG && console.log("[auth] sessionStorage — storedState:", storedState, "hasVerifier:", !!verifier);
+    DEBUG &&
+      console.log(
+        "[auth] sessionStorage — storedState:",
+        storedState,
+        "hasVerifier:",
+        !!verifier,
+      );
 
     sessionStorage.removeItem("pkce_state");
     sessionStorage.removeItem("pkce_verifier");
 
     if (state !== storedState || !verifier) {
-      console.error("[auth] PKCE mismatch", { state, storedState, hasVerifier: !!verifier });
+      console.error("[auth] PKCE mismatch", {
+        state,
+        storedState,
+        hasVerifier: !!verifier,
+      });
       return false;
     }
 

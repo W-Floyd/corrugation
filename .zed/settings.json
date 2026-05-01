@@ -1,0 +1,23 @@
+{
+  "prettier": {
+    "allowed": true
+  },
+  "languages": {
+    "Vue": {
+      "formatter": "prettier",
+      "format_on_save": "on"
+    },
+    "HTML": {
+      "formatter": "prettier",
+      "format_on_save": "on"
+    },
+    "TypeScript": {
+      "formatter": "prettier",
+      "format_on_save": "on"
+    },
+    "JavaScript": {
+      "formatter": "prettier",
+      "format_on_save": "on"
+    }
+  }
+}
