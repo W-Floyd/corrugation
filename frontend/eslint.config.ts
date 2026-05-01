@@ -14,7 +14,7 @@ export default defineConfig([
     },
     extends: ["js/recommended", eslintConfigPrettier],
     languageOptions: {
-      globals: globals.browser,
+      globals: { ...globals.browser, DEBUG: "readonly" },
     },
   },
   tseslint.configs.recommended,
@@ -25,6 +25,16 @@ export default defineConfig([
       parserOptions: {
         parser: tseslint.parser,
       },
+    },
+    rules: {
+      // TypeScript handles undef checks for TS-parsed Vue files
+      "no-undef": "off",
+    },
+  },
+  {
+    files: ["*.config.js", "*.config.ts", "postcss.config.js"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
   {

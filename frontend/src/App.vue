@@ -17,7 +17,7 @@ const authStore = useAuthStore();
 onMounted(() => {
   router.isReady().then(() => {
     routerReady.value = true;
-    DEBUG &&
+    if (DEBUG)
       console.log(
         "[app] router ready, route:",
         route.name,

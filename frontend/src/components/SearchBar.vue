@@ -8,12 +8,10 @@ import TextBoxSearchIcon from "vue-material-design-icons/TextBoxSearch.vue";
 import ImageSearchIcon from "vue-material-design-icons/ImageSearch.vue";
 import TextSearchIcon from "vue-material-design-icons/TextSearch.vue";
 import { useRecordsStore } from "@/stores/records";
-import { useToastsStore } from "@/stores/toasts";
 
 const props = defineProps<{ showHint?: boolean }>();
 
 const recordsStore = useRecordsStore();
-const toastsStore = useToastsStore();
 
 const debounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const searchInputEl = ref<HTMLInputElement | null>(null);
@@ -93,7 +91,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Text embedding toggle -->
-    <div class="flex flex-shrink-0 items-center">
+    <div class="flex shrink-0 items-center">
       <label
         class="relative flex cursor-pointer items-center"
         title="Use text embeddings in search"

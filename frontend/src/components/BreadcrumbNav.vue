@@ -7,8 +7,6 @@ import { api } from "@/api";
 const recordsStore = useRecordsStore();
 const toastsStore = useToastsStore();
 
-const emit = defineEmits<{ openNewRecord: [] }>();
-
 const locationTree = computed(() =>
   recordsStore.locationtree.map((id: number) => ({
     id,

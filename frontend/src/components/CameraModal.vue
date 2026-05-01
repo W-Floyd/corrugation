@@ -6,7 +6,6 @@ import RefreshIcon from "vue-material-design-icons/Refresh.vue";
 const cameraStore = useCameraStore();
 const videoEl = ref<HTMLVideoElement | null>(null);
 const lastDeviceId = ref<string | null>(null);
-const isReopening = ref(false);
 
 const handleKeydown = (e: KeyboardEvent): void => {
   if (cameraStore.previewUrl) {
@@ -79,7 +78,7 @@ watch(
         width: { ideal: 1920 },
         height: { ideal: 1080 },
         aspectRatio: { ideal: 16 / 9 },
-      } as MediaTrackConstraints;
+      };
       navigator.mediaDevices
         .getUserMedia({
           video: constraints,

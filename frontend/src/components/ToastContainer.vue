@@ -64,7 +64,7 @@ const dismissClasses: Record<ToastLevel, string> = {
           levelClasses[toast.level],
         ]"
       >
-        <span class="text-sm break-words">{{ toast.message }}</span>
+        <span class="wrap-break-words text-sm">{{ toast.message }}</span>
         <button
           type="button"
           @click="hideToast(toast.id)"

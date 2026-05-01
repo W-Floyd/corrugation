@@ -26,29 +26,30 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
-  DEBUG && console.log("[router] beforeEach to:", to.name, to.fullPath);
+  if (DEBUG) console.log("[router] beforeEach to:", to.name, to.fullPath);
 
   if (!configFetched) {
-    DEBUG && console.log("[router] fetching auth config");
+    if (DEBUG) console.log("[router] fetching auth config");
     await authStore.fetchConfig();
     await authStore.fetchMe();
     configFetched = true;
   }
 
   const token = authStore.token;
-  let authEnabled = authStore.authConfig.enabled;
-  DEBUG && console.log("[router] token:", !!token, "authEnabled:", authEnabled);
+  const authEnabled = authStore.authConfig.enabled;
+  if (DEBUG)
+    console.log("[router] token:", !!token, "authEnabled:", authEnabled);
 
   if (to.name === "callback") {
-    DEBUG && console.log("[router] allowing callback route");
+    if (DEBUG) console.log("[router] allowing callback route");
     return;
   }
   if (to.name === "login" && token) {
-    DEBUG && console.log("[router] already authed, redirecting to /");
+    if (DEBUG) console.log("[router] already authed, redirecting to /");
     return { path: "/" };
   }
   if (authEnabled && !token && to.name !== "login") {
-    DEBUG && console.log("[router] not authed, redirecting to login");
+    if (DEBUG) console.log("[router] not authed, redirecting to login");
     return { name: "login" };
   }
 });

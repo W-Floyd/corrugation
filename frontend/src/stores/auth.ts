@@ -36,7 +36,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => token.value !== null);
 
-  DEBUG &&
+  if (DEBUG)
     console.log(
       "[auth] store init, token in localStorage:",
       !!localStorage.getItem("auth_token"),
@@ -46,14 +46,14 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   function setToken(t: string) {
-    DEBUG && console.log("[auth] setToken", t.slice(0, 20) + "…");
+    if (DEBUG) console.log("[auth] setToken", t.slice(0, 20) + "…");
     token.value = t;
     localStorage.setItem("auth_token", t);
     document.cookie = `auth_token=${t}; path=/; SameSite=Strict`;
   }
 
   function clearToken() {
-    DEBUG && console.log("[auth] clearToken");
+    if (DEBUG) console.log("[auth] clearToken");
     token.value = null;
     localStorage.removeItem("auth_token");
     document.cookie =
@@ -82,28 +82,29 @@ export const useAuthStore = defineStore("auth", () => {
         }
       }
     } catch (e) {
-      DEBUG && console.warn("[auth] fetchMe error:", e);
+      if (DEBUG) console.warn("[auth] fetchMe error:", e);
     }
   }
 
   async function fetchConfig(): Promise<void> {
-    DEBUG && console.log("[auth] fetchConfig start");
+    if (DEBUG) console.log("[auth] fetchConfig start");
     try {
       const resp = await fetch("/api/auth/config");
       if (resp.ok) {
         authConfig.value = await resp.json();
-        DEBUG && console.log("[auth] fetchConfig result:", authConfig.value);
+        if (DEBUG) console.log("[auth] fetchConfig result:", authConfig.value);
       } else {
-        DEBUG && console.warn("[auth] fetchConfig non-ok status:", resp.status);
+        if (DEBUG)
+          console.warn("[auth] fetchConfig non-ok status:", resp.status);
       }
     } catch (e) {
-      DEBUG && console.warn("[auth] fetchConfig error:", e);
+      if (DEBUG) console.warn("[auth] fetchConfig error:", e);
     }
   }
 
   async function startLogin(): Promise<void> {
     const cfg = authConfig.value;
-    DEBUG && console.log("[auth] startLogin, cfg:", cfg);
+    if (DEBUG) console.log("[auth] startLogin, cfg:", cfg);
     if (!cfg.enabled || !cfg.authorizationEndpoint || !cfg.clientId) {
       console.error("[auth] startLogin aborted — config incomplete", cfg);
       return;
@@ -115,7 +116,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     sessionStorage.setItem("pkce_verifier", verifier);
     sessionStorage.setItem("pkce_state", state);
-    DEBUG && console.log("[auth] startLogin PKCE stored, state:", state);
+    if (DEBUG) console.log("[auth] startLogin PKCE stored, state:", state);
 
     const redirectUri = window.location.origin + "/callback";
     const params = new URLSearchParams({
@@ -129,7 +130,7 @@ export const useAuthStore = defineStore("auth", () => {
     });
 
     const url = `${cfg.authorizationEndpoint}?${params}`;
-    DEBUG && console.log("[auth] redirecting to:", url);
+    if (DEBUG) console.log("[auth] redirecting to:", url);
     window.location.href = url;
   }
 
@@ -152,7 +153,7 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function handleCallback(code: string, state: string): Promise<boolean> {
-    DEBUG &&
+    if (DEBUG)
       console.log(
         "[auth] handleCallback start, code:",
         code.slice(0, 8) + "…",
@@ -162,7 +163,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     const storedState = sessionStorage.getItem("pkce_state");
     const verifier = sessionStorage.getItem("pkce_verifier");
-    DEBUG &&
+    if (DEBUG)
       console.log(
         "[auth] sessionStorage — storedState:",
         storedState,
@@ -183,7 +184,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     const cfg = authConfig.value;
-    DEBUG && console.log("[auth] authConfig at callback time:", cfg);
+    if (DEBUG) console.log("[auth] authConfig at callback time:", cfg);
     if (!cfg.tokenEndpoint || !cfg.clientId) {
       console.error("[auth] config missing tokenEndpoint/clientId", cfg);
       return false;
@@ -198,14 +199,15 @@ export const useAuthStore = defineStore("auth", () => {
       code_verifier: verifier,
     });
 
-    DEBUG && console.log("[auth] posting to tokenEndpoint:", cfg.tokenEndpoint);
+    if (DEBUG)
+      console.log("[auth] posting to tokenEndpoint:", cfg.tokenEndpoint);
     const resp = await fetch(cfg.tokenEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
 
-    DEBUG && console.log("[auth] token response status:", resp.status);
+    if (DEBUG) console.log("[auth] token response status:", resp.status);
     if (!resp.ok) {
       const text = await resp.text();
       console.error("[auth] token exchange failed:", resp.status, text);
@@ -213,7 +215,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     const data = await resp.json();
-    DEBUG && console.log("[auth] token response keys:", Object.keys(data));
+    if (DEBUG) console.log("[auth] token response keys:", Object.keys(data));
     const jwt = data.access_token ?? data.id_token;
     if (!jwt) {
       console.error("[auth] no token in response", data);

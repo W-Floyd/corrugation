@@ -17,7 +17,7 @@ export async function apiFetch(
 
   if (response.status === 401) {
     const currentRoute = router.currentRoute.value.name;
-    DEBUG &&
+    if (DEBUG)
       console.warn(
         "[apiFetch] 401 on",
         url,

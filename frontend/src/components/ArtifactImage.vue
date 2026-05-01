@@ -23,7 +23,9 @@ const objectUrl = ref<string | null>(null);
 async function load(id: number) {
   try {
     const cached = cache.get(id);
-    const headers: HeadersInit = cached ? { "If-None-Match": cached.etag } : {};
+    const headers: Record<string, string> = cached
+      ? { "If-None-Match": cached.etag }
+      : {};
 
     const response = await apiFetch(`/api/artifact/${id}`, { headers });
 

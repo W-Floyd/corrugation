@@ -132,7 +132,7 @@ const handleCameraOpen = async (): Promise<void> => {
         @keydown.esc.stop="handleDialogClose"
       >
         <div
-          class="relative w-2xl w-full overflow-y-auto rounded-lg border border-gray-300 bg-white p-8 dark:bg-gray-800"
+          class="relative w-full overflow-y-auto rounded-lg border border-gray-300 bg-white p-8 dark:bg-gray-800"
         >
           <!-- Title -->
           <h1 class="pb-4 text-3xl font-medium">Create New Record</h1>

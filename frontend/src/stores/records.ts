@@ -3,7 +3,6 @@ import { ref, computed, watch } from "vue";
 import type { BackendRecord } from "@/api/types";
 import { api } from "@/api";
 import { useToastsStore } from "@/stores/toasts";
-import { useAuthStore } from "@/stores/auth";
 
 export const useRecordsStore = defineStore("records", () => {
   const currentRecord = ref<number>(0);
@@ -101,7 +100,6 @@ export const useRecordsStore = defineStore("records", () => {
     searchImage: boolean;
     searchTextEmbedded: boolean;
   };
-  let partialScope: PartialScope | null = null;
   let progressToastId: number | null = null;
 
   function clearProgressToast(): void {
@@ -109,7 +107,6 @@ export const useRecordsStore = defineStore("records", () => {
       useToastsStore().remove(progressToastId);
       progressToastId = null;
     }
-    partialScope = null;
   }
 
   async function fetchAndUpdateProgress(scope: PartialScope): Promise<void> {
@@ -127,20 +124,21 @@ export const useRecordsStore = defineStore("records", () => {
         progress.artifact?.pending.length === 0
       ) {
         // Don't recreate toast - just exit
-        DEBUG &&
+        if (DEBUG)
           console.log("[records] embedding already complete, skipping update");
         return;
       }
       // Skip if toast already finalized
       if (progressToastId === null) {
-        DEBUG && console.log("[records] progressToastId null, creating toast");
+        if (DEBUG)
+          console.log("[records] progressToastId null, creating toast");
         progressToastId = useToastsStore().add(
           "Indexing embeddings...",
           "warn",
           true,
         );
       }
-      DEBUG &&
+      if (DEBUG)
         console.log("[records] getSearchEmbeddingProgress result:", progress);
       searchProgress.value = progress;
       if (
@@ -154,7 +152,6 @@ export const useRecordsStore = defineStore("records", () => {
         );
         useToastsStore().finalize(progressToastId);
         progressToastId = null;
-        partialScope = null;
       }
     } catch {
       // ignore — will retry on next embedding_progress message
@@ -165,7 +162,7 @@ export const useRecordsStore = defineStore("records", () => {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const token = localStorage.getItem("auth_token");
     const url = `${protocol}://${location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-    DEBUG && console.log("[records] connectWS", url);
+    if (DEBUG) console.log("[records] connectWS", url);
     ws = new WebSocket(url);
     ws.onopen = () => {
       reload();
@@ -357,7 +354,6 @@ export const useRecordsStore = defineStore("records", () => {
               searchImage: searchImage.value,
               searchTextEmbedded: searchTextEmbedded.value,
             };
-            partialScope = scope;
             progressToastId = useToastsStore().add(
               "Indexing embeddings — results may be incomplete",
               "warn",
@@ -365,8 +361,6 @@ export const useRecordsStore = defineStore("records", () => {
             );
 
             fetchAndUpdateProgress(scope); // populates searchProgress
-          } else {
-            partialScope = null;
           }
           apiSearchResults.value = results.map((r) => r.record);
           const scores: Record<number, { image?: number; text?: number }> = {};
@@ -394,23 +388,23 @@ export const useRecordsStore = defineStore("records", () => {
     () => searchProgress.value,
     (progress) => {
       if (!progress) {
-        DEBUG && console.log("[records] progress watch: progress is falsy");
+        if (DEBUG) console.log("[records] progress watch: progress is falsy");
         return;
       }
       const record = progress.record;
       const artifact = progress.artifact;
       // Skip if toast already finalized - prevents redundant watch fires
       if (progressToastId === null) {
-        DEBUG &&
+        if (DEBUG)
           console.log("[records] progress watch: toast already finalized");
         return;
       }
       if (!record || !artifact) {
-        DEBUG &&
+        if (DEBUG)
           console.log("[records] progress watch: missing record/artifact");
         return;
       }
-      DEBUG &&
+      if (DEBUG)
         console.log(
           "[records] embedding progress total:",
           progress.record?.complete?.length ?? 0,
@@ -429,7 +423,7 @@ export const useRecordsStore = defineStore("records", () => {
         (record?.pending?.length || 0) + (artifact?.pending?.length || 0);
       if (currentCount === 0) {
         if (progressToastId !== null) {
-          DEBUG &&
+          if (DEBUG)
             console.log("[records] embedding complete, finalizing toast");
           useToastsStore().update(
             progressToastId,
@@ -438,19 +432,19 @@ export const useRecordsStore = defineStore("records", () => {
           );
           useToastsStore().finalize(progressToastId);
           progressToastId = null;
-          partialScope = null;
         }
         return;
       }
       if (progressToastId === null) {
-        DEBUG && console.log("[records] progressToastId null, creating toast");
+        if (DEBUG)
+          console.log("[records] progressToastId null, creating toast");
         progressToastId = useToastsStore().add(
           "Indexing embeddings...",
           "warn",
           true,
         );
       } else {
-        DEBUG &&
+        if (DEBUG)
           console.log(
             "[records] progressToastId exists:",
             progressToastId,
@@ -461,7 +455,7 @@ export const useRecordsStore = defineStore("records", () => {
           );
       }
       const newMessage = `Indexed ${total - currentCount}/${total} embeddings`;
-      DEBUG && console.log("[records] toast update:", newMessage);
+      if (DEBUG) console.log("[records] toast update:", newMessage);
       useToastsStore().update(progressToastId, newMessage);
     },
     { deep: true },

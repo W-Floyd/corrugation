@@ -459,17 +459,6 @@ const handleUpdate = async (): Promise<void> => {
   }
 };
 
-const handleDelete = async (): Promise<void> => {
-  try {
-    await api.deleteRecord(props.appRecord.ID);
-    await recordsStore.reload();
-    toastsStore.add("Record deleted", "warn");
-  } catch (error) {
-    console.error("Failed to delete record:", error);
-    toastsStore.add("Failed to delete record");
-  }
-};
-
 const handleQuickCapture = async (): Promise<void> => {
   await new Promise<void>((resolve) => {
     cameraStore.open((files: File[]) => {

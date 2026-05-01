@@ -18,10 +18,10 @@ const authStore = useAuthStore();
 const recordsStore = useRecordsStore();
 const status = ref("Completing sign-in…");
 
-DEBUG && console.log("[callback] component setup");
+if (DEBUG) console.log("[callback] component setup");
 
 onMounted(async () => {
-  DEBUG && console.log("[callback] onMounted, query:", route.query);
+  if (DEBUG) console.log("[callback] onMounted, query:", route.query);
   const code = route.query.code as string | undefined;
   const state = route.query.state as string | undefined;
 
@@ -31,7 +31,7 @@ onMounted(async () => {
     return;
   }
 
-  let ok = false;
+  let ok: boolean;
   try {
     ok = await authStore.handleCallback(code, state);
   } catch (e) {
@@ -40,16 +40,16 @@ onMounted(async () => {
     return;
   }
 
-  DEBUG && console.log("[callback] handleCallback result:", ok);
+  if (DEBUG) console.log("[callback] handleCallback result:", ok);
   if (!ok) {
     status.value = "Sign-in failed — check console for details.";
     setTimeout(() => router.push({ name: "login" }), 4000);
     return;
   }
 
-  DEBUG && console.log("[callback] token set, loading state");
+  if (DEBUG) console.log("[callback] token set, loading state");
   await recordsStore.reload();
-  DEBUG && console.log("[callback] state loaded, navigating to /");
+  if (DEBUG) console.log("[callback] state loaded, navigating to /");
   router.push({ path: "/" });
 });
 </script>

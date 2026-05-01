@@ -18,7 +18,6 @@ export const useCameraStore = defineStore("camera", () => {
     localStorage.setItem("camera_device_id", newId ?? "");
   });
   let landscape = false;
-  let buttonRotation = 0;
   let _beta: number | null = null;
   let _gamma: number | null = null;
 
@@ -26,16 +25,6 @@ export const useCameraStore = defineStore("camera", () => {
     if (_beta !== null) return;
     const mobile = navigator.maxTouchPoints > 0;
     landscape = mobile && window.innerWidth > window.innerHeight;
-    const angle = (screen.orientation?.angle ?? 0) as number;
-    buttonRotation = mobile
-      ? angle === 90
-        ? 90
-        : angle === 270
-          ? -90
-          : angle === 180
-            ? 180
-            : 0
-      : 0;
   };
 
   const _onOrientation = (e: DeviceOrientationEvent): void => {
@@ -48,7 +37,6 @@ export const useCameraStore = defineStore("camera", () => {
     } else {
       if (gAbs > bAbs + 15) landscape = true;
     }
-    buttonRotation = landscape ? ((e.gamma ?? 0) < 0 ? 90 : -90) : 0;
   };
 
   const _startOrientation = async (): Promise<void> => {
