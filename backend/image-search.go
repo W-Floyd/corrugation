@@ -5,14 +5,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"image"
 	"io"
 	"net/http"
 	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/labstack/gommon/log"
 	"gorm.io/gorm"
 )
 
@@ -76,15 +74,9 @@ func SearchByImageHandler(ctx context.Context, input *ImageSearchInput) (output 
 
 // generateImageEmbeddingFromBytes creates an image embedding from raw image bytes
 func generateImageEmbeddingFromBytes(user *User, imageData []byte) ([]float64, error) {
-	// Decode the image to validate it
-	img, _, err := image.Decode(bytes.NewReader(imageData))
-	if err != nil || img == nil {
-		return nil, errors.New("invalid image data")
-	}
-
 	// Create base64-encoded image for Infinity
 	base64Image := base64.StdEncoding.EncodeToString(imageData)
-	base64Image = "data:image/jpeg;base64," + base64Image
+	base64Image = "data:" + http.DetectContentType(imageData) + ";base64," + base64Image
 
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
 	request := infinityEmbeddingsRequest{
@@ -108,14 +100,14 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 	// Get current user
 	_, user, userID, err := UserFromContext(ctx)
 	if err != nil {
-		log.Error(err)
+		Log.Error(err)
 		return
 	}
 
 	// Generate image embedding from uploaded image
 	imageEmbeddings, err := generateImageEmbeddingFromBytes(user, imageData)
 	if err != nil {
-		log.Error(err)
+		Log.Error(err)
 		return
 	}
 	// Get record image embeddings from database, scoped by user
@@ -138,7 +130,7 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 	}
 
 	if err = q.Find(&recordEmbeddings).Error; err != nil {
-		log.Error(err)
+		Log.Error(err)
 		return
 	}
 
@@ -157,7 +149,7 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 			},
 		).Find(dbCtx)
 	if err != nil {
-		log.Error(err)
+		Log.Error(err)
 		return
 	}
 
@@ -173,15 +165,15 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 			recordVec = cached.(Embeddings)
 		} else {
 			if err = json.Unmarshal(*r.EmbeddingData, &recordVec); err != nil {
-				log.Error(err)
+				Log.Error(err)
 				return
 			}
 			embeddingsCache.Store(*r.EmbeddingHash, Embeddings(recordVec))
 		}
 		var score float64
-		score, err = dotProduct(recordVec, imageEmbeddings)
+		score, err = compareEmbeddings(recordVec, imageEmbeddings)
 		if err != nil {
-			log.Error(err)
+			Log.Error(err)
 			return
 		}
 		if score < minimumImageToImageSearchConfidence {

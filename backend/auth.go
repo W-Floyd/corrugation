@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/labstack/gommon/log"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
@@ -200,7 +199,7 @@ func NewAuthMiddleware(api huma.API, issuer, jwksURL string, insecureSkipVerify 
 			}
 		}
 		if token == "" {
-			log.Warnf("[auth] missing token: %s %s", ctx.Method(), ctx.URL().Path)
+			Log.Warnf("[auth] missing token: %s %s", ctx.Method(), ctx.URL().Path)
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
@@ -213,7 +212,7 @@ func NewAuthMiddleware(api huma.API, issuer, jwksURL string, insecureSkipVerify 
 		}
 		usernameStr, err := resolve(token)
 		if err != nil {
-			log.Warnf("[auth] invalid token: %s %s: %v", ctx.Method(), ctx.URL().Path, err)
+			Log.Warnf("[auth] invalid token: %s %s: %v", ctx.Method(), ctx.URL().Path, err)
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}

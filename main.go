@@ -149,7 +149,7 @@ func main() {
 		hooks.OnStart(func() {
 			backend.StartEmbeddingWorkers()
 			if backend.ShouldBackfillOnStart() {
-				go backend.BackfillEmbeddings()
+				go backend.Backfill()
 			}
 			err := http.ListenAndServe(fmt.Sprintf("%s:%d", options.Address, options.Port), router)
 			if err != nil {

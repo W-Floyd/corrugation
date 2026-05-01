@@ -4,20 +4,22 @@ import (
 	"context"
 	"errors"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"github.com/viterin/vek"
 )
 
 const (
-	minimumImageToImageSearchConfidence float64 = 0.55
+	minimumImageToImageSearchConfidence float64 = 0.6
 	minimumTextToImageSearchConfidence  float64 = 0.2
 	minimumTextSearchConfidence         float64 = 0.9
 )
 
-func dotProduct(v1 []float64, v2 []float64) (result float64, err error) {
+// cosineSimilarity computes the cosine similarity between two vectors.
+// This is more robust than raw dot product as it's independent of vector magnitude.
+func compareEmbeddings(v1 []float64, v2 []float64) (result float64, err error) {
 	if len(v1) != len(v2) {
 		return 0, errors.New("vectors should have same length")
 	}
-	return blas64.Implementation().Ddot(len(v1), v1, 1, v2, 1), nil
+	return vek.CosineSimilarity(v1, v2), nil
 }
 
 func SearchByArtifact(ctx context.Context, search string, artifactRecordMap map[uint]*uint) (recordResults []struct {
@@ -39,7 +41,7 @@ func SearchByArtifact(ctx context.Context, search string, artifactRecordMap map[
 			continue
 		}
 		var p float64
-		p, err = dotProduct(e.embedding, searchEmbeddings)
+		p, err = compareEmbeddings(e.embedding, searchEmbeddings)
 		if err != nil {
 			return
 		}
@@ -68,7 +70,7 @@ func SearchByRecord(ctx context.Context, search string, scopedIDs []uint) (recor
 
 	for id, e := range es {
 		var p float64
-		p, err = dotProduct(e, searchEmbeddings)
+		p, err = compareEmbeddings(e, searchEmbeddings)
 		if err != nil {
 			return
 		}

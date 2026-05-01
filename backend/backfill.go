@@ -6,13 +6,36 @@ import (
 	"gorm.io/gorm"
 )
 
-func BackfillEmbeddings() {
-	backfillArtifactOwners()
-	backfillRecordEmbeddings()
-	backfillArtifactEmbeddings()
+func Backfill() (err error) {
+	if err = clearEmbeddingJobs(); err != nil {
+		return
+	}
+	if err = backfillArtifactOwners(); err != nil {
+		return
+	}
+	if err = backfillRecordEmbeddings(); err != nil {
+		return
+	}
+	if err = backfillArtifactEmbeddings(); err != nil {
+		return
+	}
+	return
 }
 
-func backfillRecordEmbeddings() {
+func clearEmbeddingJobs() (err error) {
+	// Reset interrupted processing jobs back to pending
+	db.Model(&EmbeddingJob{}).Where("status = ?", JobStatusProcessing).Update("status", JobStatusPending)
+
+	var jobs []EmbeddingJob
+	tx := db.Where("status = ?", JobStatusPending).Find(&jobs)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return
+}
+
+func backfillRecordEmbeddings() (err error) {
 	records, _, err := GetRecords(dbCtx, nil, nil, nil, nil, nil, []string{"id", "title", "reference_number", "description", "owner_id"})
 	if err != nil {
 		Log.Errorw("backfill: failed to fetch records", "error", err)
@@ -66,9 +89,10 @@ func backfillRecordEmbeddings() {
 		ctx := context.WithValue(dbCtx, usernameContextKey, u.Username)
 		backfillRecordEmbeddingsForUser(ctx, textModel, docPrefix, ownerRecords)
 	}
+	return
 }
 
-func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix string, records []Record) {
+func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix string, records []Record) (err error) {
 	recordIDs := make([]uint, len(records))
 	for i, r := range records {
 		recordIDs[i] = r.ID
@@ -98,11 +122,12 @@ func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix s
 	}
 
 	generateMissingRecordEmbeddings(ctx, recordIDs, embeddedIDs, "backfill")
+	return
 }
 
-func backfillArtifactOwners() {
+func backfillArtifactOwners() (err error) {
 	var artifacts []Artifact
-	err := db.Select("artifacts.id, artifacts.record_id, records.owner_id").
+	err = db.Select("artifacts.id, artifacts.record_id, records.owner_id").
 		Joins("JOIN records ON records.id = artifacts.record_id AND records.owner_id IS NOT NULL").
 		Where("artifacts.owner_id IS NULL AND artifacts.record_id IS NOT NULL").
 		Find(&artifacts).Error
@@ -120,9 +145,10 @@ func backfillArtifactOwners() {
 		}
 	}
 	Log.Infow("backfill: assigned owners to ownerless artifacts", "count", len(artifacts))
+	return
 }
 
-func backfillArtifactEmbeddings() {
+func backfillArtifactEmbeddings() (err error) {
 	embeddings, err := gorm.G[Embedding](db).Where("artifact_id IS NOT NULL AND embed_model = ?", infinityImageModel).Find(dbCtx)
 	if err != nil {
 		Log.Errorw("backfill: failed to fetch artifact embeddings", "error", err)
@@ -146,4 +172,5 @@ func backfillArtifactEmbeddings() {
 	}
 
 	generateMissingArtifactEmbeddings(dbCtx, artifactIDs, embeddedIDs, "backfill")
+	return
 }
