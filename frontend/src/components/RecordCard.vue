@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { api } from "@/api";
 import type { BackendRecord, BackendArtifactRef } from "@/api/types";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";

@@ -3,7 +3,6 @@ import { onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useRecordsStore } from "@/stores/records";
 import { useAuthStore } from "@/stores/auth";
-import PrimeVueToast from "primevue/toast";
 import LoginView from "@/views/LoginView.vue";
 import SettingsView from "@/views/SettingsView.vue";
 import RecordsView from "@/views/RecordsView.vue";

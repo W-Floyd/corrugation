@@ -4,7 +4,7 @@ import AlertIcon from "vue-material-design-icons/Alert.vue";
 import KbdHint from "@/components/KbdHint.vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { api } from "@/api";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 

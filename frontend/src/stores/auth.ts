@@ -1,9 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { useToast } from "primevue/usetoast";
-import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
-
-const toast = useToast();
+import { useToast } from "@/utils/toast";
+import { DEFAULT_TOAST_LIFE } from "./constants";
 
 export interface AuthConfig {
   enabled: boolean;
@@ -32,6 +30,7 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 }
 
 export const useAuthStore = defineStore("auth", () => {
+  const toast = useToast();
   const token = ref<string | null>(localStorage.getItem("auth_token"));
   const authConfig = ref<AuthConfig>({ enabled: false });
   const isAdmin = ref(false);
@@ -39,11 +38,12 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => token.value !== null);
 
-  if (DEBUG)
+  if (DEBUG) {
     console.log(
       "[auth] store init, token in localStorage:",
       !!localStorage.getItem("auth_token"),
     );
+  }
   if (token.value) {
     document.cookie = `auth_token=${token.value}; path=/; SameSite=Strict`;
   }
@@ -85,6 +85,9 @@ export const useAuthStore = defineStore("auth", () => {
               "You are the first user — you have been granted admin access.",
             life: DEFAULT_TOAST_LIFE,
           });
+          console.log(
+            "[auth] first admin user detected - admin access granted",
+          );
         }
       }
     } catch (e) {
@@ -150,7 +153,6 @@ export const useAuthStore = defineStore("auth", () => {
       const error = await response.text();
       const message = error || "Local login failed";
       clearToken();
-      const toast = useToast();
       toast.add({
         severity: "error",
         summary: "Login Failed",
@@ -165,23 +167,25 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function handleCallback(code: string, state: string): Promise<boolean> {
-    if (DEBUG)
+    if (DEBUG) {
       console.log(
         "[auth] handleCallback start, code:",
         code.slice(0, 8) + "…",
         "state:",
         state,
       );
+    }
 
     const storedState = sessionStorage.getItem("pkce_state");
     const verifier = sessionStorage.getItem("pkce_verifier");
-    if (DEBUG)
+    if (DEBUG) {
       console.log(
         "[auth] sessionStorage — storedState:",
         storedState,
         "hasVerifier:",
         !!verifier,
       );
+    }
 
     sessionStorage.removeItem("pkce_state");
     sessionStorage.removeItem("pkce_verifier");
@@ -211,8 +215,9 @@ export const useAuthStore = defineStore("auth", () => {
       code_verifier: verifier,
     });
 
-    if (DEBUG)
+    if (DEBUG) {
       console.log("[auth] posting to tokenEndpoint:", cfg.tokenEndpoint);
+    }
     const resp = await fetch(cfg.tokenEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

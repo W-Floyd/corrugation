@@ -48,13 +48,7 @@ async function load(id: number) {
   }
 }
 
-watch(
-  [props.artifactId],
-  (newVal) => {
-    if (newVal?.[0]) load(newVal[0]);
-  },
-  { immediate: true },
-);
+watch(() => props.artifactId, load, { immediate: true });
 
 onUnmounted(() => {
   if (objectUrl.value) {

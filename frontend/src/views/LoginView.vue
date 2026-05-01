@@ -47,8 +47,9 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
+const toast = useToast();
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -58,7 +59,6 @@ async function handleLocalLogin(): Promise<void> {
   if (!username.value.trim()) return;
   try {
     await authStore.localLogin(username.value.trim());
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Logged In",

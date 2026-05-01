@@ -1,7 +1,7 @@
 <script setup lang="ts" name="BreadcrumbNav">
 import { computed, ref } from "vue";
 import { useRecordsStore } from "@/stores/records";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import { api } from "@/api";
 

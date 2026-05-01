@@ -2,11 +2,11 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import type { BackendRecord } from "@/api/types";
 import { api } from "@/api";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { DEFAULT_TOAST_LIFE } from "./constants";
-const toast = useToast();
 
 export const useRecordsStore = defineStore("records", () => {
+  const toast = useToast();
   const currentRecord = ref<number>(0);
 
   // All records fetched globally — kept in sync via WebSocket
@@ -133,7 +133,6 @@ export const useRecordsStore = defineStore("records", () => {
         progress.record?.pending.length === 0 &&
         progress.artifact?.pending.length === 0
       ) {
-        const toast = useToast();
         toast.add({
           severity: "info",
           summary: "Search Complete",
@@ -343,7 +342,6 @@ export const useRecordsStore = defineStore("records", () => {
             searchTextSubstring: searchTextSubstring.value,
           });
           if (partial) {
-            const toast = useToast();
             toast.add({
               severity: "warn",
               summary: "Embeddings Pending",
@@ -398,7 +396,6 @@ export const useRecordsStore = defineStore("records", () => {
 
       if (pending === 0) {
         if (DEBUG) console.log("[records] embedding complete");
-        const toast = useToast();
         toast.add({
           severity: "success",
           summary: "Embeddings Ready",
@@ -418,13 +415,13 @@ export const useRecordsStore = defineStore("records", () => {
       }
 
       // Show progress toast
-      const toast = useToast();
       toast.add({
         severity: "warn",
         summary: "Embedding Progress",
         detail: `Indexing ${total} embeddings (${pending} pending)`,
         life: 0,
       });
+      // Show progress toast - no toast needed during indexing
     },
     { deep: true },
   );

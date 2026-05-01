@@ -41,6 +41,7 @@ app.use(PrimeVue, {
       darkModeSelector: "system",
     },
   },
+  plugins: [Toast],
 });
 app.use(ToastService);
 app.component("PrimeVueButton", Button);

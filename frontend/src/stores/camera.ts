@@ -14,9 +14,12 @@ export const useCameraStore = defineStore("camera", () => {
 
   // Load saved camera device from localStorage
   selectedDeviceId.value = localStorage.getItem("camera_device_id");
-  watch(selectedDeviceId, (newId) => {
-    localStorage.setItem("camera_device_id", newId ?? "");
-  });
+  watch(
+    () => selectedDeviceId.value,
+    (newId) => {
+      localStorage.setItem("camera_device_id", newId ?? "");
+    },
+  );
   let landscape = false;
   let _beta: number | null = null;
   let _gamma: number | null = null;

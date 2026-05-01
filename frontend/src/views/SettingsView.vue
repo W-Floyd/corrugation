@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { api } from "@/api";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 

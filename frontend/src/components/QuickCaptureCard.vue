@@ -2,7 +2,7 @@
 import CameraIcon from "vue-material-design-icons/Camera.vue";
 import { useCameraStore } from "@/stores/camera";
 import { useRecordsStore } from "@/stores/records";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { api } from "@/api";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 

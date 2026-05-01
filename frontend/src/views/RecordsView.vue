@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, watch, ref, computed, nextTick } from "vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToast } from "primevue/usetoast";
+import { useToast } from "@/utils/toast";
 import { useAuthStore } from "@/stores/auth";
 import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import RecordCard from "@/components/RecordCard.vue";
@@ -66,7 +66,6 @@ const handleMoveConfirmed = async (
   try {
     await api.moveRecord(recordId, newLocation);
     await recordsStore.reload();
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Record Moved",
@@ -79,7 +78,6 @@ const handleMoveConfirmed = async (
       selectedRecordId.value = nextId;
     }
   } catch {
-    const toast = useToast();
     toast.add({
       severity: "error",
       summary: "Failed to Move Record",
@@ -105,7 +103,6 @@ const handleFabCapture = async (): Promise<void> => {
       Artifacts: [artifactId],
     });
     await recordsStore.reload();
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Record Created",
@@ -113,7 +110,6 @@ const handleFabCapture = async (): Promise<void> => {
       life: DEFAULT_TOAST_LIFE,
     });
   } catch {
-    const toast = useToast();
     toast.add({
       severity: "error",
       summary: "Failed to Create Record",
@@ -134,7 +130,6 @@ const handleFabImageSearch = async (): Promise<void> => {
   if (!capturedFiles[0]) return;
   try {
     await recordsStore.searchByImage(capturedFiles[0]);
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Image Search Complete",
@@ -142,7 +137,6 @@ const handleFabImageSearch = async (): Promise<void> => {
       life: DEFAULT_TOAST_LIFE,
     });
   } catch {
-    const toast = useToast();
     toast.add({
       severity: "error",
       summary: "Failed to Search",
@@ -201,7 +195,6 @@ const handleQuickCaptureOnRecord = async (recordId: number): Promise<void> => {
     ];
     await api.patchRecord(recordId, { Artifacts: artifacts });
     await recordsStore.reload();
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Artifact Captured",
@@ -209,7 +202,6 @@ const handleQuickCaptureOnRecord = async (recordId: number): Promise<void> => {
       life: DEFAULT_TOAST_LIFE,
     });
   } catch {
-    const toast = useToast();
     toast.add({
       severity: "error",
       summary: "Failed to Capture Artifact",
@@ -235,7 +227,6 @@ const handleQuickCaptureNewChild = async (parentId: number): Promise<void> => {
       Artifacts: [artifactId],
     });
     await recordsStore.reload();
-    const toast = useToast();
     toast.add({
       severity: "success",
       summary: "Record Created",
@@ -243,7 +234,6 @@ const handleQuickCaptureNewChild = async (parentId: number): Promise<void> => {
       life: DEFAULT_TOAST_LIFE,
     });
   } catch {
-    const toast = useToast();
     toast.add({
       severity: "error",
       summary: "Failed to Create Record",
