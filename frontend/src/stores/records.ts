@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
-import type { AppRecord, BackendRecord } from "@/api/types";
-import { recordToAppRecord } from "@/api/types";
+import type { BackendRecord } from "@/api/types";
 import { api } from "@/api";
 import { useToastsStore } from "@/stores/toasts";
 import { useAuthStore } from "@/stores/auth";
@@ -23,7 +22,7 @@ export const useRecordsStore = defineStore("records", () => {
   const searchImage = ref(true);
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
-  const apiSearchResults = ref<AppRecord[]>([]);
+  const apiSearchResults = ref<BackendRecord[]>([]);
   const apiSearchResultsPartial = ref<boolean>(false);
   const apiSearchScores = ref<
     Record<number, { image?: number; text?: number }>
@@ -55,9 +54,9 @@ export const useRecordsStore = defineStore("records", () => {
     return m;
   });
 
-  const recordMap = computed<Record<number, AppRecord>>(() => {
-    const m: Record<number, AppRecord> = {};
-    for (const r of allRecords.value) m[r.ID] = recordToAppRecord(r);
+  const recordMap = computed<Record<number, BackendRecord>>(() => {
+    const m: Record<number, BackendRecord> = {};
+    for (const r of allRecords.value) m[r.ID] = r;
     return m;
   });
 
@@ -90,7 +89,7 @@ export const useRecordsStore = defineStore("records", () => {
       isLoading.value = false;
       const existingIds = new Set(allRecords.value.map((r) => r.ID));
       apiSearchResults.value = apiSearchResults.value.filter((e) =>
-        existingIds.has(e.id),
+        existingIds.has(e.ID),
       );
     } catch (e) {
       console.error("reload failed:", e);
@@ -249,7 +248,7 @@ export const useRecordsStore = defineStore("records", () => {
       apiSearchResults.value = results.map((r) => r.record);
       // Store image scores for display on cards
       for (const r of results) {
-        apiSearchScores.value[r.record.id] = { image: r.imageScore };
+        apiSearchScores.value[r.record.ID] = { image: r.imageScore };
       }
       apiSearchResultsPartial.value = partial;
       searching.value = false;
@@ -281,24 +280,23 @@ export const useRecordsStore = defineStore("records", () => {
       });
   }
 
-  function load(locationId: number, searchTextVal: string): AppRecord[] {
+  function load(locationId: number, searchTextVal: string): BackendRecord[] {
     if (searchTextVal.trim()) {
       let results = [...apiSearchResults.value];
       if (filterToMissingImage.value) {
         results = results.filter(
-          (e) => !e.artifacts || e.artifacts.length === 0,
+          (e) => !e.Artifacts || e.Artifacts.length === 0,
         );
       } else if (filterToOnlyImage.value) {
-        results = results.filter((e) => e.artifacts && e.artifacts.length > 0);
+        results = results.filter((e) => e.Artifacts && e.Artifacts.length > 0);
       }
       return results;
     }
     return allRecords.value
       .filter((r) => (r.ParentID ?? 0) === locationId)
-      .map(recordToAppRecord)
       .sort((a, b) => {
-        const na = (a.name ?? "").toLowerCase();
-        const nb = (b.name ?? "").toLowerCase();
+        const na = (a.Title ?? "").toLowerCase();
+        const nb = (b.Title ?? "").toLowerCase();
         return na.localeCompare(nb, undefined, { numeric: true });
       });
   }
@@ -373,7 +371,7 @@ export const useRecordsStore = defineStore("records", () => {
           apiSearchResults.value = results.map((r) => r.record);
           const scores: Record<number, { image?: number; text?: number }> = {};
           for (const r of results) {
-            scores[r.record.id] = { image: r.imageScore, text: r.textScore };
+            scores[r.record.ID] = { image: r.imageScore, text: r.textScore };
           }
           apiSearchScores.value = scores;
         } else {
@@ -433,7 +431,11 @@ export const useRecordsStore = defineStore("records", () => {
         if (progressToastId !== null) {
           DEBUG &&
             console.log("[records] embedding complete, finalizing toast");
-          useToastsStore().update(progressToastId, "Embeddings ready", "success");
+          useToastsStore().update(
+            progressToastId,
+            "Embeddings ready",
+            "success",
+          );
           useToastsStore().finalize(progressToastId);
           progressToastId = null;
           partialScope = null;

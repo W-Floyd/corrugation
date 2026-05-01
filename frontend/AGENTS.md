@@ -21,7 +21,7 @@ Corrugation frontend is a Vue 3 + TypeScript single-page application for hierarc
 
 The frontend source code lives under `src/` with the following organization:
 
-- `api/`: API client functions, TypeScript types for backend records and AppRecord, and Record-to-AppRecord mapping utilities
+- `api/`: API client functions and TypeScript types for backend records
 - `assets/`: Static assets including favicon, CSS, and images
 - `components/`: Reusable Vue components for the UI
 - `router/`: Vue Router configuration with route definitions and navigation guards

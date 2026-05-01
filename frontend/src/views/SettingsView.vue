@@ -47,7 +47,10 @@ const currentUsername = computed(() => authStore.username);
 async function loadUserConfig() {
   userConfigLoading.value = true;
   try {
-    const [cfg, gcfg] = await Promise.all([api.getUserConfig(), api.getGlobalConfig()]);
+    const [cfg, gcfg] = await Promise.all([
+      api.getUserConfig(),
+      api.getGlobalConfig(),
+    ]);
     globalConfig.value = {
       ...globalConfig.value,
       infinityTextModel: gcfg.infinityTextModel,
@@ -75,7 +78,8 @@ async function saveUserConfig() {
       infinityTextModel: userConfig.value.infinityTextModel || null,
       infinityImageModel: userConfig.value.infinityImageModel || null,
       infinityTextQueryPrefix: userConfig.value.infinityTextQueryPrefix || null,
-      infinityTextDocumentPrefix: userConfig.value.infinityTextDocumentPrefix || null,
+      infinityTextDocumentPrefix:
+        userConfig.value.infinityTextDocumentPrefix || null,
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -130,7 +134,11 @@ async function loadUsers() {
   }
 }
 
-async function toggleAdmin(user: { id: number; username: string; isAdmin: boolean }) {
+async function toggleAdmin(user: {
+  id: number;
+  username: string;
+  isAdmin: boolean;
+}) {
   const newValue = !user.isAdmin;
   try {
     await api.setUserAdmin(user.username, newValue);
@@ -157,71 +165,128 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+  <div
+    class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white"
+  >
     <!-- Header -->
-    <div class="container mx-auto pt-4 px-4">
-      <div class="flex items-center gap-4 mb-6">
-        <button @click="router.push({ path: '/' })"
-          class="text-blue-600 dark:text-sky-400 hover:underline text-sm">
+    <div class="container mx-auto px-4 pt-4">
+      <div class="mb-6 flex items-center gap-4">
+        <button
+          @click="router.push({ path: '/' })"
+          class="text-sm text-blue-600 hover:underline dark:text-sky-400"
+        >
           ← Back
         </button>
         <h1 class="text-2xl font-semibold">Settings</h1>
-        <span v-if="currentUsername" class="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+        <span
+          v-if="currentUsername"
+          class="ml-auto text-sm text-gray-500 dark:text-gray-400"
+        >
           Signed in as <strong>{{ currentUsername }}</strong>
-          <span v-if="isAdmin" class="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">admin</span>
+          <span
+            v-if="isAdmin"
+            class="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+            >admin</span
+          >
         </span>
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-6">
-        <button v-for="tab in (isAdmin ? ['user', 'global', 'users'] as Tab[] : ['user'] as Tab[])"
+      <div
+        class="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700"
+      >
+        <button
+          v-for="tab in isAdmin
+            ? (['user', 'global', 'users'] as Tab[])
+            : (['user'] as Tab[])"
           :key="tab"
           @click="selectTab(tab)"
           :class="[
-            'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
+            'rounded-t-lg px-4 py-2 text-sm font-medium transition-colors',
             activeTab === tab
-              ? 'bg-white dark:bg-gray-800 border border-b-white dark:border-gray-700 dark:border-b-gray-800 -mb-px text-blue-600 dark:text-sky-400'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
-          ]">
-          {{ tab === "user" ? "My Settings" : tab === "global" ? "Global Settings" : "Users" }}
+              ? '-mb-px border border-b-white bg-white text-blue-600 dark:border-gray-700 dark:border-b-gray-800 dark:bg-gray-800 dark:text-sky-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+          ]"
+        >
+          {{
+            tab === "user"
+              ? "My Settings"
+              : tab === "global"
+                ? "Global Settings"
+                : "Users"
+          }}
         </button>
       </div>
 
       <!-- User Settings Tab -->
       <div v-if="activeTab === 'user'" class="max-w-lg">
         <div v-if="userConfigLoading" class="text-gray-500">Loading…</div>
-        <form v-else @submit.prevent="saveUserConfig" class="flex flex-col gap-4">
+        <form
+          v-else
+          @submit.prevent="saveUserConfig"
+          class="flex flex-col gap-4"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Override Infinity embedding model settings for your account. Leave blank to use server defaults.
+            Override Infinity embedding model settings for your account. Leave
+            blank to use server defaults.
           </p>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text embedding model</label>
-            <input v-model="userConfig.infinityTextModel" type="text" :placeholder="globalConfig.infinityTextModel || 'Server default'"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text embedding model</label
+            >
+            <input
+              v-model="userConfig.infinityTextModel"
+              type="text"
+              :placeholder="globalConfig.infinityTextModel || 'Server default'"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Image embedding model</label>
-            <input v-model="userConfig.infinityImageModel" type="text" :placeholder="globalConfig.infinityImageModel || 'Server default'"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Image embedding model</label
+            >
+            <input
+              v-model="userConfig.infinityImageModel"
+              type="text"
+              :placeholder="globalConfig.infinityImageModel || 'Server default'"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text query prefix</label>
-            <input v-model="userConfig.infinityTextQueryPrefix" type="text" :placeholder="globalConfig.infinityTextQueryPrefix || 'Server default'"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text query prefix</label
+            >
+            <input
+              v-model="userConfig.infinityTextQueryPrefix"
+              type="text"
+              :placeholder="
+                globalConfig.infinityTextQueryPrefix || 'Server default'
+              "
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text document prefix</label>
-            <input v-model="userConfig.infinityTextDocumentPrefix" type="text" :placeholder="globalConfig.infinityTextDocumentPrefix || 'None'"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text document prefix</label
+            >
+            <input
+              v-model="userConfig.infinityTextDocumentPrefix"
+              type="text"
+              :placeholder="globalConfig.infinityTextDocumentPrefix || 'None'"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <button type="submit" :disabled="userConfigSaving"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button
+              type="submit"
+              :disabled="userConfigSaving"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
               {{ userConfigSaving ? "Saving…" : "Save" }}
             </button>
           </div>
@@ -231,69 +296,130 @@ onMounted(() => {
       <!-- Global Settings Tab -->
       <div v-if="activeTab === 'global'" class="max-w-lg">
         <div v-if="globalConfigLoading" class="text-gray-500">Loading…</div>
-        <form v-else @submit.prevent="saveGlobalConfig" class="flex flex-col gap-4">
+        <form
+          v-else
+          @submit.prevent="saveGlobalConfig"
+          class="flex flex-col gap-4"
+        >
           <div>
-            <label class="block text-sm font-medium mb-1">Log level</label>
-            <select v-model="globalConfig.logLevel"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-              <option v-for="lvl in ['silent', 'error', 'warn', 'info', 'debug']" :key="lvl" :value="lvl">{{ lvl }}</option>
+            <label class="mb-1 block text-sm font-medium">Log level</label>
+            <select
+              v-model="globalConfig.logLevel"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            >
+              <option
+                v-for="lvl in ['silent', 'error', 'warn', 'info', 'debug']"
+                :key="lvl"
+                :value="lvl"
+              >
+                {{ lvl }}
+              </option>
             </select>
           </div>
 
           <div class="flex items-center gap-3">
-            <input v-model="globalConfig.backfillRecordEmbeddingsOnStart" id="backfillRecords" type="checkbox"
-              class="w-4 h-4 rounded border-gray-300 text-blue-600" />
-            <label for="backfillRecords" class="text-sm font-medium">Backfill record text embeddings on start</label>
+            <input
+              v-model="globalConfig.backfillRecordEmbeddingsOnStart"
+              id="backfillRecords"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="backfillRecords" class="text-sm font-medium"
+              >Backfill record text embeddings on start</label
+            >
           </div>
 
           <div class="flex items-center gap-3">
-            <input v-model="globalConfig.backfillArtifactEmbeddingsOnStart" id="backfillArtifacts" type="checkbox"
-              class="w-4 h-4 rounded border-gray-300 text-blue-600" />
-            <label for="backfillArtifacts" class="text-sm font-medium">Backfill artifact image embeddings on start</label>
+            <input
+              v-model="globalConfig.backfillArtifactEmbeddingsOnStart"
+              id="backfillArtifacts"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="backfillArtifacts" class="text-sm font-medium"
+              >Backfill artifact image embeddings on start</label
+            >
           </div>
 
           <div class="flex items-center gap-3">
-            <input v-model="globalConfig.backfillArtifactOwnersOnStart" id="backfillOwners" type="checkbox"
-              class="w-4 h-4 rounded border-gray-300 text-blue-600" />
-            <label for="backfillOwners" class="text-sm font-medium">Assign artifact owners on start</label>
+            <input
+              v-model="globalConfig.backfillArtifactOwnersOnStart"
+              id="backfillOwners"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="backfillOwners" class="text-sm font-medium"
+              >Assign artifact owners on start</label
+            >
           </div>
 
           <div class="flex items-center gap-3">
-            <input v-model="globalConfig.allowLocalUsernameLogin" id="localLogin" type="checkbox"
-              class="w-4 h-4 rounded border-gray-300 text-blue-600" />
-            <label for="localLogin" class="text-sm font-medium">Allow local username login (testing only)</label>
+            <input
+              v-model="globalConfig.allowLocalUsernameLogin"
+              id="localLogin"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="localLogin" class="text-sm font-medium"
+              >Allow local username login (testing only)</label
+            >
           </div>
 
           <hr class="border-gray-200 dark:border-gray-700" />
-          <p class="text-xs text-gray-500 dark:text-gray-400">Embedding model defaults (used when users have no override)</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Embedding model defaults (used when users have no override)
+          </p>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text embedding model</label>
-            <input v-model="globalConfig.infinityTextModel" type="text"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text embedding model</label
+            >
+            <input
+              v-model="globalConfig.infinityTextModel"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Image embedding model</label>
-            <input v-model="globalConfig.infinityImageModel" type="text"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Image embedding model</label
+            >
+            <input
+              v-model="globalConfig.infinityImageModel"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text query prefix</label>
-            <input v-model="globalConfig.infinityTextQueryPrefix" type="text"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text query prefix</label
+            >
+            <input
+              v-model="globalConfig.infinityTextQueryPrefix"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Text document prefix</label>
-            <input v-model="globalConfig.infinityTextDocumentPrefix" type="text"
-              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <label class="mb-1 block text-sm font-medium"
+              >Text document prefix</label
+            >
+            <input
+              v-model="globalConfig.infinityTextDocumentPrefix"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
           </div>
 
           <div>
-            <button type="submit" :disabled="globalConfigSaving"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button
+              type="submit"
+              :disabled="globalConfigSaving"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
               {{ globalConfigSaving ? "Saving…" : "Save" }}
             </button>
           </div>
@@ -304,36 +430,53 @@ onMounted(() => {
       <div v-if="activeTab === 'users'" class="max-w-lg">
         <div v-if="usersLoading" class="text-gray-500">Loading…</div>
         <div v-else>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
             Manage admin access for all users.
           </p>
           <div class="flex flex-col gap-2">
-            <div v-for="user in users" :key="user.id"
-              class="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div
+              v-for="user in users"
+              :key="user.id"
+              class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
+            >
               <div class="flex items-center gap-3">
                 <span class="text-sm font-medium">{{ user.username }}</span>
-                <span v-if="user.username === currentUsername"
-                  class="text-xs text-gray-400 dark:text-gray-500">(you)</span>
+                <span
+                  v-if="user.username === currentUsername"
+                  class="text-xs text-gray-400 dark:text-gray-500"
+                  >(you)</span
+                >
               </div>
               <div class="flex items-center gap-3">
-                <span v-if="user.isAdmin"
-                  class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">admin</span>
-                <button @click="toggleAdmin(user)"
+                <span
+                  v-if="user.isAdmin"
+                  class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                  >admin</span
+                >
+                <button
+                  @click="toggleAdmin(user)"
                   :disabled="user.isAdmin && user.username === currentUsername"
-                  :title="user.isAdmin && user.username === currentUsername ? 'Cannot remove admin from yourself' : undefined"
-                  :class="[
-                    'text-xs px-3 py-1 rounded-lg font-medium transition-colors',
+                  :title="
                     user.isAdmin && user.username === currentUsername
-                      ? 'opacity-40 cursor-not-allowed bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
+                      ? 'Cannot remove admin from yourself'
+                      : undefined
+                  "
+                  :class="[
+                    'rounded-lg px-3 py-1 text-xs font-medium transition-colors',
+                    user.isAdmin && user.username === currentUsername
+                      ? 'cursor-not-allowed bg-red-100 text-red-700 opacity-40 dark:bg-red-900/40 dark:text-red-400'
                       : user.isAdmin
-                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600',
-                  ]">
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600',
+                  ]"
+                >
                   {{ user.isAdmin ? "Remove admin" : "Make admin" }}
                 </button>
               </div>
             </div>
-            <div v-if="users.length === 0" class="text-gray-500 text-sm">No users found.</div>
+            <div v-if="users.length === 0" class="text-sm text-gray-500">
+              No users found.
+            </div>
           </div>
         </div>
       </div>

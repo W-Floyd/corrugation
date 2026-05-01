@@ -1,5 +1,4 @@
-import type { AppRecord, BackendRecord, RecordBody } from "./types";
-import { recordToAppRecord } from "./types";
+import type { BackendRecord, RecordBody } from "./types";
 import router from "../router";
 import { useAuthStore } from "../stores/auth";
 import { useToastsStore } from "../stores/toasts";
@@ -40,11 +39,15 @@ export async function apiFetch(
     try {
       const parsed = JSON.parse(body);
       if (parsed.detail) {
-        message = parsed.title ? `${parsed.title}: ${parsed.detail}` : parsed.detail;
+        message = parsed.title
+          ? `${parsed.title}: ${parsed.detail}`
+          : parsed.detail;
       } else if (parsed.title) {
         message = parsed.title;
       }
-    } catch { /* not JSON, use raw body */ }
+    } catch {
+      /* not JSON, use raw body */
+    }
     useToastsStore().add(message);
     throw new Error(message);
   }
@@ -115,11 +118,9 @@ export const api = {
     await apiFetch(`/api/record/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/merge-patch+json" },
-      body: JSON.stringify(
-        {
-          ParentID: locationId
-        }
-      ),
+      body: JSON.stringify({
+        ParentID: locationId,
+      }),
     });
   },
 
@@ -140,7 +141,11 @@ export const api = {
       searchTextSubstring?: boolean;
     } = {},
   ): Promise<{
-    results: { record: AppRecord; imageScore?: number; textScore?: number }[];
+    results: {
+      record: BackendRecord;
+      imageScore?: number;
+      textScore?: number;
+    }[];
     partial: boolean;
   }> {
     const params = new URLSearchParams({ search: query });
@@ -161,7 +166,7 @@ export const api = {
     return {
       partial,
       results: records.map((r) => ({
-        record: recordToAppRecord(r),
+        record: r as BackendRecord,
         imageScore: r.SearchConfidenceImage,
         textScore: r.SearchConfidenceText,
       })),
@@ -169,7 +174,7 @@ export const api = {
   },
 
   async searchByImage(file: File): Promise<{
-    results: { record: AppRecord; imageScore?: number }[];
+    results: { record: BackendRecord; imageScore?: number }[];
     partial: boolean;
   }> {
     const formData = new FormData();
@@ -183,7 +188,7 @@ export const api = {
     return {
       partial,
       results: records.map((r) => ({
-        record: recordToAppRecord(r),
+        record: r as BackendRecord,
         imageScore: r.SearchConfidenceImage,
         textScore: r.SearchConfidenceText,
       })),
@@ -207,10 +212,9 @@ export const api = {
 
   // Next available reference number not held by any labeled record
   async nextReferenceNumber(excludeIDs?: number[]): Promise<number> {
-
     const params = new URLSearchParams();
     if (excludeIDs != null) {
-      params.set("excludeIDs", excludeIDs.toString())
+      params.set("excludeIDs", excludeIDs.toString());
     }
     const response = await apiFetch(`/api/records/nextref?${params}`);
     return response.json();
@@ -310,7 +314,9 @@ export const api = {
     });
   },
 
-  async getUsers(): Promise<{ id: number; username: string; isAdmin: boolean }[]> {
+  async getUsers(): Promise<
+    { id: number; username: string; isAdmin: boolean }[]
+  > {
     const response = await apiFetch("/api/users");
     return response.json();
   },
