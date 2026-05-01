@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
-import type { Entity, BackendRecord } from "@/api/types";
-import { recordToEntity } from "@/api/types";
+import type { AppRecord, BackendRecord } from "@/api/types";
+import { recordToAppRecord } from "@/api/types";
 import { api } from "@/api";
 import { useToastsStore } from "@/stores/toasts";
 import { useAuthStore } from "@/stores/auth";
 
-export const useEntitiesStore = defineStore("entities", () => {
-  const currentEntity = ref<number>(0);
+export const useRecordsStore = defineStore("records", () => {
+  const currentRecord = ref<number>(0);
 
   // All records fetched globally — kept in sync via WebSocket
   const allRecords = ref<BackendRecord[]>([]);
@@ -17,13 +17,13 @@ export const useEntitiesStore = defineStore("entities", () => {
   const searchtextpredebounce = ref("");
   const searchtext = ref("");
   const moveSearchtext = ref("");
-  const selectedEntityId = ref<number | null>(null);
+  const selectedRecordId = ref<number | null>(null);
   const filterworld = ref(false);
   const searching = ref(false);
   const searchImage = ref(true);
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
-  const apiSearchResults = ref<Entity[]>([]);
+  const apiSearchResults = ref<AppRecord[]>([]);
   const apiSearchResultsPartial = ref<boolean>(false);
   const apiSearchScores = ref<
     Record<number, { image?: number; text?: number }>
@@ -55,9 +55,9 @@ export const useEntitiesStore = defineStore("entities", () => {
     return m;
   });
 
-  const entityMap = computed<Record<number, Entity>>(() => {
-    const m: Record<number, Entity> = {};
-    for (const r of allRecords.value) m[r.ID] = recordToEntity(r);
+  const recordMap = computed<Record<number, AppRecord>>(() => {
+    const m: Record<number, AppRecord> = {};
+    for (const r of allRecords.value) m[r.ID] = recordToAppRecord(r);
     return m;
   });
 
@@ -70,10 +70,10 @@ export const useEntitiesStore = defineStore("entities", () => {
   });
 
   // Derived from allRecords — no extra fetch needed
-  function buildLocationTree(entityId: number): number[] {
-    if (entityId === 0) return [0];
+  function buildLocationTree(recordId: number): number[] {
+    if (recordId === 0) return [0];
     const tree: number[] = [];
-    let cur: number | undefined = entityId;
+    let cur: number | undefined = recordId;
     while (cur !== undefined && cur !== 0) {
       tree.push(cur);
       cur = recordById.value[cur]?.ParentID ?? undefined;
@@ -86,7 +86,7 @@ export const useEntitiesStore = defineStore("entities", () => {
   async function reload(): Promise<void> {
     try {
       allRecords.value = await api.getRecords(0, { global: true });
-      locationtree.value = buildLocationTree(currentEntity.value);
+      locationtree.value = buildLocationTree(currentRecord.value);
       isLoading.value = false;
       const existingIds = new Set(allRecords.value.map((r) => r.ID));
       apiSearchResults.value = apiSearchResults.value.filter((e) =>
@@ -129,12 +129,12 @@ export const useEntitiesStore = defineStore("entities", () => {
       ) {
         // Don't recreate toast - just exit
         DEBUG &&
-          console.log("[entities] embedding already complete, skipping update");
+          console.log("[records] embedding already complete, skipping update");
         return;
       }
       // Skip if toast already finalized
       if (progressToastId === null) {
-        DEBUG && console.log("[entities] progressToastId null, creating toast");
+        DEBUG && console.log("[records] progressToastId null, creating toast");
         progressToastId = useToastsStore().add(
           "Indexing embeddings...",
           "warn",
@@ -142,7 +142,7 @@ export const useEntitiesStore = defineStore("entities", () => {
         );
       }
       DEBUG &&
-        console.log("[entities] getSearchEmbeddingProgress result:", progress);
+        console.log("[records] getSearchEmbeddingProgress result:", progress);
       searchProgress.value = progress;
       if (
         progress.record?.pending.length === 0 &&
@@ -166,7 +166,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const token = localStorage.getItem("auth_token");
     const url = `${protocol}://${location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-    DEBUG && console.log("[entities] connectWS", url);
+    DEBUG && console.log("[records] connectWS", url);
     ws = new WebSocket(url);
     ws.onopen = () => {
       reload();
@@ -224,12 +224,12 @@ export const useEntitiesStore = defineStore("entities", () => {
     searchProgress.value = { ...searchProgress.value, [jobType]: progressObj };
   }
 
-  async function setCurrentEntity(entityId: number): Promise<void> {
-    if (isNaN(entityId)) entityId = 0;
-    currentEntity.value = entityId;
-    locationtree.value = buildLocationTree(entityId);
+  async function setCurrentRecord(recordId: number): Promise<void> {
+    if (isNaN(recordId)) recordId = 0;
+    currentRecord.value = recordId;
+    locationtree.value = buildLocationTree(recordId);
     import("../router").then(({ default: router }) => {
-      router.push({ query: entityId === 0 ? {} : { entity: entityId } });
+      router.push({ query: recordId === 0 ? {} : { record: recordId } });
     });
     searchtext.value = "";
   }
@@ -246,10 +246,10 @@ export const useEntitiesStore = defineStore("entities", () => {
       apiSearchResultsPartial.value = false;
       apiSearchScores.value = {};
       const { results, partial } = await api.searchByImage(file);
-      apiSearchResults.value = results.map((r) => r.entity);
+      apiSearchResults.value = results.map((r) => r.record);
       // Store image scores for display on cards
       for (const r of results) {
-        apiSearchScores.value[r.entity.id] = { image: r.imageScore };
+        apiSearchScores.value[r.record.id] = { image: r.imageScore };
       }
       apiSearchResultsPartial.value = partial;
       searching.value = false;
@@ -261,18 +261,18 @@ export const useEntitiesStore = defineStore("entities", () => {
     }
   }
 
-  function readname(entityId: number): string {
-    if (entityId === 0) return "World";
-    return nameMap.value[entityId] ?? String(entityId);
+  function readname(recordId: number): string {
+    if (recordId === 0) return "World";
+    return nameMap.value[recordId] ?? String(recordId);
   }
 
-  function hasChildren(entityId: number): boolean {
-    return allRecords.value.some((r) => (r.ParentID ?? 0) === entityId);
+  function hasChildren(recordId: number): boolean {
+    return allRecords.value.some((r) => (r.ParentID ?? 0) === recordId);
   }
 
-  function listChildLocations(entityId: number): number[] {
+  function listChildLocations(recordId: number): number[] {
     return allRecords.value
-      .filter((r) => (r.ParentID ?? 0) === entityId)
+      .filter((r) => (r.ParentID ?? 0) === recordId)
       .map((r) => r.ID)
       .sort((a, b) => {
         const na = nameMap.value[a]?.toLowerCase() ?? "";
@@ -281,7 +281,7 @@ export const useEntitiesStore = defineStore("entities", () => {
       });
   }
 
-  function load(locationId: number, searchTextVal: string): Entity[] {
+  function load(locationId: number, searchTextVal: string): AppRecord[] {
     if (searchTextVal.trim()) {
       let results = [...apiSearchResults.value];
       if (filterToMissingImage.value) {
@@ -295,7 +295,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     }
     return allRecords.value
       .filter((r) => (r.ParentID ?? 0) === locationId)
-      .map(recordToEntity)
+      .map(recordToAppRecord)
       .sort((a, b) => {
         const na = (a.name ?? "").toLowerCase();
         const nb = (b.name ?? "").toLowerCase();
@@ -311,7 +311,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     [
       searchtext,
       filterworld,
-      currentEntity,
+      currentRecord,
       searchImage,
       searchTextEmbedded,
       searchTextSubstring,
@@ -344,8 +344,8 @@ export const useEntitiesStore = defineStore("entities", () => {
       try {
         if (query) {
           const scopeId =
-            !filterworld.value && currentEntity.value !== 0
-              ? currentEntity.value
+            !filterworld.value && currentRecord.value !== 0
+              ? currentRecord.value
               : undefined;
           const { results, partial } = await api.searchRecords(query, {
             parentId: scopeId,
@@ -370,10 +370,10 @@ export const useEntitiesStore = defineStore("entities", () => {
           } else {
             partialScope = null;
           }
-          apiSearchResults.value = results.map((r) => r.entity);
+          apiSearchResults.value = results.map((r) => r.record);
           const scores: Record<number, { image?: number; text?: number }> = {};
           for (const r of results) {
-            scores[r.entity.id] = { image: r.imageScore, text: r.textScore };
+            scores[r.record.id] = { image: r.imageScore, text: r.textScore };
           }
           apiSearchScores.value = scores;
         } else {
@@ -389,14 +389,14 @@ export const useEntitiesStore = defineStore("entities", () => {
   );
 
   // Clear progress toast on navigation
-  watch(currentEntity, () => clearProgressToast());
+  watch(currentRecord, () => clearProgressToast());
 
   // Update progress toast based on searchProgress state
   watch(
     () => searchProgress.value,
     (progress) => {
       if (!progress) {
-        DEBUG && console.log("[entities] progress watch: progress is falsy");
+        DEBUG && console.log("[records] progress watch: progress is falsy");
         return;
       }
       const record = progress.record;
@@ -404,17 +404,17 @@ export const useEntitiesStore = defineStore("entities", () => {
       // Skip if toast already finalized - prevents redundant watch fires
       if (progressToastId === null) {
         DEBUG &&
-          console.log("[entities] progress watch: toast already finalized");
+          console.log("[records] progress watch: toast already finalized");
         return;
       }
       if (!record || !artifact) {
         DEBUG &&
-          console.log("[entities] progress watch: missing record/artifact");
+          console.log("[records] progress watch: missing record/artifact");
         return;
       }
       DEBUG &&
         console.log(
-          "[entities] embedding progress total:",
+          "[records] embedding progress total:",
           progress.record?.complete?.length ?? 0,
           progress.record?.pending?.length ?? 0,
           progress.artifact?.complete?.length ?? 0,
@@ -432,7 +432,7 @@ export const useEntitiesStore = defineStore("entities", () => {
       if (currentCount === 0) {
         if (progressToastId !== null) {
           DEBUG &&
-            console.log("[entities] embedding complete, finalizing toast");
+            console.log("[records] embedding complete, finalizing toast");
           useToastsStore().update(progressToastId, "Embeddings ready", "success");
           useToastsStore().finalize(progressToastId);
           progressToastId = null;
@@ -441,7 +441,7 @@ export const useEntitiesStore = defineStore("entities", () => {
         return;
       }
       if (progressToastId === null) {
-        DEBUG && console.log("[entities] progressToastId null, creating toast");
+        DEBUG && console.log("[records] progressToastId null, creating toast");
         progressToastId = useToastsStore().add(
           "Indexing embeddings...",
           "warn",
@@ -450,7 +450,7 @@ export const useEntitiesStore = defineStore("entities", () => {
       } else {
         DEBUG &&
           console.log(
-            "[entities] progressToastId exists:",
+            "[records] progressToastId exists:",
             progressToastId,
             "current:",
             currentCount,
@@ -459,22 +459,22 @@ export const useEntitiesStore = defineStore("entities", () => {
           );
       }
       const newMessage = `Indexed ${total - currentCount}/${total} embeddings`;
-      DEBUG && console.log("[entities] toast update:", newMessage);
+      DEBUG && console.log("[records] toast update:", newMessage);
       useToastsStore().update(progressToastId, newMessage);
     },
     { deep: true },
   );
 
   return {
-    currentEntity,
+    currentRecord,
     allRecords,
     nameMap,
-    entityMap,
+    recordMap,
     locationtree,
     searchtextpredebounce,
     searchtext,
     moveSearchtext,
-    selectedEntityId,
+    selectedRecordId,
     filterworld,
     searching,
     searchImage,
@@ -489,7 +489,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     searchProgress,
     reload,
     connectWS,
-    setCurrentEntity,
+    setCurrentRecord,
     searchByImage,
     readname,
     hasChildren,

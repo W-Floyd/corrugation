@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/record/{{labeledEntityIdA}}"
+  url: "{{baseUrl}}/api/record/{{labeledRecordIdA}}"
   auth:
     type: bearer
     token: "{{authToken}}"

@@ -1,13 +1,13 @@
-<script setup lang="ts" name="NewEntityDialog">
+<script setup lang="ts" name="NewRecordDialog">
 import { ref, computed, watch, nextTick } from "vue";
 import AlertIcon from "vue-material-design-icons/Alert.vue";
 import KbdHint from "@/components/KbdHint.vue";
-import { useEntitiesStore } from "@/stores/entities";
+import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
 import { useToastsStore } from "@/stores/toasts";
 import { api } from "@/api";
 
-const entitiesStore = useEntitiesStore();
+const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
 const toastsStore = useToastsStore();
 
@@ -25,7 +25,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-    created: [entityId: number];
+    created: [recordId: number];
     "update:visible": [value: boolean];
 }>();
 
@@ -41,7 +41,7 @@ const nextRefNumber = ref<number>(0);
 const refTaken = computed(() => {
     const v = referenceNumber.value.trim();
     if (!v) return false;
-    return Object.values(entitiesStore.entityMap).some(
+    return Object.values(recordsStore.recordMap).some(
         (e) => e.metadata.referenceNumber === v,
     );
 });
@@ -88,14 +88,14 @@ const handleSubmit = async (): Promise<void> => {
             ParentID: props.location || undefined,
             Artifacts: artifactIds.length ? artifactIds : undefined,
         });
-        await entitiesStore.reload();
+        await recordsStore.reload();
         emit("created", record.ID);
         emit("update:visible", false);
         dialogVisible.value = false;
-        toastsStore.add("Entity created", "success");
+        toastsStore.add("Record created", "success");
     } catch (error) {
-        console.error("Failed to create entity:", error);
-        toastsStore.add("Failed to create entity");
+        console.error("Failed to create record:", error);
+        toastsStore.add("Failed to create record");
     }
 };
 
@@ -126,7 +126,7 @@ const handleCameraOpen = async (): Promise<void> => {
                 <div
                     class="relative w-full w-2xl p-8 overflow-y-auto bg-white border border-gray-300 rounded-lg dark:bg-gray-800">
                     <!-- Title -->
-                    <h1 class="pb-4 text-3xl font-medium">Create New Entity</h1>
+                    <h1 class="pb-4 text-3xl font-medium">Create New Record</h1>
 
                     <!-- Form -->
                     <div class="grid xs:grid-cols-1 sm:grid-cols-[6rem_1fr] gap-x-4 gap-y-3 items-center">

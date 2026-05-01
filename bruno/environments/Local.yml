@@ -8,7 +8,7 @@ variables:
     value: bruno
   - name: username
     value: bruno
-  - name: entityId
+  - name: recordId
     value: "1"
   - name: artifactId
     value: ""

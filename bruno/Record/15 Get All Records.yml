@@ -23,8 +23,8 @@ runtime:
         test("Returns an array", function() {
           expect(res.body).to.be.an("array");
         });
-        test("Contains the patched entity", function() {
-          const match = res.body.find(r => String(r.ID) === bru.getEnvVar("entityId"));
+        test("Contains the patched record", function() {
+          const match = res.body.find(r => String(r.ID) === bru.getEnvVar("recordId"));
           expect(match).to.exist;
           expect(match.Title).to.equal("Bruno Test Box (patched)");
         });

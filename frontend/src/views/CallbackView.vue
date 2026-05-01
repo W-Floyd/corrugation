@@ -8,12 +8,12 @@
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { useEntitiesStore } from "../stores/entities";
+import { useRecordsStore } from "../stores/records";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const entitiesStore = useEntitiesStore();
+const recordsStore = useRecordsStore();
 const status = ref("Completing sign-in…");
 
 DEBUG && console.log("[callback] component setup");
@@ -46,7 +46,7 @@ onMounted(async () => {
     }
 
     DEBUG && console.log("[callback] token set, loading state");
-    await entitiesStore.reload();
+    await recordsStore.reload();
     DEBUG && console.log("[callback] state loaded, navigating to /");
     router.push({ path: "/" });
 });

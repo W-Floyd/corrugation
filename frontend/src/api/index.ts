@@ -1,5 +1,5 @@
-import type { Entity, BackendRecord, RecordBody } from "./types";
-import { recordToEntity } from "./types";
+import type { AppRecord, BackendRecord, RecordBody } from "./types";
+import { recordToAppRecord } from "./types";
 import router from "../router";
 import { useAuthStore } from "../stores/auth";
 import { useToastsStore } from "../stores/toasts";
@@ -140,7 +140,7 @@ export const api = {
       searchTextSubstring?: boolean;
     } = {},
   ): Promise<{
-    results: { entity: Entity; imageScore?: number; textScore?: number }[];
+    results: { record: AppRecord; imageScore?: number; textScore?: number }[];
     partial: boolean;
   }> {
     const params = new URLSearchParams({ search: query });
@@ -161,7 +161,7 @@ export const api = {
     return {
       partial,
       results: records.map((r) => ({
-        entity: recordToEntity(r),
+        record: recordToAppRecord(r),
         imageScore: r.SearchConfidenceImage,
         textScore: r.SearchConfidenceText,
       })),
@@ -169,7 +169,7 @@ export const api = {
   },
 
   async searchByImage(file: File): Promise<{
-    results: { entity: Entity; imageScore?: number }[];
+    results: { record: AppRecord; imageScore?: number }[];
     partial: boolean;
   }> {
     const formData = new FormData();
@@ -183,7 +183,7 @@ export const api = {
     return {
       partial,
       results: records.map((r) => ({
-        entity: recordToEntity(r),
+        record: recordToAppRecord(r),
         imageScore: r.SearchConfidenceImage,
         textScore: r.SearchConfidenceText,
       })),

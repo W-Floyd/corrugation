@@ -4,7 +4,7 @@ This file provides guidance to developers working on the Corrugation frontend.
 
 ## Overview
 
-Corrugation frontend is a Vue 3 + TypeScript single-page application for hierarchical entity management. The SPA uses Pinia for state management, Vue Router for navigation, and WebRTC for camera capture. AI-powered embeddings and search are handled by the backend server.
+Corrugation frontend is a Vue 3 + TypeScript single-page application for hierarchical record management. The SPA uses Pinia for state management, Vue Router for navigation, and WebRTC for camera capture. AI-powered embeddings and search are handled by the backend server.
 
 ## Technology Stack
 
@@ -15,13 +15,13 @@ Corrugation frontend is a Vue 3 + TypeScript single-page application for hierarc
 - Routing: Vue Router 5.0.4
 - Styling: TailwindCSS 4.2.4 + PostCSS
 - Camera: WebRTC (`navigator.mediaDevices.getUserMedia`)
-- Real-time: WebSocket for live entity updates
+- Real-time: WebSocket for live record updates
 
 ## Project Structure
 
 The frontend source code lives under `src/` with the following organization:
 
-- `api/`: API client functions, TypeScript types for backend records and entities, and Record-to-Entity mapping utilities
+- `api/`: API client functions, TypeScript types for backend records and AppRecord, and Record-to-AppRecord mapping utilities
 - `assets/`: Static assets including favicon, CSS, and images
 - `components/`: Reusable Vue components for the UI
 - `router/`: Vue Router configuration with route definitions and navigation guards
@@ -32,7 +32,7 @@ The frontend source code lives under `src/` with the following organization:
 See the source files directly for the complete structure:
 - [`src/api/index.ts`](src/api/index.ts) and [`src/api/types.ts`](src/api/types.ts) for API client
 - [`src/router/index.ts`](src/router/index.ts) for router configuration
-- [`src/stores/auth.ts`](src/stores/auth.ts), [`src/stores/entities.ts`](src/stores/entities.ts), [`src/stores/camera.ts`](src/stores/camera.ts), [`src/stores/toasts.ts`](src/stores/toasts.ts) for stores
+- [`src/stores/auth.ts`](src/stores/auth.ts), [`src/stores/records.ts`](src/stores/records.ts), [`src/stores/camera.ts`](src/stores/camera.ts), [`src/stores/toasts.ts`](src/stores/toasts.ts) for stores
 - [`src/components/*.vue`](src/components/) for all components
 - [`src/views/*.vue`](src/views/) for page views
 
@@ -42,9 +42,9 @@ See the source files directly for the complete structure:
 
 See [`src/stores/auth.ts`](src/stores/auth.ts) for the complete implementation. Handles OIDC authentication with Authentik using PKCE flow. Stores tokens in localStorage and sets cookies with `SameSite=Strict`. Key methods include `fetchConfig()`, `startLogin()`, `handleCallback()`, `setToken()`, and `clearToken()`.
 
-### entities.ts
+### records.ts
 
-See [`src/stores/entities.ts`](src/stores/entities.ts) for the complete implementation. Manages all records fetched from the API, entity maps computed from records, location trees for hierarchy navigation, and WebSocket connection for live updates. Contains search state including debounced search text, filter flags, and embedding progress tracking. Includes `nameMap` computed property that maps entity IDs to reference numbers or names for sorting and display.
+See [`src/stores/records.ts`](src/stores/records.ts) for the complete implementation. Manages all records fetched from the API, record maps computed from backend records, location trees for hierarchy navigation, and WebSocket connection for live updates. Contains search state including debounced search text, filter flags, and embedding progress tracking. Includes `nameMap` computed property that maps record IDs to reference numbers or names for sorting and display.
 
 ### camera.ts
 
@@ -61,7 +61,7 @@ See [`src/stores/toasts.ts`](src/stores/toasts.ts) for the complete implementati
 | `/login` | LoginView | N/A | Trigger OIDC flow |
 | `/callback` | CallbackView | N/A | OAuth2 code/callback handler |
 | `/settings` | SettingsView | If auth enabled | App settings |
-| `/` (fallback) | RecordsView | If auth enabled | Main entity browser |
+| `/` (fallback) | RecordsView | If auth enabled | Main record browser |
 
 Named routes are defined in `src/router/index.ts`. `App.vue` is a thin shell that switches between LoginView, CallbackView, SettingsView, and RecordsView based on `route.name`. RecordsView is rendered for any route not matched by the named routes (the `v-else` branch).
 
@@ -70,7 +70,7 @@ Named routes are defined in `src/router/index.ts`. `App.vue` is a thin shell tha
 See [`src/api/index.ts`](src/api/index.ts) for the complete implementation. Provides methods for all backend endpoints under `/api/`:
 - Record operations: `getRecords()`, `createRecord()`, `updateRecord()`, `deleteRecord()`, `moveRecord()`, `patchRecord()`
 - Search: `searchRecords()` with embedding and substring options (returns 207 for partial results)
-- Filter syntax: `filter:missing-image` shows only entities without images, `filter:only-image` shows only entities with images
+- Filter syntax: `filter:missing-image` shows only records without images, `filter:only-image` shows only records with images
 - Artifacts: `uploadArtifact()`, `deleteArtifact()`
 - Embeddings: `getSearchEmbeddingProgress()` for indexing progress
 - Utils: `nextReferenceNumber()` to get next available reference number, `getStoreVersion()`
@@ -97,14 +97,14 @@ See [`tsconfig.json`](tsconfig.json), [`tsconfig.app.json`](tsconfig.app.json), 
 ## Views
 
 ### RecordsView
-See [`src/views/RecordsView.vue`](src/views/RecordsView.vue). The main entity browser. Owns all records-browsing state: selected entity, keyboard navigation, dialog visibility, card refs, and search bar ref. Handles all keyboard shortcuts for the records UI (arrow navigation, create/delete/move/edit/capture). Registers `keydown`/`keyup` listeners on mount. FABs for new entity, quick capture (C), and image search (I) are rendered here along with CameraModal, NewEntityDialog, and CommandDialog.
+See [`src/views/RecordsView.vue`](src/views/RecordsView.vue). The main record browser. Owns all records-browsing state: selected record, keyboard navigation, dialog visibility, card refs, and search bar ref. Handles all keyboard shortcuts for the records UI (arrow navigation, create/delete/move/edit/capture). Registers `keydown`/`keyup` listeners on mount. FABs for new record, quick capture (C), and image search (I) are rendered here along with CameraModal, NewRecordDialog, and CommandDialog.
 
 ## Component Patterns
 
 See the individual component files for complete implementations:
 
-### EntityCard
-See [`src/components/EntityCard.vue`](src/components/EntityCard.vue). Displays entity metadata with inline editing mode, quick capture buttons (**P** for capture on entity, **⇧C** for capture new child, **⇧N** for create child entity), delete confirmation dialog, and move dialog with hierarchical location selector. Keyboard shortcuts: **Del** to delete, **M** to move, **Enter** to edit.
+### RecordCard
+See [`src/components/RecordCard.vue`](src/components/RecordCard.vue). Displays record metadata with inline editing mode, quick capture buttons (**P** for capture on record, **⇧C** for capture new child, **⇧N** for create child record), delete confirmation dialog, and move dialog with hierarchical location selector. Keyboard shortcuts: **Del** to delete, **M** to move, **Enter** to edit.
 
 ### SearchBar
 See [`src/components/SearchBar.vue`](src/components/SearchBar.vue). Debounced input (500ms), filter toggles for world-scope (**G**), image embedding (**I**), text embedding (**W**), and string matching (**T**), keyboard shortcut hints (**/** for search, **?** for command palette), clear button.
@@ -113,19 +113,19 @@ See [`src/components/SearchBar.vue`](src/components/SearchBar.vue). Debounced in
 See [`src/components/CameraModal.vue`](src/components/CameraModal.vue). Fullscreen video preview with device selector, keyboard shortcuts that vary by state (**Enter** to capture/confirm, **R** to rotate, **C** to retake, **Escape** to close), orientation detection for mobile devices.
 
 ### CommandDialog
-See [`src/components/CommandDialog.vue`](src/components/CommandDialog.vue). Keyboard command palette with fuzzy search and quick actions listed with their shortcuts. Lists all major keyboard commands including navigation, editing, capture, search toggles, and entity creation.
+See [`src/components/CommandDialog.vue`](src/components/CommandDialog.vue). Keyboard command palette with fuzzy search and quick actions listed with their shortcuts. Lists all major keyboard commands including navigation, editing, capture, search toggles, and record creation.
 
 ### ToastContainer
 See [`src/components/ToastContainer.vue`](src/components/ToastContainer.vue). Bottom-right toast display with auto-dismiss fade animation, hover-to-pause, stacked vertical layout.
 
 ### BreadcrumbNav
-See [`src/components/BreadcrumbNav.vue`](src/components/BreadcrumbNav.vue). Hierarchical navigation showing parent chain with click and drag-drop support. Allows navigation to parent entities and dragging entities to relocate them.
+See [`src/components/BreadcrumbNav.vue`](src/components/BreadcrumbNav.vue). Hierarchical navigation showing parent chain with click and drag-drop support. Allows navigation to parent records and dragging records to relocate them.
 
-### NewEntityDialog
-See [`src/components/NewEntityDialog.vue`](src/components/NewEntityDialog.vue). Modal for creating entities with fields for name, reference #, description, quantity, and images, plus reference collision detection that warns when reference number is already in use.
+### NewRecordDialog
+See [`src/components/NewRecordDialog.vue`](src/components/NewRecordDialog.vue). Modal for creating records with fields for name, reference #, description, quantity, and images, plus reference collision detection that warns when reference number is already in use.
 
 ### QuickCaptureCard
-See [`src/components/QuickCaptureCard.vue`](src/components/QuickCaptureCard.vue). Large clickable card for camera capture that creates new entities with minimal information (image artifact only).
+See [`src/components/QuickCaptureCard.vue`](src/components/QuickCaptureCard.vue). Large clickable card for camera capture that creates new records with minimal information (image artifact only).
 
 ### ArtifactImage
 See [`src/components/ArtifactImage.vue`](src/components/ArtifactImage.vue). Lazy-loaded artifact images with ETag caching.
@@ -162,10 +162,10 @@ See [`package.json`](package.json) for complete dependency list.
 See [`src/router/index.ts`](src/router/index.ts) for complete implementation. Fetches auth config on first navigation, allows callback route unconditionally, redirects to `/login` if auth enabled and no token, and redirects to `/` if already authenticated on `/login`.
 
 ### WebSocket Connection
-See [`src/stores/entities.ts`](src/stores/entities.ts) for `connectWS()` and `updateEmbeddingProgressForSearch()` methods. Auto-reconnects after 3s on close, passes token as query parameter, handles embedding progress messages, reload signals, and offline/online status.
+See [`src/stores/records.ts`](src/stores/records.ts) for `connectWS()` and `updateEmbeddingProgressForSearch()` methods. Auto-reconnects after 3s on close, passes token as query parameter, handles embedding progress messages, reload signals, and offline/online status.
 
 ### Search Debounce & Filtering
-See [`src/components/SearchBar.vue`](src/components/SearchBar.vue) `handleSearchInput()` and [`src/stores/entities.ts`](src/stores/entities.ts) watch handler. Debounced on `searchtextpredebounce` changes (500ms), uses `debouncesearch()` to set `searchtext`. Filter syntax is parsed from the search text: `filter:missing-image` filters to only entities without images, `filter:only-image` filters to only entities with images. Shows progress toast during indexing when embeddings are incomplete.
+See [`src/components/SearchBar.vue`](src/components/SearchBar.vue) `handleSearchInput()` and [`src/stores/records.ts`](src/stores/records.ts) watch handler. Debounced on `searchtextpredebounce` changes (500ms), uses `debouncesearch()` to set `searchtext`. Filter syntax is parsed from the search text: `filter:missing-image` filters to only records without images, `filter:only-image` filters to only records with images. Shows progress toast during indexing when embeddings are incomplete.
 
 ## Error Handling
 

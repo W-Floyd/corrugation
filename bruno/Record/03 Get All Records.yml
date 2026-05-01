@@ -1,5 +1,5 @@
 info:
-  name: 03 Get All Entities
+  name: 03 Get All Records
   type: http
   seq: 3
 
@@ -28,7 +28,7 @@ runtime:
         });
         const e = res.body[0];
         test("Record ID is correct", function() {
-          expect(e.ID).to.equal(parseInt(bru.getEnvVar("entityId")));
+          expect(e.ID).to.equal(parseInt(bru.getEnvVar("recordId")));
         });
         test("Title is correct", function() {
           expect(e.Title).to.equal("Bruno Test Box");

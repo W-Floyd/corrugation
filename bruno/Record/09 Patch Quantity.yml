@@ -5,7 +5,7 @@ info:
 
 http:
   method: PATCH
-  url: "{{baseUrl}}/api/record/{{entityId}}"
+  url: "{{baseUrl}}/api/record/{{recordId}}"
   headers:
     - name: content-type
       value: application/json

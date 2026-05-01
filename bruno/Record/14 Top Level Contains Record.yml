@@ -22,8 +22,8 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Entity appears in top-level records", function() {
-          expect(ids).to.include(bru.getEnvVar("entityId"));
+        test("Record appears in top-level records", function() {
+          expect(ids).to.include(bru.getEnvVar("recordId"));
         });
 
 settings:

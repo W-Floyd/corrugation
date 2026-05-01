@@ -1,16 +1,16 @@
 <script setup lang="ts" name="QuickCaptureCard">
 import CameraIcon from "vue-material-design-icons/Camera.vue";
 import { useCameraStore } from "@/stores/camera";
-import { useEntitiesStore } from "@/stores/entities";
+import { useRecordsStore } from "@/stores/records";
 import { useToastsStore } from "@/stores/toasts";
 import { api } from "@/api";
-import { entityToRecordBody } from "@/api/types";
+import { appRecordToRecordBody } from "@/api/types";
 
-const entitiesStore = useEntitiesStore();
+const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
 const toastsStore = useToastsStore();
 
-const handleQuickCapture = async (entityId: number): Promise<void> => {
+const handleQuickCapture = async (recordId: number): Promise<void> => {
     try {
         await new Promise<void>((resolve) => {
             cameraStore.open(async (files: File[]) => {
@@ -23,12 +23,12 @@ const handleQuickCapture = async (entityId: number): Promise<void> => {
                     // Upload artifact
                     const artifactId = await api.uploadArtifact(files[0]);
 
-                    await api.createRecord(entityToRecordBody({
+                    await api.createRecord(appRecordToRecordBody({
                         id: 0,
                         name: null,
                         description: null,
                         artifacts: [artifactId],
-                        location: entityId,
+                        location: recordId,
                         metadata: {
                             quantity: null,
                             owner: null,
@@ -36,11 +36,11 @@ const handleQuickCapture = async (entityId: number): Promise<void> => {
                             lastModified: null,
                         },
                     }));
-                    await entitiesStore.reload();
-                    toastsStore.add("Entity created from photo", "success");
+                    await recordsStore.reload();
+                    toastsStore.add("Record created from photo", "success");
                 } catch (error) {
-                    console.error("Failed to create entity:", error);
-                    toastsStore.add("Failed to create entity from photo");
+                    console.error("Failed to create record:", error);
+                    toastsStore.add("Failed to create record from photo");
                 }
 
                 resolve();
@@ -56,7 +56,7 @@ const handleQuickCapture = async (entityId: number): Promise<void> => {
 <template>
     <figure
         class="container relative h-full max-w-sm min-h-40 grow flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-transparent cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
-        @click="handleQuickCapture(entitiesStore.currentEntity)">
+        @click="handleQuickCapture(recordsStore.currentRecord)">
         <div
             class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-500 hover:text-blue-400 dark:hover:text-blue-500 pointer-events-none select-none">
             <CameraIcon :size="40" />

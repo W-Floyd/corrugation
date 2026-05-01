@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { useEntitiesStore } from "@/stores/entities";
+import { useRecordsStore } from "@/stores/records";
 import { useAuthStore } from "@/stores/auth";
 import ToastContainer from "@/components/ToastContainer.vue";
 import LoginView from "@/views/LoginView.vue";
@@ -11,7 +11,7 @@ import RecordsView from "@/views/RecordsView.vue";
 const routerReady = ref(false);
 const router = useRouter();
 const route = useRoute();
-const entitiesStore = useEntitiesStore();
+const recordsStore = useRecordsStore();
 const authStore = useAuthStore();
 
 onMounted(() => {
@@ -25,7 +25,7 @@ onMounted(() => {
                 !!localStorage.getItem("auth_token"),
             );
         if (route.name !== "callback") {
-            entitiesStore.connectWS();
+            recordsStore.connectWS();
             authStore.fetchConfig();
         }
     });

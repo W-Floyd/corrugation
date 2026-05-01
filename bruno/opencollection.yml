@@ -13,7 +13,7 @@ docs:
 
     **Workflow:**
     1. Auth → Login
-    2. Entity → Create Entity (saves `entityId`)
+    2. Record → Create Record (saves `recordId`)
     3. Artifact → Upload Artifact (saves `artifactId`)
     4. Run remaining endpoints freely
     5. Reset Store to wipe all data

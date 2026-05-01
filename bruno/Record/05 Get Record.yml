@@ -1,11 +1,11 @@
 info:
-  name: 05 Get Entity
+  name: 05 Get Record
   type: http
   seq: 5
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/record/{{entityId}}"
+  url: "{{baseUrl}}/api/record/{{recordId}}"
   headers:
     - name: accept
       value: application/json
@@ -23,7 +23,7 @@ runtime:
           expect(res.status).to.equal(200);
         });
         test("ID is correct", function() {
-          expect(e.ID).to.equal(parseInt(bru.getEnvVar("entityId")));
+          expect(e.ID).to.equal(parseInt(bru.getEnvVar("recordId")));
         });
         test("Title is correct", function() {
           expect(e.Title).to.equal("Bruno Test Box");

@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/records?id={{entityId}}&childrenDepth=1"
+  url: "{{baseUrl}}/api/records?id={{recordId}}&childrenDepth=1"
   headers:
     - name: accept
       value: application/json
@@ -20,9 +20,9 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Returns only the entity itself (no children)", function() {
+        test("Returns only the record itself (no children)", function() {
           expect(res.body).to.be.an("array").with.lengthOf(1);
-          expect(res.body[0].ID).to.equal(parseInt(bru.getEnvVar("entityId")));
+          expect(res.body[0].ID).to.equal(parseInt(bru.getEnvVar("recordId")));
         });
 
 settings:

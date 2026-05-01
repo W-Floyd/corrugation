@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Corrugation is a hierarchical entity management system with computer vision capabilities. The backend serves REST APIs with AI-powered search, while the frontend provides a Vue-based interactive interface for entity organization and camera capture.
+Corrugation is a hierarchical record management system with computer vision capabilities. The backend serves REST APIs with AI-powered search, while the frontend provides a Vue-based interactive interface for record organization and camera capture.
 
 ## Monorepo Structure
 
@@ -42,7 +42,7 @@ Work on frontend/UI tasks:
 - Camera features
 - TypeScript types and API mappings
 
-**Key files**: `frontend/src/stores/entities.ts`, `frontend/src/stores/auth.ts`, `frontend/src/api/*.ts`, `frontend/src/components/*.vue`
+**Key files**: `frontend/src/stores/records.ts`, `frontend/src/stores/auth.ts`, `frontend/src/api/*.ts`, `frontend/src/components/*.vue`
 
 ### When to reference this file (`AGENTS.md`)
 

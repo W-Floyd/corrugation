@@ -5,7 +5,7 @@ export interface Metadata {
   referenceNumber: string | null;
 }
 
-export interface Entity {
+export interface AppRecord {
   id: number;
   name: string | null;
   description: string | null;
@@ -20,7 +20,7 @@ export interface Artifact {
   image: boolean;
 }
 
-export type EntityCreate = Omit<Entity, "id">;
+export type AppRecordCreate = Omit<AppRecord, "id">;
 
 export interface BackendArtifactRef {
   ID: number;
@@ -49,7 +49,7 @@ export interface RecordBody {
   Artifacts?: number[];
 }
 
-export function recordToEntity(r: BackendRecord): Entity {
+export function recordToAppRecord(r: BackendRecord): AppRecord {
   return {
     id: r.ID,
     name: r.Title ?? null,
@@ -65,7 +65,7 @@ export function recordToEntity(r: BackendRecord): Entity {
   };
 }
 
-export function entityToRecordBody(e: Entity | EntityCreate): RecordBody {
+export function appRecordToRecordBody(e: AppRecord | AppRecordCreate): RecordBody {
   return {
     Title: e.name ?? null,
     ReferenceNumber: e.metadata.referenceNumber,

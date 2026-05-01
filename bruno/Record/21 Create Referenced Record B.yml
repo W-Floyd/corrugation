@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "Title": "Referenced Entity B",
+        "Title": "Referenced Record B",
         "ReferenceNumber": "2",
         "Quantity": 1
       }
@@ -28,7 +28,7 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setEnvVar("labeledEntityIdB", String(res.body.ID));
+          bru.setEnvVar("labeledRecordIdB", String(res.body.ID));
         }
     - type: tests
       code: |-

@@ -1,29 +1,29 @@
 <script setup lang="ts" name="BreadcrumbNav">
 import { computed, ref } from "vue";
-import { useEntitiesStore } from "@/stores/entities";
+import { useRecordsStore } from "@/stores/records";
 import { useToastsStore } from "@/stores/toasts";
 import { api } from "@/api";
 
-const entitiesStore = useEntitiesStore();
+const recordsStore = useRecordsStore();
 const toastsStore = useToastsStore();
 
-const emit = defineEmits<{ openNewEntity: [] }>();
+const emit = defineEmits<{ openNewRecord: [] }>();
 
 const locationTree = computed(() =>
-    entitiesStore.locationtree.map((id: number) => ({
+    recordsStore.locationtree.map((id: number) => ({
         id,
-        name: entitiesStore.readname(id),
+        name: recordsStore.readname(id),
     })),
 );
 
-const navigateTo = async (entityId: number): Promise<void> => {
-    await entitiesStore.setCurrentEntity(entityId);
+const navigateTo = async (recordId: number): Promise<void> => {
+    await recordsStore.setCurrentRecord(recordId);
 };
 
 const dragOverId = ref<number | null>(null);
 
 const handleDragOver = (e: DragEvent, id: number): void => {
-    if (!e.dataTransfer?.types.includes("entityid")) return;
+    if (!e.dataTransfer?.types.includes("recordid")) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     dragOverId.value = id;
@@ -37,16 +37,16 @@ const handleDragLeave = (e: DragEvent): void => {
 
 const handleDrop = async (e: DragEvent, targetId: number): Promise<void> => {
     dragOverId.value = null;
-    const raw = e.dataTransfer?.getData("entityId");
+    const raw = e.dataTransfer?.getData("recordId");
     if (!raw) return;
-    const entityId = parseInt(raw, 10);
-    if (isNaN(entityId) || entityId === targetId) return;
+    const recordId = parseInt(raw, 10);
+    if (isNaN(recordId) || recordId === targetId) return;
     try {
-        await api.moveRecord(entityId, targetId);
-        await entitiesStore.reload();
-        toastsStore.add("Entity moved", "info");
+        await api.moveRecord(recordId, targetId);
+        await recordsStore.reload();
+        toastsStore.add("Record moved", "info");
     } catch {
-        toastsStore.add("Failed to move entity");
+        toastsStore.add("Failed to move record");
     }
 };
 </script>
@@ -64,7 +64,7 @@ const handleDrop = async (e: DragEvent, targetId: number): Promise<void> => {
                             'text-blue-600 no-underline cursor-pointer dark:text-sky-400 dark:hover:text-sky-300 hover:text-blue-700 hover:underline px-1 rounded transition-colors',
                             dragOverId === n.id ? 'ring-2 ring-green-500 shadow shadow-green-200 dark:shadow-green-900 bg-green-50 dark:bg-green-900/20' : '',
                         ]"
-                        :title="`Go to entity ${n.id}`">
+                        :title="`Go to record ${n.id}`">
                         {{ n.name }}
                     </a>
                 </li>

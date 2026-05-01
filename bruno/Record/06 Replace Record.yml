@@ -1,11 +1,11 @@
 info:
-  name: 07 Patch Title
+  name: 06 Replace Record
   type: http
-  seq: 7
+  seq: 6
 
 http:
-  method: PATCH
-  url: "{{baseUrl}}/api/record/{{entityId}}"
+  method: PUT
+  url: "{{baseUrl}}/api/record/{{recordId}}"
   headers:
     - name: content-type
       value: application/json
@@ -15,7 +15,9 @@ http:
     type: json
     data: |-
       {
-        "Title": "Bruno Test Box (patched)"
+        "Title": "Bruno Test Box (replaced)",
+        "Description": "Updated by PUT",
+        "Quantity": 5
       }
   auth:
     type: bearer
@@ -30,13 +32,16 @@ runtime:
         test("Returns 200", function() {
           expect(res.status).to.equal(200);
         });
-        test("Title is updated", function() {
-          expect(e.Title).to.equal("Bruno Test Box (patched)");
+        test("ID is correct", function() {
+          expect(e.ID).to.equal(parseInt(bru.getEnvVar("recordId")));
         });
-        test("Description is preserved", function() {
+        test("Title is updated", function() {
+          expect(e.Title).to.equal("Bruno Test Box (replaced)");
+        });
+        test("Description is updated", function() {
           expect(e.Description).to.equal("Updated by PUT");
         });
-        test("Quantity is preserved", function() {
+        test("Quantity is updated", function() {
           expect(e.Quantity).to.equal(5);
         });
 

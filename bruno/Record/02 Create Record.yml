@@ -1,5 +1,5 @@
 info:
-  name: 02 Create Entity
+  name: 02 Create Record
   type: http
   seq: 2
 
@@ -28,8 +28,8 @@ runtime:
     - type: after-response
       code: |-
         if (res.status === 200) {
-          bru.setVar("entityId", String(res.body.ID));
-          bru.setEnvVar("entityId", String(res.body.ID));
+          bru.setVar("recordId", String(res.body.ID));
+          bru.setEnvVar("recordId", String(res.body.ID));
         }
     - type: tests
       code: |-
