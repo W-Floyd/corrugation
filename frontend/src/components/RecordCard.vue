@@ -628,20 +628,24 @@ defineExpose({ cardEl });
         }}
       </p>
       <div class="flex gap-3">
-        <button
+        <Button
           @click.stop="emit('deleteConfirmed')"
-          class="relative h-9 rounded-full bg-red-500 px-4 text-sm text-white shadow hover:bg-red-600"
+          rounded
+          severity="danger"
+          class="relative h-9 px-4"
         >
           Delete
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </button>
-        <button
+        </Button>
+        <Button
           @click.stop="emit('deleteCancelled')"
-          class="relative h-9 rounded-full bg-gray-200 px-4 text-sm shadow hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+          rounded
+          severity="secondary"
+          class="relative h-9 px-4"
         >
           Cancel
           <KbdHint contents="Esc" :show="showHint && isSelected" />
-        </button>
+        </Button>
       </div>
     </div>
     <!-- Move confirmation overlay -->
@@ -684,39 +688,45 @@ defineExpose({ cardEl });
         </option>
       </select>
       <div class="flex flex-wrap items-center gap-2">
-        <button
+        <Button
           @click.stop="emit('moveConfirmed', moveTargetLocation)"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Move"
         >
           <CheckIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </button>
-        <button
+        </Button>
+        <Button
           v-if="!isAtCurrentLocation"
           @click.stop="emit('moveConfirmed', recordsStore.currentRecord)"
-          class="relative h-10 rounded-full bg-purple-500 px-3 text-sm text-white shadow hover:bg-purple-600"
+          rounded
+          severity="help"
+          class="relative h-10 px-3"
         >
           To {{ currentLocationName }}
           <KbdHint contents="H" :show="showHint && isSelected" />
-        </button>
-        <button
+        </Button>
+        <Button
           v-if="appRecord.ID !== 0 && recordsStore.currentRecord !== 0"
           @click.stop="moveUp()"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 p-0 text-white shadow hover:bg-orange-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 bg-orange-500 p-0 text-white hover:bg-orange-600"
           title="Move to parent"
         >
           <ArrowUpIcon :size="20" />
           <KbdHint contents="U" :show="showHint && isSelected" />
-        </button>
-        <button
+        </Button>
+        <Button
           @click.stop="emit('moveCancelled')"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 p-0 text-white shadow hover:bg-red-600 active:shadow-lg"
+          rounded
+          severity="danger"
+          class="relative h-10 w-10 p-0"
           title="Cancel"
         >
           <CloseIcon :size="20" />
           <KbdHint contents="Esc" :show="showHint && isSelected" />
-        </button>
+        </Button>
       </div>
     </div>
     <!-- Match badges -->
@@ -945,102 +955,115 @@ defineExpose({ cardEl });
     <!-- Action buttons -->
     <div class="flex flex-wrap gap-2 p-4">
       <template v-if="!editMode">
-        <button
+        <Button
           @click.stop="emit('requestDelete')"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 p-0 text-white shadow hover:bg-red-600 active:shadow-lg"
+          rounded
+          severity="danger"
+          class="relative h-10 w-10 p-0"
           title="Delete record"
         >
           <TrashCanIcon :size="20" />
           <KbdHint contents="Del" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="emit('requestMove', appRecord.ID)"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Move record"
         >
           <FolderMoveIcon :size="20" />
           <KbdHint contents="M" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="handleEditToggle"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Edit record"
         >
           <PencilIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="handleQuickCapture"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Quick capture (add photo to this record)"
         >
           <CameraIcon :size="20" />
           <KbdHint contents="P" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="handleQuickCaptureNewChild"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Quick capture new child record"
         >
           <CameraPlusIcon :size="20" />
           <kbdHint contents="⇧C" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="handleSearchByImage"
           v-if="appRecord.Artifacts && appRecord.Artifacts.length > 0"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 p-0 text-white shadow hover:bg-purple-600 active:shadow-lg"
+          rounded
+          severity="help"
+          class="relative h-10 w-10 p-0"
           title="Search for similar records"
         >
           <ImageSearchIcon :size="20" />
           <kbdHint contents="⇧S" :show="showHint && isSelected" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="emit('createChild', appRecord.ID)"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="New record as child"
         >
           <PlusIcon :size="20" />
           <kbdHint contents="⇧N" :show="showHint && isSelected" />
-        </button>
+        </Button>
       </template>
 
       <template v-else>
-        <button
+        <Button
           @click.stop="handleSave"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Save"
         >
           <CheckIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="handleCancel"
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 p-0 text-white shadow hover:bg-red-600 active:shadow-lg"
+          rounded
+          severity="danger"
+          class="relative h-10 w-10 p-0"
           title="Cancel"
         >
           <CloseIcon :size="20" />
           <KbdHint contents="Esc" :show="showHint" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           @click.stop="
             cameraStore.open((files: File[]) =>
               files.forEach((f) => handleEditArtifact(f)),
             )
           "
-          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-0 text-white shadow hover:bg-blue-600 active:shadow-lg"
+          rounded
+          class="relative h-10 w-10 p-0"
           title="Capture artifact"
         >
           <CameraIcon :size="20" />
           <KbdHint contents="P" :show="showHint" />
-        </button>
+        </Button>
       </template>
     </div>
 
@@ -1065,21 +1088,17 @@ defineExpose({ cardEl });
               :artifact-id="n"
               :alt="`Artifact ${n}`"
             />
-            <button
-              type="button"
+            <Button
               @click.stop="toggleArtifactDeletion(n)"
-              class="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full text-sm leading-none text-white transition-colors"
-              :class="
-                pendingDeletions.has(n)
-                  ? 'bg-gray-400 hover:bg-gray-500'
-                  : 'bg-red-500 hover:bg-red-600'
-              "
+              rounded
+              :severity="pendingDeletions.has(n) ? 'secondary' : 'danger'"
+              class="absolute top-1 right-1 h-6 w-6 p-0 text-sm leading-none"
               :title="
                 pendingDeletions.has(n) ? 'Undo removal' : 'Remove artifact'
               "
             >
               <CloseIcon :size="16" />
-            </button>
+            </Button>
           </div>
         </template>
       </template>

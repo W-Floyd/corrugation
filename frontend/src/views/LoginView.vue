@@ -16,24 +16,22 @@
           class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           @keydown.enter="handleLocalLogin"
         />
-        <button
+        <Button
           @click="handleLocalLogin"
-          class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          label="Sign in with username"
+          class="w-full"
           :disabled="!username.trim()"
-        >
-          Sign in with username
-        </button>
+        />
       </div>
 
       <!-- OIDC login -->
-      <button
+      <Button
         v-if="authStore.authConfig.enabled"
         @click="authStore.startLogin()"
-        class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        label="Sign in with Authentik"
+        class="w-full"
         title="Sign in with Authentik"
-      >
-        Sign in with Authentik
-      </button>
+      />
 
       <p
         v-if="authStore.authConfig.enabled"

@@ -70,12 +70,13 @@ const filtered = computed(() => {
               autofocus
               @keydown.escape="emit('update:visible', false)"
             />
-            <button
+            <Button
               @click="emit('update:visible', false)"
+              text
               class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <CloseIcon :size="18" />
-            </button>
+            </Button>
           </div>
 
           <!-- Command list -->

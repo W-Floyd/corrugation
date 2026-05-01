@@ -65,14 +65,13 @@ const dismissClasses: Record<ToastLevel, string> = {
         ]"
       >
         <span class="wrap-break-words text-sm">{{ toast.message }}</span>
-        <button
-          type="button"
+        <Button
           @click="hideToast(toast.id)"
-          :class="['shrink-0', dismissClasses[toast.level]]"
+          text
+          :class="['shrink-0 p-0', dismissClasses[toast.level]]"
           title="Dismiss"
-        >
-          &times;
-        </button>
+          label="×"
+        />
       </div>
     </TransitionGroup>
   </div>

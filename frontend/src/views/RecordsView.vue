@@ -502,16 +502,16 @@ watch(
           >
             Settings
           </router-link>
-          <button
+          <Button
             v-if="authStore.isAuthenticated"
             @click="handleLogout"
-            type="button"
-            class="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-1.5 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            severity="secondary"
             title="Logout"
+            class="gap-2"
           >
             <span class="text-sm font-medium">Logout</span>
             <LogoutIcon :size="18" />
-          </button>
+          </Button>
         </div>
         <SearchBar ref="searchBarRef" :show-hint="showHint" />
       </div>
@@ -587,33 +587,37 @@ watch(
     </div>
 
     <div class="fixed right-6 bottom-6 flex flex-col gap-3">
-      <button
+      <Button
         @click="
           newRecordLocation = recordsStore.currentRecord;
           newRecordVisible = true;
         "
-        class="relative flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:shadow-xl"
+        rounded
+        class="relative h-14 w-14 p-0"
         title="Create new record (N)"
       >
         <PlusIcon :size="28" />
         <KbdHint contents="N" :show="showHint" />
-      </button>
-      <button
+      </Button>
+      <Button
         @click="handleFabCapture"
-        class="relative flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:shadow-xl"
+        rounded
+        class="relative h-14 w-14 p-0"
         title="Quick capture (C)"
       >
         <CameraIcon :size="28" />
         <KbdHint contents="C" :show="showHint" />
-      </button>
-      <button
+      </Button>
+      <Button
         @click="handleFabImageSearch"
-        class="relative flex h-14 w-14 items-center justify-center rounded-full bg-purple-500 text-white shadow-lg hover:bg-purple-600 active:shadow-xl"
+        rounded
+        severity="help"
+        class="relative h-14 w-14 p-0"
         title="Image search (I)"
       >
         <ImageSearchIcon :size="28" />
         <KbdHint contents="I" :show="showHint" />
-      </button>
+      </Button>
     </div>
 
     <CameraModal />

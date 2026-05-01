@@ -208,29 +208,20 @@ const handleCameraOpen = async (): Promise<void> => {
             </div>
             <!-- Buttons -->
             <div class="mt-8 flex gap-4">
-              <button
-                type="button"
-                @click="handleSubmit"
-                class="relative h-10 rounded-full bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600"
-              >
+              <Button @click="handleSubmit" rounded class="relative h-10 px-4">
                 Submit
                 <KbdHint contents="Enter" :show="props.showHint" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 @click="handleDialogClose"
-                class="relative h-10 rounded-full bg-red-500 px-4 py-2 text-white shadow hover:bg-red-600"
+                rounded
+                severity="danger"
+                class="relative h-10 px-4"
               >
                 Cancel
                 <KbdHint contents="Esc" :show="props.showHint" />
-              </button>
-              <button
-                type="button"
-                @click="handleCameraOpen"
-                class="h-10 rounded-full bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600"
-              >
-                Camera
-              </button>
+              </Button>
+              <Button @click="handleCameraOpen" rounded label="Camera" />
             </div>
           </div>
         </div>

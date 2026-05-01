@@ -171,21 +171,18 @@ onMounted(() => {
     <!-- Header -->
     <div class="container mx-auto px-4 pt-4">
       <div class="mb-6 flex items-center gap-4">
-        <button
-          @click="router.push({ path: '/' })"
-          class="text-sm text-blue-600 hover:underline dark:text-sky-400"
-        >
-          ← Back
-        </button>
-        <h1 class="text-2xl font-semibold">Settings</h1>
+        <Button @click="router.push({ path: '/' })" link label="← Back" />
+        <h1 class="pb-2 text-2xl font-semibold">Settings</h1>
         <span
           v-if="currentUsername"
-          class="ml-auto text-sm text-gray-500 dark:text-gray-400"
+          class="ml-auto flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
         >
-          Signed in as <strong>{{ currentUsername }}</strong>
+          <span
+            >Signed in as <strong>{{ currentUsername }}</strong></span
+          >
           <span
             v-if="isAdmin"
-            class="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+            class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
             >admin</span
           >
         </span>
@@ -193,9 +190,9 @@ onMounted(() => {
 
       <!-- Tabs -->
       <div
-        class="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700"
+        class="mb-8 flex gap-1 border-b border-gray-200 dark:border-gray-700"
       >
-        <button
+        <Button
           v-for="tab in isAdmin
             ? (['user', 'global', 'users'] as Tab[])
             : (['user'] as Tab[])"
@@ -215,11 +212,11 @@ onMounted(() => {
                 ? "Global Settings"
                 : "Users"
           }}
-        </button>
+        </Button>
       </div>
 
       <!-- User Settings Tab -->
-      <div v-if="activeTab === 'user'" class="max-w-lg">
+      <div v-if="activeTab === 'user'" class="max-w-lg pt-2">
         <div v-if="userConfigLoading" class="text-gray-500">Loading…</div>
         <form
           v-else
@@ -232,7 +229,7 @@ onMounted(() => {
           </p>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text embedding model</label
             >
             <input
@@ -244,7 +241,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Image embedding model</label
             >
             <input
@@ -256,7 +253,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text query prefix</label
             >
             <input
@@ -270,7 +267,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text document prefix</label
             >
             <input
@@ -282,19 +279,17 @@ onMounted(() => {
           </div>
 
           <div>
-            <button
+            <Button
               type="submit"
               :disabled="userConfigSaving"
-              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-            >
-              {{ userConfigSaving ? "Saving…" : "Save" }}
-            </button>
+              :label="userConfigSaving ? 'Saving…' : 'Save'"
+            />
           </div>
         </form>
       </div>
 
       <!-- Global Settings Tab -->
-      <div v-if="activeTab === 'global'" class="max-w-lg">
+      <div v-if="activeTab === 'global'" class="max-w-lg pt-2">
         <div v-if="globalConfigLoading" class="text-gray-500">Loading…</div>
         <form
           v-else
@@ -302,7 +297,7 @@ onMounted(() => {
           class="flex flex-col gap-4"
         >
           <div>
-            <label class="mb-1 block text-sm font-medium">Log level</label>
+            <label class="block pb-1 text-sm font-medium">Log level</label>
             <select
               v-model="globalConfig.logLevel"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
@@ -371,7 +366,7 @@ onMounted(() => {
           </p>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text embedding model</label
             >
             <input
@@ -382,7 +377,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Image embedding model</label
             >
             <input
@@ -393,7 +388,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text query prefix</label
             >
             <input
@@ -404,7 +399,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium"
+            <label class="block pb-1 text-sm font-medium"
               >Text document prefix</label
             >
             <input
@@ -415,19 +410,17 @@ onMounted(() => {
           </div>
 
           <div>
-            <button
+            <Button
               type="submit"
               :disabled="globalConfigSaving"
-              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-            >
-              {{ globalConfigSaving ? "Saving…" : "Save" }}
-            </button>
+              :label="globalConfigSaving ? 'Saving…' : 'Save'"
+            />
           </div>
         </form>
       </div>
 
       <!-- Users Tab -->
-      <div v-if="activeTab === 'users'" class="max-w-lg">
+      <div v-if="activeTab === 'users'" class="max-w-lg pt-2">
         <div v-if="usersLoading" class="text-gray-500">Loading…</div>
         <div v-else>
           <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
@@ -453,7 +446,7 @@ onMounted(() => {
                   class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                   >admin</span
                 >
-                <button
+                <Button
                   @click="toggleAdmin(user)"
                   :disabled="user.isAdmin && user.username === currentUsername"
                   :title="
@@ -461,17 +454,10 @@ onMounted(() => {
                       ? 'Cannot remove admin from yourself'
                       : undefined
                   "
-                  :class="[
-                    'rounded-lg px-3 py-1 text-xs font-medium transition-colors',
-                    user.isAdmin && user.username === currentUsername
-                      ? 'cursor-not-allowed bg-red-100 text-red-700 opacity-40 dark:bg-red-900/40 dark:text-red-400'
-                      : user.isAdmin
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600',
-                  ]"
-                >
-                  {{ user.isAdmin ? "Remove admin" : "Make admin" }}
-                </button>
+                  :label="user.isAdmin ? 'Remove admin' : 'Make admin'"
+                  :severity="user.isAdmin ? 'danger' : 'secondary'"
+                  size="small"
+                />
               </div>
             </div>
             <div v-if="users.length === 0" class="text-sm text-gray-500">

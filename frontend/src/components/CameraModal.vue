@@ -149,15 +149,15 @@ watchEffect(async () => {
             {{ device.label || `Camera ${device.deviceId.slice(0, 8)}...` }}
           </option>
         </select>
-        <button
-          type="button"
+        <Button
           @click="cameraStore.loadDevices()"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm leading-none text-white shadow hover:bg-blue-700"
+          rounded
+          class="h-10 w-10 p-0"
           title="Reload cameras"
           aria-label="Reload cameras"
         >
           <RefreshIcon :size="20" />
-        </button>
+        </Button>
       </div>
 
       <!-- Shooting controls -->
@@ -166,20 +166,20 @@ watchEffect(async () => {
         class="absolute bottom-0 left-0 flex w-full flex-row items-center justify-center gap-4"
         style="padding-bottom: max(2rem, env(safe-area-inset-bottom))"
       >
-        <button
-          type="button"
+        <Button
           @click="cameraStore.capture()"
-          class="h-16 w-16 rounded-full border-4 border-gray-300 bg-white shadow-lg hover:bg-gray-100 active:scale-95"
+          rounded
+          severity="secondary"
+          class="h-16 w-16 border-4 border-gray-300 p-0 active:scale-95"
           title="Capture photo"
-        ></button>
-        <button
-          type="button"
+        />
+        <Button
           @click="cameraStore.close()"
-          class="h-10 rounded-full bg-red-500 px-4 py-2 text-white shadow hover:bg-red-600 active:shadow-lg"
+          rounded
+          severity="danger"
+          label="Cancel"
           style="transition: transform 0.3s ease"
-        >
-          Cancel
-        </button>
+        />
       </div>
 
       <!-- Preview controls -->
@@ -188,34 +188,25 @@ watchEffect(async () => {
         class="absolute bottom-0 left-0 flex w-full flex-row items-center justify-center gap-4"
         style="padding-bottom: max(2rem, env(safe-area-inset-bottom))"
       >
-        <button
-          type="button"
-          @click="cameraStore.confirm()"
-          class="h-10 rounded-full bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600 active:shadow-lg"
-        >
-          Use
-        </button>
-        <button
-          type="button"
+        <Button @click="cameraStore.confirm()" rounded label="Use" />
+        <Button
           @click="cameraStore.rotate()"
-          class="h-10 rounded-full bg-yellow-500 px-4 py-2 text-white shadow hover:bg-yellow-600 active:shadow-lg"
-        >
-          Rotate
-        </button>
-        <button
-          type="button"
+          rounded
+          severity="warn"
+          label="Rotate"
+        />
+        <Button
           @click="cameraStore.retake()"
-          class="h-10 rounded-full bg-gray-500 px-4 py-2 text-white shadow hover:bg-gray-600 active:shadow-lg"
-        >
-          Retake
-        </button>
-        <button
-          type="button"
+          rounded
+          severity="secondary"
+          label="Retake"
+        />
+        <Button
           @click="cameraStore.close()"
-          class="h-10 rounded-full bg-red-500 px-4 py-2 text-white shadow hover:bg-red-600 active:shadow-lg"
-        >
-          Cancel
-        </button>
+          rounded
+          severity="danger"
+          label="Cancel"
+        />
       </div>
     </div>
   </Teleport>

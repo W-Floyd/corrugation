@@ -164,15 +164,15 @@ onBeforeUnmount(() => {
         class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded bg-gray-800 px-1 font-sans text-[9px] leading-3.5 text-white shadow"
         >/
       </kbd>
-      <button
+      <Button
         v-if="recordsStore.searchtext"
         @click="resetSearch"
-        type="button"
-        class="absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+        rounded
+        class="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 bg-gray-100 p-0 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         title="Clear search"
       >
         <CloseIcon :size="14" />
-      </button>
+      </Button>
       <!-- Image search indicator badge -->
       <div
         v-if="
