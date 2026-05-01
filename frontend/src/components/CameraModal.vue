@@ -149,7 +149,7 @@ watchEffect(async () => {
             {{ device.label || `Camera ${device.deviceId.slice(0, 8)}...` }}
           </option>
         </select>
-        <Button
+        <PrimeVueButton
           @click="cameraStore.loadDevices()"
           rounded
           class="h-10 w-10 p-0"
@@ -157,7 +157,7 @@ watchEffect(async () => {
           aria-label="Reload cameras"
         >
           <RefreshIcon :size="20" />
-        </Button>
+        </PrimeVueButton>
       </div>
 
       <!-- Shooting controls -->
@@ -166,14 +166,14 @@ watchEffect(async () => {
         class="absolute bottom-0 left-0 flex w-full flex-row items-center justify-center gap-4"
         style="padding-bottom: max(2rem, env(safe-area-inset-bottom))"
       >
-        <Button
+        <PrimeVueButton
           @click="cameraStore.capture()"
           rounded
           severity="secondary"
           class="h-16 w-16 border-4 border-gray-300 p-0 active:scale-95"
           title="Capture photo"
         />
-        <Button
+        <PrimeVueButton
           @click="cameraStore.close()"
           rounded
           severity="danger"
@@ -188,20 +188,20 @@ watchEffect(async () => {
         class="absolute bottom-0 left-0 flex w-full flex-row items-center justify-center gap-4"
         style="padding-bottom: max(2rem, env(safe-area-inset-bottom))"
       >
-        <Button @click="cameraStore.confirm()" rounded label="Use" />
-        <Button
+        <PrimeVueButton @click="cameraStore.confirm()" rounded label="Use" />
+        <PrimeVueButton
           @click="cameraStore.rotate()"
           rounded
           severity="warn"
           label="Rotate"
         />
-        <Button
+        <PrimeVueButton
           @click="cameraStore.retake()"
           rounded
           severity="secondary"
           label="Retake"
         />
-        <Button
+        <PrimeVueButton
           @click="cameraStore.close()"
           rounded
           severity="danger"

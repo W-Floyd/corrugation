@@ -2,8 +2,9 @@
 import { onMounted, onUnmounted, watch, ref, computed, nextTick } from "vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
 import { useAuthStore } from "@/stores/auth";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import RecordCard from "@/components/RecordCard.vue";
 import CameraModal from "@/components/CameraModal.vue";
 import NewRecordDialog from "@/components/NewRecordDialog.vue";
@@ -21,7 +22,7 @@ import { useRoute } from "vue-router";
 const route = useRoute();
 const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 const authStore = useAuthStore();
 
 const newRecordVisible = ref(false);
@@ -65,14 +66,26 @@ const handleMoveConfirmed = async (
   try {
     await api.moveRecord(recordId, newLocation);
     await recordsStore.reload();
-    toastsStore.add("Record moved", "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Record Moved",
+      detail: "Record moved successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
     if (newLocation === recordsStore.currentRecord) {
       selectedRecordId.value = recordId;
     } else if (nextId !== null) {
       selectedRecordId.value = nextId;
     }
   } catch {
-    toastsStore.add("Failed to move record");
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Failed to Move Record",
+      detail: "Failed to move record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -92,9 +105,21 @@ const handleFabCapture = async (): Promise<void> => {
       Artifacts: [artifactId],
     });
     await recordsStore.reload();
-    toastsStore.add("Record created from photo", "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Record Created",
+      detail: "Record created from photo",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to create record from photo");
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Failed to Create Record",
+      detail: "Failed to create record from photo",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -109,9 +134,21 @@ const handleFabImageSearch = async (): Promise<void> => {
   if (!capturedFiles[0]) return;
   try {
     await recordsStore.searchByImage(capturedFiles[0]);
-    toastsStore.add("Image search complete", "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Image Search Complete",
+      detail: "Image search complete",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to search for similar records");
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Failed to Search",
+      detail: "Failed to search for similar records",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -127,12 +164,22 @@ const confirmDeleteRecord = async (recordId: number): Promise<void> => {
   try {
     await api.deleteRecord(recordId);
     await recordsStore.reload();
-    toastsStore.add("Record deleted", "warn");
+    toast.add({
+      severity: "warn",
+      summary: "Record Deleted",
+      detail: "Record deleted successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
     if (nextId !== null) {
       selectedRecordId.value = nextId;
     }
   } catch {
-    toastsStore.add("Failed to delete record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to Delete Record",
+      detail: "Failed to delete record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -151,9 +198,21 @@ const handleQuickCaptureOnRecord = async (recordId: number): Promise<void> => {
     const artifacts = [...(appRecord?.Artifacts ?? []), artifactId];
     await api.patchRecord(recordId, { Artifacts: artifacts });
     await recordsStore.reload();
-    toastsStore.add("Artifact captured and added", "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Artifact Captured",
+      detail: "Artifact captured and added",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to capture artifact");
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Failed to Capture Artifact",
+      detail: "Failed to capture artifact",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -173,9 +232,21 @@ const handleQuickCaptureNewChild = async (parentId: number): Promise<void> => {
       Artifacts: [artifactId],
     });
     await recordsStore.reload();
-    toastsStore.add("Record created from photo", "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Record Created",
+      detail: "Record created from photo",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to create record from photo");
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Failed to Create Record",
+      detail: "Failed to create record from photo",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -502,16 +573,16 @@ watch(
           >
             Settings
           </router-link>
-          <Button
+          <PrimeVueButton
             v-if="authStore.isAuthenticated"
             @click="handleLogout"
             severity="secondary"
             title="Logout"
-            class="gap-2"
+            class="min-w-max gap-2"
           >
-            <span class="text-sm font-medium">Logout</span>
+            <span class="truncate text-sm font-medium">Logout</span>
             <LogoutIcon :size="18" />
-          </Button>
+          </PrimeVueButton>
         </div>
         <SearchBar ref="searchBarRef" :show-hint="showHint" />
       </div>
@@ -587,7 +658,7 @@ watch(
     </div>
 
     <div class="fixed right-6 bottom-6 flex flex-col gap-3">
-      <Button
+      <PrimeVueButton
         @click="
           newRecordLocation = recordsStore.currentRecord;
           newRecordVisible = true;
@@ -598,8 +669,8 @@ watch(
       >
         <PlusIcon :size="28" />
         <KbdHint contents="N" :show="showHint" />
-      </Button>
-      <Button
+      </PrimeVueButton>
+      <PrimeVueButton
         @click="handleFabCapture"
         rounded
         class="relative h-14 w-14 p-0"
@@ -607,8 +678,8 @@ watch(
       >
         <CameraIcon :size="28" />
         <KbdHint contents="C" :show="showHint" />
-      </Button>
-      <Button
+      </PrimeVueButton>
+      <PrimeVueButton
         @click="handleFabImageSearch"
         rounded
         severity="help"
@@ -617,7 +688,7 @@ watch(
       >
         <ImageSearchIcon :size="28" />
         <KbdHint contents="I" :show="showHint" />
-      </Button>
+      </PrimeVueButton>
     </div>
 
     <CameraModal />

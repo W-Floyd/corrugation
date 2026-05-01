@@ -2,12 +2,13 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
 import { api } from "@/api";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 
 const router = useRouter();
 const authStore = useAuthStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 
 type Tab = "user" | "global" | "users";
 const activeTab = ref<Tab>("user");
@@ -81,7 +82,12 @@ async function saveUserConfig() {
       infinityTextDocumentPrefix:
         userConfig.value.infinityTextDocumentPrefix || null,
     });
-    toastsStore.add("User settings saved", "success");
+    toast.add({
+      severity: "success",
+      summary: "Settings Saved",
+      detail: "User settings saved",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
     // toast already shown
   } finally {
@@ -115,7 +121,12 @@ async function saveGlobalConfig() {
   globalConfigSaving.value = true;
   try {
     await api.updateGlobalConfig(globalConfig.value);
-    toastsStore.add("Global settings saved", "success");
+    toast.add({
+      severity: "success",
+      summary: "Settings Saved",
+      detail: "Global settings saved",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
     // toast already shown
   } finally {
@@ -143,10 +154,12 @@ async function toggleAdmin(user: {
   try {
     await api.setUserAdmin(user.username, newValue);
     user.isAdmin = newValue;
-    toastsStore.add(
-      `${user.username} is ${newValue ? "now an admin" : "no longer an admin"}`,
-      "success",
-    );
+    toast.add({
+      severity: "success",
+      summary: "Admin Status Updated",
+      detail: `${user.username} is ${newValue ? "now an admin" : "no longer an admin"}`,
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
     // toast already shown
   }
@@ -171,7 +184,11 @@ onMounted(() => {
     <!-- Header -->
     <div class="container mx-auto px-4 pt-4">
       <div class="mb-6 flex items-center gap-4">
-        <Button @click="router.push({ path: '/' })" link label="← Back" />
+        <PrimeVueButton
+          @click="router.push({ path: '/' })"
+          link
+          label="← Back"
+        />
         <h1 class="pb-2 text-2xl font-semibold">Settings</h1>
         <span
           v-if="currentUsername"
@@ -192,7 +209,7 @@ onMounted(() => {
       <div
         class="mb-8 flex gap-1 border-b border-gray-200 dark:border-gray-700"
       >
-        <Button
+        <PrimeVueButton
           v-for="tab in isAdmin
             ? (['user', 'global', 'users'] as Tab[])
             : (['user'] as Tab[])"
@@ -212,7 +229,7 @@ onMounted(() => {
                 ? "Global Settings"
                 : "Users"
           }}
-        </Button>
+        </PrimeVueButton>
       </div>
 
       <!-- User Settings Tab -->
@@ -279,7 +296,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <Button
+            <PrimeVueButton
               type="submit"
               :disabled="userConfigSaving"
               :label="userConfigSaving ? 'Saving…' : 'Save'"
@@ -410,7 +427,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <Button
+            <PrimeVueButton
               type="submit"
               :disabled="globalConfigSaving"
               :label="globalConfigSaving ? 'Saving…' : 'Save'"
@@ -446,7 +463,7 @@ onMounted(() => {
                   class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                   >admin</span
                 >
-                <Button
+                <PrimeVueButton
                   @click="toggleAdmin(user)"
                   :disabled="user.isAdmin && user.username === currentUsername"
                   :title="

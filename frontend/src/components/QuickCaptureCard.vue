@@ -2,12 +2,13 @@
 import CameraIcon from "vue-material-design-icons/Camera.vue";
 import { useCameraStore } from "@/stores/camera";
 import { useRecordsStore } from "@/stores/records";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
 import { api } from "@/api";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 
 const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 
 const handleQuickCapture = async (recordId: number): Promise<void> => {
   try {
@@ -31,10 +32,20 @@ const handleQuickCapture = async (recordId: number): Promise<void> => {
             Artifacts: [artifactId],
           });
           await recordsStore.reload();
-          toastsStore.add("Record created from photo", "success");
+          toast.add({
+            severity: "success",
+            summary: "Record Created",
+            detail: "Record created from photo",
+            life: DEFAULT_TOAST_LIFE,
+          });
         } catch (error) {
           console.error("Failed to create record:", error);
-          toastsStore.add("Failed to create record from photo");
+          toast.add({
+            severity: "error",
+            summary: "Failed to Create Record",
+            detail: "Failed to create record from photo",
+            life: DEFAULT_TOAST_LIFE,
+          });
         }
 
         resolve();
@@ -42,7 +53,12 @@ const handleQuickCapture = async (recordId: number): Promise<void> => {
     });
   } catch (error) {
     console.error("Camera error:", error);
-    toastsStore.add("Camera error");
+    toast.add({
+      severity: "error",
+      summary: "Camera Error",
+      detail: "Camera error occurred",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 </script>

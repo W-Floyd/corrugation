@@ -2,7 +2,9 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import type { BackendRecord } from "@/api/types";
 import { api } from "@/api";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
+import { DEFAULT_TOAST_LIFE } from "./constants";
+const toast = useToast();
 
 export const useRecordsStore = defineStore("records", () => {
   const currentRecord = ref<number>(0);
@@ -44,7 +46,6 @@ export const useRecordsStore = defineStore("records", () => {
   } | null>(null);
 
   let ws: WebSocket | null = null;
-  let offlineToastId: number | null = null;
 
   // All records indexed by ID
   const recordById = computed<Record<number, BackendRecord>>(() => {
@@ -100,13 +101,9 @@ export const useRecordsStore = defineStore("records", () => {
     searchImage: boolean;
     searchTextEmbedded: boolean;
   };
-  let progressToastId: number | null = null;
 
   function clearProgressToast(): void {
-    if (progressToastId !== null) {
-      useToastsStore().remove(progressToastId);
-      progressToastId = null;
-    }
+    // No toast to clear for PrimeVue implementation
   }
 
   async function fetchAndUpdateProgress(scope: PartialScope): Promise<void> {
@@ -128,16 +125,7 @@ export const useRecordsStore = defineStore("records", () => {
           console.log("[records] embedding already complete, skipping update");
         return;
       }
-      // Skip if toast already finalized
-      if (progressToastId === null) {
-        if (DEBUG)
-          console.log("[records] progressToastId null, creating toast");
-        progressToastId = useToastsStore().add(
-          "Indexing embeddings...",
-          "warn",
-          true,
-        );
-      }
+      // Skip if search already complete
       if (DEBUG)
         console.log("[records] getSearchEmbeddingProgress result:", progress);
       searchProgress.value = progress;
@@ -145,13 +133,13 @@ export const useRecordsStore = defineStore("records", () => {
         progress.record?.pending.length === 0 &&
         progress.artifact?.pending.length === 0
       ) {
-        useToastsStore().update(
-          progressToastId,
-          "Embeddings ready — re-run search for complete results",
-          "info",
-        );
-        useToastsStore().finalize(progressToastId);
-        progressToastId = null;
+        const toast = useToast();
+        toast.add({
+          severity: "info",
+          summary: "Search Complete",
+          detail: "Embeddings ready — re-run search for complete results",
+          life: DEFAULT_TOAST_LIFE,
+        });
       }
     } catch {
       // ignore — will retry on next embedding_progress message
@@ -175,20 +163,26 @@ export const useRecordsStore = defineStore("records", () => {
       if (e.data.startsWith("embedding_progress")) {
         updateEmbeddingProgressForSearch(e.data);
       } else if (e.data === "embedding_server_offline") {
-        if (offlineToastId === null) {
-          offlineToastId = useToastsStore().add(
-            "Embedding server is offline — indexing will resume automatically",
-            "warn",
-            true,
-          );
-        }
+        toast.add({
+          severity: "warn",
+          summary: "Embedding server offline",
+          detail: "Indexing will resume automatically",
+          life: DEFAULT_TOAST_LIFE,
+        });
       } else if (e.data === "embedding_server_online") {
-        if (offlineToastId !== null) {
-          useToastsStore().remove(offlineToastId);
-          offlineToastId = null;
-          useToastsStore().add("Embedding server is online", "success");
-        }
+        toast.add({
+          severity: "success",
+          summary: "Embedding server online",
+          detail: "Indexing services restored",
+          life: DEFAULT_TOAST_LIFE,
+        });
       } else {
+        toast.add({
+          severity: "info",
+          summary: "Record Updated",
+          detail: "Record updated successfully",
+          life: DEFAULT_TOAST_LIFE,
+        });
         reload();
       }
     };
@@ -349,18 +343,18 @@ export const useRecordsStore = defineStore("records", () => {
             searchTextSubstring: searchTextSubstring.value,
           });
           if (partial) {
-            const scope: PartialScope = {
+            const toast = useToast();
+            toast.add({
+              severity: "warn",
+              summary: "Embeddings Pending",
+              detail: "Indexing embeddings — results may be incomplete",
+              life: 0,
+            });
+            fetchAndUpdateProgress({
               scopeId,
               searchImage: searchImage.value,
               searchTextEmbedded: searchTextEmbedded.value,
-            };
-            progressToastId = useToastsStore().add(
-              "Indexing embeddings — results may be incomplete",
-              "warn",
-              true,
-            );
-
-            fetchAndUpdateProgress(scope); // populates searchProgress
+            });
           }
           apiSearchResults.value = results.map((r) => r.record);
           const scores: Record<number, { image?: number; text?: number }> = {};
@@ -380,83 +374,57 @@ export const useRecordsStore = defineStore("records", () => {
     },
   );
 
-  // Clear progress toast on navigation
-  watch(currentRecord, () => clearProgressToast());
+  // Clear any pending toasts on record change
+  watch(currentRecord, () => {
+    // No toast cleanup needed with PrimeVue implementation
+  });
 
   // Update progress toast based on searchProgress state
   watch(
     () => searchProgress.value,
     (progress) => {
-      if (!progress) {
-        if (DEBUG) console.log("[records] progress watch: progress is falsy");
-        return;
-      }
+      if (!progress) return;
       const record = progress.record;
       const artifact = progress.artifact;
-      // Skip if toast already finalized - prevents redundant watch fires
-      if (progressToastId === null) {
-        if (DEBUG)
-          console.log("[records] progress watch: toast already finalized");
-        return;
-      }
-      if (!record || !artifact) {
-        if (DEBUG)
-          console.log("[records] progress watch: missing record/artifact");
-        return;
-      }
-      if (DEBUG)
-        console.log(
-          "[records] embedding progress total:",
-          progress.record?.complete?.length ?? 0,
-          progress.record?.pending?.length ?? 0,
-          progress.artifact?.complete?.length ?? 0,
-          progress.artifact?.pending?.length ?? 0,
-          "progressToastId:",
-          progressToastId,
-        );
+      if (!record || !artifact) return;
+
       const total =
         (record?.complete?.length || 0) +
         (record?.pending?.length || 0) +
         (artifact?.complete?.length || 0) +
         (artifact?.pending?.length || 0);
-      const currentCount =
+      const pending =
         (record?.pending?.length || 0) + (artifact?.pending?.length || 0);
-      if (currentCount === 0) {
-        if (progressToastId !== null) {
-          if (DEBUG)
-            console.log("[records] embedding complete, finalizing toast");
-          useToastsStore().update(
-            progressToastId,
-            "Embeddings ready",
-            "success",
-          );
-          useToastsStore().finalize(progressToastId);
-          progressToastId = null;
-        }
+
+      if (pending === 0) {
+        if (DEBUG) console.log("[records] embedding complete");
+        const toast = useToast();
+        toast.add({
+          severity: "success",
+          summary: "Embeddings Ready",
+          detail: "Embeddings ready",
+          life: DEFAULT_TOAST_LIFE,
+        });
         return;
       }
-      if (progressToastId === null) {
-        if (DEBUG)
-          console.log("[records] progressToastId null, creating toast");
-        progressToastId = useToastsStore().add(
-          "Indexing embeddings...",
-          "warn",
-          true,
+
+      if (DEBUG) {
+        console.log(
+          "[records] embedding progress:",
+          total,
+          "pending:",
+          pending,
         );
-      } else {
-        if (DEBUG)
-          console.log(
-            "[records] progressToastId exists:",
-            progressToastId,
-            "current:",
-            currentCount,
-            "total:",
-            total,
-          );
       }
-      const newMessage = `Indexed ${total - currentCount}/${total} embeddings`;
-      if (DEBUG) console.log("[records] toast update:", newMessage);
-      useToastsStore().update(progressToastId, newMessage);
+
+      // Show progress toast
+      const toast = useToast();
+      toast.add({
+        severity: "warn",
+        summary: "Embedding Progress",
+        detail: `Indexing ${total} embeddings (${pending} pending)`,
+        life: 0,
+      });
     },
     { deep: true },
   );

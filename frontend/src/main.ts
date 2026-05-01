@@ -3,9 +3,11 @@ import "./assets/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
+import ToastService from "primevue/toastservice";
 import Aura from "@primeuix/themes/aura";
 import { definePreset } from "@primeuix/themes";
 import Button from "primevue/button";
+import Toast from "primevue/toast";
 
 const AppPreset = definePreset(Aura, {
   semantic: {
@@ -40,6 +42,8 @@ app.use(PrimeVue, {
     },
   },
 });
-app.component("Button", Button);
+app.use(ToastService);
+app.component("PrimeVueButton", Button);
+app.component("PrimeVueToast", Toast);
 
 app.mount("#app");

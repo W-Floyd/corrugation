@@ -70,13 +70,13 @@ const filtered = computed(() => {
               autofocus
               @keydown.escape="emit('update:visible', false)"
             />
-            <Button
+            <PrimeVueButton
               @click="emit('update:visible', false)"
               text
               class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <CloseIcon :size="18" />
-            </Button>
+            </PrimeVueButton>
           </div>
 
           <!-- Command list -->

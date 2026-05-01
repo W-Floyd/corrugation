@@ -1,7 +1,8 @@
 import type { BackendRecord, RecordBody } from "./types";
 import router from "../router";
 import { useAuthStore } from "../stores/auth";
-import { useToastsStore } from "../stores/toasts";
+import { useToast } from "primevue/usetoast";
+import { DEFAULT_TOAST_LIFE } from "../stores/constants";
 
 export async function apiFetch(
   url: string,
@@ -48,7 +49,13 @@ export async function apiFetch(
     } catch {
       /* not JSON, use raw body */
     }
-    useToastsStore().add(message);
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: message,
+      life: DEFAULT_TOAST_LIFE,
+    });
     throw new Error(message);
   }
 
@@ -61,7 +68,13 @@ export async function withErrorToast<T>(
   try {
     return await fn();
   } catch (e) {
-    useToastsStore().add(e instanceof Error ? e.message : String(e));
+    const toast = useToast();
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: e instanceof Error ? e.message : String(e),
+      life: DEFAULT_TOAST_LIFE,
+    });
     return undefined;
   }
 }

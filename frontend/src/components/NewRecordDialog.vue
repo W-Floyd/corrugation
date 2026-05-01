@@ -4,12 +4,13 @@ import AlertIcon from "vue-material-design-icons/Alert.vue";
 import KbdHint from "@/components/KbdHint.vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
 import { api } from "@/api";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 
 const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 
 const props = withDefaults(
   defineProps<{
@@ -70,7 +71,12 @@ const resetDialog = (): void => {
 
 const handleSubmit = async (): Promise<void> => {
   if (refTaken.value) {
-    toastsStore.add("Conflicting Reference #", "warn");
+    toast.add({
+      severity: "warn",
+      summary: "Conflicting Reference",
+      detail: "Conflicting Reference #",
+      life: DEFAULT_TOAST_LIFE,
+    });
     return;
   }
   try {
@@ -92,10 +98,20 @@ const handleSubmit = async (): Promise<void> => {
     emit("created", record.ID);
     emit("update:visible", false);
     dialogVisible.value = false;
-    toastsStore.add("Record created", "success");
+    toast.add({
+      severity: "success",
+      summary: "Record Created",
+      detail: "Record created",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch (error) {
     console.error("Failed to create record:", error);
-    toastsStore.add("Failed to create record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to Create Record",
+      detail: "Failed to create record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -208,11 +224,15 @@ const handleCameraOpen = async (): Promise<void> => {
             </div>
             <!-- Buttons -->
             <div class="mt-8 flex gap-4">
-              <Button @click="handleSubmit" rounded class="relative h-10 px-4">
+              <PrimeVueButton
+                @click="handleSubmit"
+                rounded
+                class="relative h-10 px-4"
+              >
                 Submit
                 <KbdHint contents="Enter" :show="props.showHint" />
-              </Button>
-              <Button
+              </PrimeVueButton>
+              <PrimeVueButton
                 @click="handleDialogClose"
                 rounded
                 severity="danger"
@@ -220,8 +240,12 @@ const handleCameraOpen = async (): Promise<void> => {
               >
                 Cancel
                 <KbdHint contents="Esc" :show="props.showHint" />
-              </Button>
-              <Button @click="handleCameraOpen" rounded label="Camera" />
+              </PrimeVueButton>
+              <PrimeVueButton
+                @click="handleCameraOpen"
+                rounded
+                label="Camera"
+              />
             </div>
           </div>
         </div>

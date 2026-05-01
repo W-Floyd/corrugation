@@ -1,11 +1,12 @@
 <script setup lang="ts" name="BreadcrumbNav">
 import { computed, ref } from "vue";
 import { useRecordsStore } from "@/stores/records";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import { api } from "@/api";
 
 const recordsStore = useRecordsStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 
 const locationTree = computed(() =>
   recordsStore.locationtree.map((id: number) => ({
@@ -42,9 +43,19 @@ const handleDrop = async (e: DragEvent, targetId: number): Promise<void> => {
   try {
     await api.moveRecord(recordId, targetId);
     await recordsStore.reload();
-    toastsStore.add("Record moved", "info");
+    toast.add({
+      severity: "info",
+      summary: "Record Moved",
+      detail: "Record moved successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to move record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to Move Record",
+      detail: "Failed to move record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 </script>

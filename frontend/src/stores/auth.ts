@@ -1,6 +1,9 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { useToastsStore } from "./toasts";
+import { useToast } from "primevue/usetoast";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
+
+const toast = useToast();
 
 export interface AuthConfig {
   enabled: boolean;
@@ -75,10 +78,13 @@ export const useAuthStore = defineStore("auth", () => {
         username.value = data.username;
         isAdmin.value = data.isAdmin;
         if (data.justBecameAdmin) {
-          useToastsStore().add(
-            "You are the first user — you have been granted admin access.",
-            "success",
-          );
+          toast.add({
+            severity: "success",
+            summary: "Admin Access",
+            detail:
+              "You are the first user — you have been granted admin access.",
+            life: DEFAULT_TOAST_LIFE,
+          });
         }
       }
     } catch (e) {
@@ -144,7 +150,13 @@ export const useAuthStore = defineStore("auth", () => {
       const error = await response.text();
       const message = error || "Local login failed";
       clearToken();
-      useToastsStore().add(message, "error");
+      const toast = useToast();
+      toast.add({
+        severity: "error",
+        summary: "Login Failed",
+        detail: message,
+        life: DEFAULT_TOAST_LIFE,
+      });
       throw new Error(message);
     }
     const result = await response.json();

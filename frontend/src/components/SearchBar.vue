@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
         class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded bg-gray-800 px-1 font-sans text-[9px] leading-3.5 text-white shadow"
         >/
       </kbd>
-      <Button
+      <PrimeVueButton
         v-if="recordsStore.searchtext"
         @click="resetSearch"
         rounded
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
         title="Clear search"
       >
         <CloseIcon :size="14" />
-      </Button>
+      </PrimeVueButton>
       <!-- Image search indicator badge -->
       <div
         v-if="

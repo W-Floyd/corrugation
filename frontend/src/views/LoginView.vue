@@ -16,7 +16,7 @@
           class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           @keydown.enter="handleLocalLogin"
         />
-        <Button
+        <PrimeVueButton
           @click="handleLocalLogin"
           label="Sign in with username"
           class="w-full"
@@ -25,7 +25,7 @@
       </div>
 
       <!-- OIDC login -->
-      <Button
+      <PrimeVueButton
         v-if="authStore.authConfig.enabled"
         @click="authStore.startLogin()"
         label="Sign in with Authentik"
@@ -47,18 +47,24 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { useToastsStore } from "../stores/toasts";
+import { useToast } from "primevue/usetoast";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 
 const router = useRouter();
 const authStore = useAuthStore();
-const toastsStore = useToastsStore();
 const username = ref("");
 
 async function handleLocalLogin(): Promise<void> {
   if (!username.value.trim()) return;
   try {
     await authStore.localLogin(username.value.trim());
-    toastsStore.add(`Logged in as ${username.value.trim()}`, "success");
+    const toast = useToast();
+    toast.add({
+      severity: "success",
+      summary: "Logged In",
+      detail: `Logged in as ${username.value.trim()}`,
+      life: DEFAULT_TOAST_LIFE,
+    });
     router.push({ path: "/" });
   } catch {
     // error toast already added by the store

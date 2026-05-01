@@ -2,9 +2,10 @@
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { useRecordsStore } from "@/stores/records";
 import { useCameraStore } from "@/stores/camera";
-import { useToastsStore } from "@/stores/toasts";
+import { useToast } from "primevue/usetoast";
 import { api } from "@/api";
 import type { BackendRecord } from "@/api/types";
+import { DEFAULT_TOAST_LIFE } from "@/stores/constants";
 import KbdHint from "@/components/KbdHint.vue";
 import ArtifactImage from "@/components/ArtifactImage.vue";
 import TrashCanIcon from "vue-material-design-icons/TrashCan.vue";
@@ -44,7 +45,7 @@ const emit = defineEmits<{
 
 const recordsStore = useRecordsStore();
 const cameraStore = useCameraStore();
-const toastsStore = useToastsStore();
+const toast = useToast();
 
 const cardEl = ref<HTMLElement | null>(null);
 const nameInputEl = ref<HTMLInputElement | null>(null);
@@ -112,9 +113,19 @@ const handleChildDrop = async (
   try {
     await api.moveRecord(recordId, childId);
     await recordsStore.reload();
-    toastsStore.add("Record moved", "info");
+    toast.add({
+      severity: "info",
+      summary: "Record moved",
+      detail: "Record moved successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to move record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to move record",
+      detail: "Failed to move record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 const isDraggable = computed(
@@ -176,9 +187,19 @@ const handleDrop = async (e: DragEvent): Promise<void> => {
   try {
     await api.moveRecord(draggedId, targetId);
     await recordsStore.reload();
-    toastsStore.add("Record moved", "info");
+    toast.add({
+      severity: "info",
+      summary: "Record moved",
+      detail: "Record moved successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch {
-    toastsStore.add("Failed to move record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to move record",
+      detail: "Failed to move record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -452,10 +473,20 @@ const handleUpdate = async (): Promise<void> => {
     await recordsStore.reload();
     editMode.value = false;
     emit("recordUpdated", localRecord.value);
-    toastsStore.add("Record updated", "info");
+    toast.add({
+      severity: "info",
+      summary: "Record Updated",
+      detail: "Record updated successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch (error) {
     console.error("Failed to update record:", error);
-    toastsStore.add("Failed to update record");
+    toast.add({
+      severity: "error",
+      summary: "Failed to Update Record",
+      detail: "Failed to update record",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -477,10 +508,8 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
     await recordsStore.reload();
     editMode.value = false;
     emit("recordUpdated", props.appRecord);
-    toastsStore.add("Artifact captured and added", "info");
   } catch (error) {
     console.error("Failed to capture artifact:", error);
-    toastsStore.add("Failed to capture artifact");
   }
 };
 
@@ -497,18 +526,32 @@ const handleSearchByImage = async (): Promise<void> => {
     });
 
     await recordsStore.searchByImage(file);
-
     if (recordsStore.apiSearchResults.length > 0) {
       const message = `Found ${recordsStore.apiSearchResults.length} similar record(s)`;
-      toastsStore.add(message, "info");
+      toast.add({
+        severity: "info",
+        summary: message,
+        detail: "Similar records found in search",
+        life: DEFAULT_TOAST_LIFE,
+      });
       console.log("Similar records:", recordsStore.apiSearchResults);
       console.log("Partial:", recordsStore.apiSearchResultsPartial);
     } else {
-      toastsStore.add("No similar records found", "info");
+      toast.add({
+        severity: "info",
+        summary: "No similar records found",
+        detail: "No matching records were found for the image",
+        life: DEFAULT_TOAST_LIFE,
+      });
     }
   } catch (error) {
     console.error("Image search failed:", error);
-    toastsStore.add("Failed to search for similar records");
+    toast.add({
+      severity: "error",
+      summary: "Failed to search for similar records",
+      detail: "An error occurred while performing the image search",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -523,9 +566,19 @@ const handleQuickCaptureNewChild = async (): Promise<void> => {
         const artifactId = await api.uploadArtifact(files[0]);
         await recordsStore.reload();
         await api.patchRecord(props.appRecord.ID, { Artifacts: [artifactId] });
-        toastsStore.add("Record created from photo");
+        toast.add({
+          severity: "info",
+          summary: "Record Created",
+          detail: "Record created from photo",
+          life: DEFAULT_TOAST_LIFE,
+        });
       } catch {
-        toastsStore.add("Failed to create record from photo");
+        toast.add({
+          severity: "error",
+          summary: "Failed to Create Record",
+          detail: "Failed to create record from photo",
+          life: DEFAULT_TOAST_LIFE,
+        });
       }
       resolve();
     });
@@ -578,10 +631,20 @@ const handleEditArtifact = async (file: File): Promise<void> => {
     await api.updateRecord(props.appRecord.ID, { Artifacts: artifacts });
     await recordsStore.reload();
     emit("recordUpdated", localRecord.value);
-    toastsStore.add("Artifact uploaded", "info");
+    toast.add({
+      severity: "info",
+      summary: "Record Updated",
+      detail: "Record updated successfully",
+      life: DEFAULT_TOAST_LIFE,
+    });
   } catch (error) {
     console.error("Failed to upload artifact:", error);
-    toastsStore.add("Failed to upload artifact");
+    toast.add({
+      severity: "error",
+      summary: "Failed to Upload Artifact",
+      detail: "Failed to upload artifact",
+      life: DEFAULT_TOAST_LIFE,
+    });
   }
 };
 
@@ -628,7 +691,7 @@ defineExpose({ cardEl });
         }}
       </p>
       <div class="flex gap-3">
-        <Button
+        <PrimeVueButton
           @click.stop="emit('deleteConfirmed')"
           rounded
           severity="danger"
@@ -636,8 +699,8 @@ defineExpose({ cardEl });
         >
           Delete
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </Button>
-        <Button
+        </PrimeVueButton>
+        <PrimeVueButton
           @click.stop="emit('deleteCancelled')"
           rounded
           severity="secondary"
@@ -645,7 +708,7 @@ defineExpose({ cardEl });
         >
           Cancel
           <KbdHint contents="Esc" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
       </div>
     </div>
     <!-- Move confirmation overlay -->
@@ -688,7 +751,7 @@ defineExpose({ cardEl });
         </option>
       </select>
       <div class="flex flex-wrap items-center gap-2">
-        <Button
+        <PrimeVueButton
           @click.stop="emit('moveConfirmed', moveTargetLocation)"
           rounded
           class="relative h-10 w-10 p-0"
@@ -696,8 +759,8 @@ defineExpose({ cardEl });
         >
           <CheckIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </Button>
-        <Button
+        </PrimeVueButton>
+        <PrimeVueButton
           v-if="!isAtCurrentLocation"
           @click.stop="emit('moveConfirmed', recordsStore.currentRecord)"
           rounded
@@ -706,8 +769,8 @@ defineExpose({ cardEl });
         >
           To {{ currentLocationName }}
           <KbdHint contents="H" :show="showHint && isSelected" />
-        </Button>
-        <Button
+        </PrimeVueButton>
+        <PrimeVueButton
           v-if="appRecord.ID !== 0 && recordsStore.currentRecord !== 0"
           @click.stop="moveUp()"
           rounded
@@ -716,8 +779,8 @@ defineExpose({ cardEl });
         >
           <ArrowUpIcon :size="20" />
           <KbdHint contents="U" :show="showHint && isSelected" />
-        </Button>
-        <Button
+        </PrimeVueButton>
+        <PrimeVueButton
           @click.stop="emit('moveCancelled')"
           rounded
           severity="danger"
@@ -726,7 +789,7 @@ defineExpose({ cardEl });
         >
           <CloseIcon :size="20" />
           <KbdHint contents="Esc" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
       </div>
     </div>
     <!-- Match badges -->
@@ -955,7 +1018,7 @@ defineExpose({ cardEl });
     <!-- Action buttons -->
     <div class="flex flex-wrap gap-2 p-4">
       <template v-if="!editMode">
-        <Button
+        <PrimeVueButton
           @click.stop="emit('requestDelete')"
           rounded
           severity="danger"
@@ -964,9 +1027,9 @@ defineExpose({ cardEl });
         >
           <TrashCanIcon :size="20" />
           <KbdHint contents="Del" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="emit('requestMove', appRecord.ID)"
           rounded
           class="relative h-10 w-10 p-0"
@@ -974,9 +1037,9 @@ defineExpose({ cardEl });
         >
           <FolderMoveIcon :size="20" />
           <KbdHint contents="M" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="handleEditToggle"
           rounded
           class="relative h-10 w-10 p-0"
@@ -984,9 +1047,9 @@ defineExpose({ cardEl });
         >
           <PencilIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="handleQuickCapture"
           rounded
           class="relative h-10 w-10 p-0"
@@ -994,9 +1057,9 @@ defineExpose({ cardEl });
         >
           <CameraIcon :size="20" />
           <KbdHint contents="P" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="handleQuickCaptureNewChild"
           rounded
           class="relative h-10 w-10 p-0"
@@ -1004,9 +1067,9 @@ defineExpose({ cardEl });
         >
           <CameraPlusIcon :size="20" />
           <kbdHint contents="⇧C" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="handleSearchByImage"
           v-if="appRecord.Artifacts && appRecord.Artifacts.length > 0"
           rounded
@@ -1016,9 +1079,9 @@ defineExpose({ cardEl });
         >
           <ImageSearchIcon :size="20" />
           <kbdHint contents="⇧S" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="emit('createChild', appRecord.ID)"
           rounded
           class="relative h-10 w-10 p-0"
@@ -1026,11 +1089,11 @@ defineExpose({ cardEl });
         >
           <PlusIcon :size="20" />
           <kbdHint contents="⇧N" :show="showHint && isSelected" />
-        </Button>
+        </PrimeVueButton>
       </template>
 
       <template v-else>
-        <Button
+        <PrimeVueButton
           @click.stop="handleSave"
           rounded
           class="relative h-10 w-10 p-0"
@@ -1038,9 +1101,9 @@ defineExpose({ cardEl });
         >
           <CheckIcon :size="20" />
           <KbdHint contents="Enter" :show="showHint" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="handleCancel"
           rounded
           severity="danger"
@@ -1049,9 +1112,9 @@ defineExpose({ cardEl });
         >
           <CloseIcon :size="20" />
           <KbdHint contents="Esc" :show="showHint" />
-        </Button>
+        </PrimeVueButton>
 
-        <Button
+        <PrimeVueButton
           @click.stop="
             cameraStore.open((files: File[]) =>
               files.forEach((f) => handleEditArtifact(f)),
@@ -1063,7 +1126,7 @@ defineExpose({ cardEl });
         >
           <CameraIcon :size="20" />
           <KbdHint contents="P" :show="showHint" />
-        </Button>
+        </PrimeVueButton>
       </template>
     </div>
 
@@ -1088,7 +1151,7 @@ defineExpose({ cardEl });
               :artifact-id="n"
               :alt="`Artifact ${n}`"
             />
-            <Button
+            <PrimeVueButton
               @click.stop="toggleArtifactDeletion(n)"
               rounded
               :severity="pendingDeletions.has(n) ? 'secondary' : 'danger'"
@@ -1098,7 +1161,7 @@ defineExpose({ cardEl });
               "
             >
               <CloseIcon :size="16" />
-            </Button>
+            </PrimeVueButton>
           </div>
         </template>
       </template>
