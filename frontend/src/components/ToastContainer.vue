@@ -31,12 +31,14 @@ const levelClasses: Record<ToastLevel, string> = {
     error: "bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 ring-red-200 dark:ring-red-700",
     warn: "bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 ring-amber-200 dark:ring-amber-700",
     info: "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-blue-200 dark:ring-blue-700",
+    success: "bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 ring-green-200 dark:ring-green-700",
 };
 
 const dismissClasses: Record<ToastLevel, string> = {
     error: "text-red-400 hover:text-red-600 dark:hover:text-red-200",
     warn: "text-amber-400 hover:text-amber-600 dark:hover:text-amber-200",
     info: "text-blue-400 hover:text-blue-600 dark:hover:text-blue-200",
+    success: "text-green-400 hover:text-green-600 dark:hover:text-green-200",
 };
 </script>
 

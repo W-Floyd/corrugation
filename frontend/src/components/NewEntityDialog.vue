@@ -92,7 +92,7 @@ const handleSubmit = async (): Promise<void> => {
         emit("created", record.ID);
         emit("update:visible", false);
         dialogVisible.value = false;
-        toastsStore.add("Entity created", "info");
+        toastsStore.add("Entity created", "success");
     } catch (error) {
         console.error("Failed to create entity:", error);
         toastsStore.add("Failed to create entity");

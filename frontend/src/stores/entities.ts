@@ -190,7 +190,7 @@ export const useEntitiesStore = defineStore("entities", () => {
         if (offlineToastId !== null) {
           useToastsStore().remove(offlineToastId);
           offlineToastId = null;
-          useToastsStore().add("Embedding server is online", "info");
+          useToastsStore().add("Embedding server is online", "success");
         }
       } else {
         reload();
@@ -433,7 +433,7 @@ export const useEntitiesStore = defineStore("entities", () => {
         if (progressToastId !== null) {
           DEBUG &&
             console.log("[entities] embedding complete, finalizing toast");
-          useToastsStore().update(progressToastId, "Embeddings ready", "info");
+          useToastsStore().update(progressToastId, "Embeddings ready", "success");
           useToastsStore().finalize(progressToastId);
           progressToastId = null;
           partialScope = null;

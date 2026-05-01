@@ -37,7 +37,7 @@ const handleQuickCapture = async (entityId: number): Promise<void> => {
                         },
                     }));
                     await entitiesStore.reload();
-                    toastsStore.add("Entity created from photo", "info");
+                    toastsStore.add("Entity created from photo", "success");
                 } catch (error) {
                     console.error("Failed to create entity:", error);
                     toastsStore.add("Failed to create entity from photo");

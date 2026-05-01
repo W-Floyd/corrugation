@@ -71,7 +71,7 @@ const handleMoveConfirmed = async (
     try {
         await api.moveRecord(entityId, newLocation);
         await entitiesStore.reload();
-        toastsStore.add("Entity moved", "info");
+        toastsStore.add("Entity moved", "success");
         if (newLocation === entitiesStore.currentEntity) {
             selectedEntityId.value = entityId;
         } else if (nextId !== null) {
@@ -98,7 +98,7 @@ const handleFabCapture = async (): Promise<void> => {
             Artifacts: [artifactId],
         });
         await entitiesStore.reload();
-        toastsStore.add("Entity created from photo", "info");
+        toastsStore.add("Entity created from photo", "success");
     } catch {
         toastsStore.add("Failed to create entity from photo");
     }
@@ -115,7 +115,7 @@ const handleFabImageSearch = async (): Promise<void> => {
     if (!capturedFiles[0]) return;
     try {
         await entitiesStore.searchByImage(capturedFiles[0]);
-        toastsStore.add("Image search complete", "info");
+        toastsStore.add("Image search complete", "success");
     } catch {
         toastsStore.add("Failed to search for similar records");
     }
@@ -157,7 +157,7 @@ const handleQuickCaptureOnEntity = async (entityId: number): Promise<void> => {
         const artifacts = [...(entity?.artifacts ?? []), artifactId];
         await api.patchRecord(entityId, { Artifacts: artifacts });
         await entitiesStore.reload();
-        toastsStore.add("Artifact captured and added", "info");
+        toastsStore.add("Artifact captured and added", "success");
     } catch {
         toastsStore.add("Failed to capture artifact");
     }
@@ -179,7 +179,7 @@ const handleQuickCaptureNewChild = async (parentId: number): Promise<void> => {
             Artifacts: [artifactId],
         });
         await entitiesStore.reload();
-        toastsStore.add("Entity created from photo", "info");
+        toastsStore.add("Entity created from photo", "success");
     } catch {
         toastsStore.add("Failed to create entity from photo");
     }
