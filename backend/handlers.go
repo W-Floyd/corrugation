@@ -23,6 +23,10 @@ type BytesOutput struct {
 
 func RegisterHandlers(api huma.API) {
 
+	huma.Register(api, GetAuthConfigOperation, GetAuthConfigHandler)
+	huma.Register(api, LoginLocalOperation, LoginLocalHandler)
+	huma.Register(api, GetMeOperation, GetMeHandler)
+
 	huma.Register(api, ImportOperation, Import)
 	huma.Register(api, ResetStoreOperation, ResetStore)
 
@@ -47,6 +51,9 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, PutGlobalConfigOperation, PutGlobalConfig)
 	huma.Register(api, GetUserConfigOperation, GetUserConfig)
 	huma.Register(api, PutUserConfigOperation, PutUserConfig)
+
+	huma.Register(api, ListUsersOperation, ListUsers)
+	huma.Register(api, SetUserAdminOperation, SetUserAdmin)
 
 	// Image search endpoint
 	huma.Register(api, SearchByImageOperation, SearchByImageHandler)

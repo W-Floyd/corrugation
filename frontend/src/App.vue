@@ -16,6 +16,7 @@ import QuickCaptureCard from "@/components/QuickCaptureCard.vue";
 import ToastContainer from "@/components/ToastContainer.vue";
 import KbdHint from "@/components/KbdHint.vue";
 import LoginView from "@/views/LoginView.vue";
+import SettingsView from "@/views/SettingsView.vue";
 import PlusIcon from "vue-material-design-icons/Plus.vue";
 import CameraIcon from "vue-material-design-icons/Camera.vue";
 import LogoutIcon from "vue-material-design-icons/Logout.vue";
@@ -510,6 +511,8 @@ watch(
 
         <RouterView v-else-if="route.name === 'callback'" />
 
+        <SettingsView v-else-if="route.name === 'settings'" />
+
         <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
             <!-- Loading state -->
             <div v-if="
@@ -523,11 +526,16 @@ watch(
             <div v-else>
                 <!-- Header with breadcrumbs and logout -->
                 <div class="w-full pt-4 px-4 pb-4">
-                    <div class="flex">
+                    <div class="flex items-center gap-2">
                         <BreadcrumbNav @open-new-entity="
                             newEntityLocation = entitiesStore.currentEntity;
                         newEntityVisible = true;
                         " />
+                        <router-link to="/settings"
+                            class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 text-sm font-medium shrink-0"
+                            title="Settings">
+                            Settings
+                        </router-link>
                         <button v-if="authStore.isAuthenticated" @click="handleLogout" type="button"
                             class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300"
                             title="Logout">

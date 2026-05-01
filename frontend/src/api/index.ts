@@ -253,6 +253,75 @@ export const api = {
     });
     return response.json();
   },
+
+  async getGlobalConfig(): Promise<{
+    logLevel: string;
+    backfillRecordEmbeddingsOnStart: boolean;
+    backfillArtifactEmbeddingsOnStart: boolean;
+    backfillArtifactOwnersOnStart: boolean;
+    allowLocalUsernameLogin: boolean;
+    infinityTextModel: string;
+    infinityImageModel: string;
+    infinityTextQueryPrefix: string;
+    infinityTextDocumentPrefix: string;
+  }> {
+    const response = await apiFetch("/api/config/global");
+    return response.json();
+  },
+
+  async updateGlobalConfig(config: {
+    logLevel: string;
+    backfillRecordEmbeddingsOnStart: boolean;
+    backfillArtifactEmbeddingsOnStart: boolean;
+    backfillArtifactOwnersOnStart: boolean;
+    allowLocalUsernameLogin: boolean;
+    infinityTextModel: string;
+    infinityImageModel: string;
+    infinityTextQueryPrefix: string;
+    infinityTextDocumentPrefix: string;
+  }): Promise<void> {
+    await apiFetch("/api/config/global", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+  },
+
+  async getUserConfig(): Promise<{
+    infinityTextModel?: string;
+    infinityImageModel?: string;
+    infinityTextQueryPrefix?: string;
+    infinityTextDocumentPrefix?: string;
+  }> {
+    const response = await apiFetch("/api/config/user");
+    return response.json();
+  },
+
+  async updateUserConfig(config: {
+    infinityTextModel?: string | null;
+    infinityImageModel?: string | null;
+    infinityTextQueryPrefix?: string | null;
+    infinityTextDocumentPrefix?: string | null;
+  }): Promise<void> {
+    await apiFetch("/api/config/user", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+  },
+
+  async getUsers(): Promise<{ id: number; username: string; isAdmin: boolean }[]> {
+    const response = await apiFetch("/api/users");
+    return response.json();
+  },
+
+  async setUserAdmin(username: string, isAdmin: boolean): Promise<void> {
+    await apiFetch(`/api/users/${encodeURIComponent(username)}/admin`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isAdmin }),
+    });
+  },
 };
 
 export default api;

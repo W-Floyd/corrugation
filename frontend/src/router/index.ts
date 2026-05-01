@@ -21,6 +21,11 @@ const router = createRouter({
       name: "entity",
       component: () => import("../views/EntityView.vue"),
     },
+    {
+      path: "/settings",
+      name: "settings",
+      component: () => import("../views/SettingsView.vue"),
+    },
   ],
 });
 
@@ -31,6 +36,7 @@ router.beforeEach(async (to) => {
   if (!configFetched) {
     DEBUG && console.log("[router] fetching auth config");
     await authStore.fetchConfig();
+    await authStore.fetchMe();
     configFetched = true;
   }
 

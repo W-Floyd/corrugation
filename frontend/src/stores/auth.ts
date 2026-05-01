@@ -31,6 +31,8 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("auth_token"));
   const authConfig = ref<AuthConfig>({ enabled: false });
+  const isAdmin = ref(false);
+  const username = ref("");
 
   const isAuthenticated = computed(() => token.value !== null);
 
@@ -51,6 +53,25 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     localStorage.removeItem("auth_token");
     document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
+
+  async function fetchMe(): Promise<void> {
+    if (!token.value) return;
+    try {
+      const resp = await fetch("/api/me", {
+        headers: { Authorization: `Bearer ${token.value}` },
+      });
+      if (resp.ok) {
+        const data: { username: string; isAdmin: boolean; justBecameAdmin: boolean } = await resp.json();
+        username.value = data.username;
+        isAdmin.value = data.isAdmin;
+        if (data.justBecameAdmin) {
+          useToastsStore().add("You are the first user — you have been granted admin access.", "success");
+        }
+      }
+    } catch (e) {
+      DEBUG && console.warn("[auth] fetchMe error:", e);
+    }
   }
 
   async function fetchConfig(): Promise<void> {
@@ -100,11 +121,11 @@ export const useAuthStore = defineStore("auth", () => {
     window.location.href = url;
   }
 
-  async function localLogin(username: string): Promise<void> {
+  async function localLogin(loginUsername: string): Promise<void> {
     const response = await fetch("/api/auth/local/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username: loginUsername }),
     });
     if (!response.ok) {
       const error = await response.text();
@@ -115,6 +136,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
     const result = await response.json();
     setToken(result.username);
+    await fetchMe();
   }
 
   async function handleCallback(code: string, state: string): Promise<boolean> {
@@ -171,16 +193,20 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     setToken(jwt);
+    await fetchMe();
     return true;
   }
 
   return {
     token,
     authConfig,
+    isAdmin,
+    username,
     isAuthenticated,
     setToken,
     clearToken,
     fetchConfig,
+    fetchMe,
     startLogin,
     handleCallback,
     localLogin,

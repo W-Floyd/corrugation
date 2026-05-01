@@ -12,12 +12,14 @@ const router = useRouter();
 const entitiesStore = useEntitiesStore();
 const cameraStore = useCameraStore();
 const toastsStore = useToastsStore();
+const authStore = useAuthStore();
 
 const isLoading = computed(() => entitiesStore.isLoading);
 
 // Watch for route changes to update current entity
 import { watch } from "vue";
 import { onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
 onMounted(() => {
     entitiesStore.connectWS();
@@ -95,11 +97,10 @@ const handleMoveEntitySubmit = async (): Promise<void> => {
 </script>
 
 <template>
-    <!-- Main content wrapper -->
-    <div v-if="!isLoading" class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
         <!-- Header with breadcrumbs -->
         <div class="container mx-auto pt-4 px-4">
-            <nav class="w-full">
+            <nav class="w-full flex items-center justify-between">
                 <ol class="flex flex-wrap list-reset">
                     <template v-for="(n, index) in entitiesStore.locationtree" :key="n">
                         <li>
@@ -115,15 +116,17 @@ const handleMoveEntitySubmit = async (): Promise<void> => {
                         </li>
                     </template>
                     <li>
-                        <a @click="
-                            openNewEntityDialog(entitiesStore.currentEntity)
-                            "
+                        <a @click="openNewEntityDialog(entitiesStore.currentEntity)"
                             class="text-blue-600 dark:text-sky-400 dark:hover:text-sky-300 hover:text-blue-700 cursor-pointer"
                             title="Create new entity">
                             +
                         </a>
                     </li>
                 </ol>
+                <router-link to="/settings"
+                    class="text-sm text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-sky-300 hover:underline transition-colors shrink-0 ml-4">
+                    Settings
+                </router-link>
             </nav>
 
             <!-- Search bar -->

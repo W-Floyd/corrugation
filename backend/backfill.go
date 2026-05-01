@@ -6,18 +6,24 @@ import (
 	"gorm.io/gorm"
 )
 
-func Backfill() (err error) {
+func Backfill(flags BackfillFlags) (err error) {
 	if err = clearEmbeddingJobs(); err != nil {
 		return
 	}
-	if err = backfillArtifactOwners(); err != nil {
-		return
+	if flags.ArtifactOwners {
+		if err = backfillArtifactOwners(); err != nil {
+			return
+		}
 	}
-	if err = backfillRecordEmbeddings(); err != nil {
-		return
+	if flags.RecordEmbeddings {
+		if err = backfillRecordEmbeddings(); err != nil {
+			return
+		}
 	}
-	if err = backfillArtifactEmbeddings(); err != nil {
-		return
+	if flags.ArtifactEmbeddings {
+		if err = backfillArtifactEmbeddings(); err != nil {
+			return
+		}
 	}
 	return
 }

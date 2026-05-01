@@ -96,9 +96,34 @@ func LoginLocalHandler(_ context.Context, input *struct {
 	}{Username: input.Body.Username}}, nil
 }
 
-func RegisterAuthHandlers(api huma.API) {
-	huma.Register(api, GetAuthConfigOperation, GetAuthConfigHandler)
-	huma.Register(api, LoginLocalOperation, LoginLocalHandler)
+var GetMeOperation = huma.Operation{
+	Method:      http.MethodGet,
+	Path:        "/api/me",
+	OperationID: "get-me",
+	Summary:     "Get current user info, promoting to admin if no admins exist yet",
+}
+
+type MeResponse struct {
+	Username        string `json:"username"`
+	IsAdmin         bool   `json:"isAdmin"`
+	JustBecameAdmin bool   `json:"justBecameAdmin"`
+}
+
+func GetMeHandler(ctx context.Context, _ *struct{}) (*struct{ Body MeResponse }, error) {
+	username := UsernameFromContext(ctx)
+	justBecameAdmin, err := EnsureFirstAdmin(username)
+	if err != nil {
+		return nil, err
+	}
+	u, err := loadUser(username)
+	if err != nil {
+		return nil, err
+	}
+	return &struct{ Body MeResponse }{Body: MeResponse{
+		Username:        username,
+		IsAdmin:         u.IsAdmin,
+		JustBecameAdmin: justBecameAdmin,
+	}}, nil
 }
 
 type contextKey string
