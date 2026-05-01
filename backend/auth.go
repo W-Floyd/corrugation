@@ -203,16 +203,18 @@ func NewAuthMiddleware(api huma.API, issuer, jwksURL string, insecureSkipVerify 
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		// When local username login is enabled, treat the Bearer token as a plain username.
-		cfg, err := loadGlobalConfig()
-		if err == nil && cfg.AllowLocalUsernameLogin {
-			ctx = huma.WithValue(ctx, usernameContextKey, token)
-			next(ctx)
-			return
-		}
-		usernameStr, err := resolve(token)
-		if err != nil {
-			Log.Warnf("[auth] invalid token: %s %s: %v", ctx.Method(), ctx.URL().Path, err)
+		// Try JWT validation first. If it fails and AllowLocalUsernameLogin is
+		// enabled, fall back to treating the token as a plain username so both
+		// OIDC and local logins can coexist.
+		usernameStr, jwtErr := resolve(token)
+		if jwtErr != nil {
+			cfg, cfgErr := loadGlobalConfig()
+			if cfgErr == nil && cfg.AllowLocalUsernameLogin {
+				ctx = huma.WithValue(ctx, usernameContextKey, token)
+				next(ctx)
+				return
+			}
+			Log.Warnf("[auth] invalid token: %s %s: %v", ctx.Method(), ctx.URL().Path, jwtErr)
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
