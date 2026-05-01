@@ -47,7 +47,7 @@ onMounted(async () => {
 
     DEBUG && console.log("[callback] token set, loading state");
     await entitiesStore.reload();
-    DEBUG && console.log("[callback] state loaded, navigating to entity");
-    router.push({ name: "entity" });
+    DEBUG && console.log("[callback] state loaded, navigating to /");
+    router.push({ path: "/" });
 });
 </script>

@@ -161,7 +161,7 @@ onMounted(() => {
     <!-- Header -->
     <div class="container mx-auto pt-4 px-4">
       <div class="flex items-center gap-4 mb-6">
-        <button @click="router.push({ name: 'entity' })"
+        <button @click="router.push({ path: '/' })"
           class="text-blue-600 dark:text-sky-400 hover:underline text-sm">
           ← Back
         </button>

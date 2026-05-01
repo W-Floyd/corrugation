@@ -44,8 +44,8 @@ router.beforeEach(async (to) => {
     return;
   }
   if (to.name === "login" && token) {
-    DEBUG && console.log("[router] already authed, redirecting to entity");
-    return { name: "entity" };
+    DEBUG && console.log("[router] already authed, redirecting to /");
+    return { path: "/" };
   }
   if (authEnabled && !token && to.name !== "login") {
     DEBUG && console.log("[router] not authed, redirecting to login");

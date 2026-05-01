@@ -45,7 +45,7 @@ async function handleLocalLogin(): Promise<void> {
     try {
         await authStore.localLogin(username.value.trim());
         toastsStore.add(`Logged in as ${username.value.trim()}`, "success");
-        router.push({ name: "entity" });
+        router.push({ path: "/" });
     } catch {
         // error toast already added by the store
     }

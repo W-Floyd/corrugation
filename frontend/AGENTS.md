@@ -60,7 +60,10 @@ See [`src/stores/toasts.ts`](src/stores/toasts.ts) for the complete implementati
 |------|-----------|---------------|-------------|
 | `/login` | LoginView | N/A | Trigger OIDC flow |
 | `/callback` | CallbackView | N/A | OAuth2 code/callback handler |
-| `/` | EntityView | If auth enabled | Main entity browser |
+| `/settings` | SettingsView | If auth enabled | App settings |
+| `/` (fallback) | RecordsView | If auth enabled | Main entity browser |
+
+Named routes are defined in `src/router/index.ts`. `App.vue` is a thin shell that switches between LoginView, CallbackView, SettingsView, and RecordsView based on `route.name`. RecordsView is rendered for any route not matched by the named routes (the `v-else` branch).
 
 ## API Client
 
@@ -90,6 +93,11 @@ See [`vite.config.ts`](vite.config.ts) for complete build configuration.
 Extends `@vue/tsconfig/tsconfig.dom.json` with path alias `@/` → `src/`. Enables `noUncheckedIndexedAccess: true` for safer array/object access and strict null checks. Build-time type checking with `vue-tsc --build`.
 
 See [`tsconfig.json`](tsconfig.json), [`tsconfig.app.json`](tsconfig.app.json), and [`tsconfig.node.json`](tsconfig.node.json) for TypeScript configuration.
+
+## Views
+
+### RecordsView
+See [`src/views/RecordsView.vue`](src/views/RecordsView.vue). The main entity browser. Owns all records-browsing state: selected entity, keyboard navigation, dialog visibility, card refs, and search bar ref. Handles all keyboard shortcuts for the records UI (arrow navigation, create/delete/move/edit/capture). Registers `keydown`/`keyup` listeners on mount. FABs for new entity, quick capture (C), and image search (I) are rendered here along with CameraModal, NewEntityDialog, and CommandDialog.
 
 ## Component Patterns
 
@@ -126,7 +134,7 @@ See [`src/components/ArtifactImage.vue`](src/components/ArtifactImage.vue). Lazy
 See [`src/components/KbdHint.vue`](src/components/KbdHint.vue). Small keyboard hint component that displays keyboard shortcuts inline or with toggle visibility. Used throughout the UI for showing keyboard shortcuts.
 
 ### WelcomeItem
-See [`src/components/WelcomeItem.vue`](src/components/WelcomeItem.vue). Welcome/item display component used in the EntityView for initial welcome message or entity items.
+See [`src/components/WelcomeItem.vue`](src/components/WelcomeItem.vue). Welcome/item display component.
 
 ## Dependencies Summary
 
