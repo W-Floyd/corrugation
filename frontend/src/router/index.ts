@@ -17,11 +17,6 @@ const router = createRouter({
       component: () => import("../views/CallbackView.vue"),
     },
     {
-      path: "/",
-      name: "entity",
-      component: () => import("../views/EntityView.vue"),
-    },
-    {
       path: "/settings",
       name: "settings",
       component: () => import("../views/SettingsView.vue"),
