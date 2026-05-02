@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useRecordsStore } from "@/stores/records";
 import { useAuthStore } from "@/stores/auth";
@@ -13,6 +13,15 @@ const router = useRouter();
 const route = useRoute();
 const recordsStore = useRecordsStore();
 const authStore = useAuthStore();
+let wsConnected = false;
+
+function maybeConnectWS() {
+  if (wsConnected || route.name === "login" || route.name === "callback")
+    return;
+  wsConnected = true;
+  recordsStore.connectWS();
+  authStore.fetchConfig();
+}
 
 onMounted(() => {
   router.isReady().then(() => {
@@ -24,12 +33,11 @@ onMounted(() => {
         "token:",
         !!localStorage.getItem("auth_token"),
       );
-    if (route.name !== "callback") {
-      recordsStore.connectWS();
-      authStore.fetchConfig();
-    }
+    maybeConnectWS();
   });
 });
+
+watch(() => route.name, maybeConnectWS);
 </script>
 
 <template>

@@ -91,6 +91,7 @@ export const useRecordsStore = defineStore("records", () => {
         existingIds.has(e.ID),
       );
     } catch (e) {
+      if (e instanceof Error && e.message === "Unauthorized") return;
       console.error("reload failed:", e);
     }
   }

@@ -67,6 +67,12 @@ export const useAuthStore = defineStore("auth", () => {
       const resp = await fetch("/api/me", {
         headers: { Authorization: `Bearer ${token.value}` },
       });
+      if (resp.status === 401) {
+        clearToken();
+        const { default: router } = await import("../router");
+        router.push({ name: "login" });
+        return;
+      }
       if (resp.ok) {
         const data: {
           username: string;
