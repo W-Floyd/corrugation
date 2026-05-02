@@ -437,9 +437,9 @@ const handleUpdate = async (): Promise<void> => {
     await Promise.all(
       [...pendingDeletions.value].map((id) => api.deleteArtifact(id)),
     );
-    const artifacts = (localRecord.value.Artifacts ?? []).filter(
-      (id) => !pendingDeletions.value.has(id),
-    );
+    const artifacts = (localRecord.value.Artifacts ?? [])
+      .filter((a) => !pendingDeletions.value.has(a.ID))
+      .map((a) => a.ID);
     await api.updateRecord(props.appRecord.ID, {
       Title: e.Title || null,
       ReferenceNumber: e.ReferenceNumber || null,
@@ -472,7 +472,10 @@ const handleQuickCaptureCallback = async (files: File[]): Promise<void> => {
   if (files.length === 0 || !files[0]) return;
   try {
     const artifactId = await api.uploadArtifact(files[0]);
-    const artifacts = [...(props.appRecord.Artifacts ?? []), artifactId];
+    const artifacts = [
+      ...(props.appRecord.Artifacts ?? []).map((a) => a.ID),
+      artifactId,
+    ];
     await api.patchRecord(props.appRecord.ID, { Artifacts: artifacts });
     await recordsStore.reload();
     editMode.value = false;
@@ -570,18 +573,31 @@ const images = computed(() => {
   return (artifacts ?? []).map((a) => a.ID);
 });
 
+const pendingImages = ref<string[]>([]);
+
 const handleEditArtifact = async (file: File): Promise<void> => {
+  const blobUrl = URL.createObjectURL(file);
+  pendingImages.value = [...pendingImages.value, blobUrl];
   try {
     const artifactId = await api.uploadArtifact(file);
-    const artifacts = [...(localRecord.value.Artifacts ?? []), artifactId];
-    localRecord.value = { ...localRecord.value, Artifacts: artifacts };
-    await api.updateRecord(props.appRecord.ID, { Artifacts: artifacts });
+    const artifactIds = [
+      ...(localRecord.value.Artifacts ?? []).map((a) => a.ID),
+      artifactId,
+    ];
+    localRecord.value = {
+      ...localRecord.value,
+      Artifacts: [...(localRecord.value.Artifacts ?? []), { ID: artifactId }],
+    };
+    await api.updateRecord(props.appRecord.ID, { Artifacts: artifactIds });
     await recordsStore.reload();
     emit("recordUpdated", localRecord.value);
     toastsStore.add("Artifact uploaded", "info");
   } catch (error) {
     console.error("Failed to upload artifact:", error);
     toastsStore.add("Failed to upload artifact");
+  } finally {
+    pendingImages.value = pendingImages.value.filter((u) => u !== blobUrl);
+    URL.revokeObjectURL(blobUrl);
   }
 };
 
@@ -1056,7 +1072,18 @@ defineExpose({ cardEl });
         </template>
       </template>
 
-      <template v-else-if="editMode && images.length > 0">
+      <template
+        v-else-if="editMode && (images.length > 0 || pendingImages.length > 0)"
+      >
+        <template v-for="url in pendingImages" :key="url">
+          <div class="relative flex-1">
+            <img
+              :src="url"
+              class="h-56 w-full rounded-xl object-cover opacity-60"
+              alt="Uploading…"
+            />
+          </div>
+        </template>
         <template v-for="n in images" :key="n">
           <div class="relative flex-1">
             <ArtifactImage
