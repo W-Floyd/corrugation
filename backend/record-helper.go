@@ -253,6 +253,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		textScore := map[uint]float64{}
 		bestImageScore := map[uint]float64{}
 		bestScore := map[uint]float64{}
+		exactRefScores := map[uint]float64{} // Track exact reference matches for prioritization
 
 		for _, r := range artifactSearch {
 			score, ok := bestImageScore[r.id]
@@ -260,35 +261,36 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				bestImageScore[r.id] = r.score
 				if bestImageScore[r.id] > bestScore[r.id] {
 					bestScore[r.id] = bestImageScore[r.id]
+					}
 				}
 			}
-		}
 
 		for _, r := range recordSearch {
 			textScore[r.id] = r.score
 			if textScore[r.id] > bestScore[r.id] {
 				bestScore[r.id] = textScore[r.id]
+				}
 			}
-		}
 
 		searchLower := strings.ToLower(search.Query)
 		for _, r := range records {
 			if r.ReferenceNumber != nil && search.Query == *r.ReferenceNumber {
 				textScore[r.ID] = 1.0
 				bestScore[r.ID] = 1.0
+				exactRefScores[r.ID] = 1.0 // Mark as exact reference match
 				continue
-			}
+				}
 			if !search.SearchTextSubstring {
 				continue
-			}
+				}
 			score := maxFieldScore(searchLower, r.Title, r.ReferenceNumber, r.Description)
 			if score > textScore[r.ID] {
 				textScore[r.ID] = score
-			}
+				}
 			if textScore[r.ID] > bestScore[r.ID] {
 				bestScore[r.ID] = textScore[r.ID]
+				}
 			}
-		}
 
 		var recordMap = map[uint]*Record{}
 		for _, r := range records {
@@ -299,11 +301,22 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		for id := range bestScore {
 			if bestImageScore[id] >= search.MinTextToImageScore || textScore[id] >= search.MinTextScore {
 				recordIDs = append(recordIDs, id)
+				}
 			}
-		}
 
 		slices.Sort(recordIDs)
 		recordIDs = slices.Compact(recordIDs)
+
+		// Separate exact reference matches from other matches
+		exactMatches := []uint{}
+		otherMatches := []uint{}
+		for _, id := range recordIDs {
+			if _, isExact := exactRefScores[id]; isExact {
+				exactMatches = append(exactMatches, id)
+			} else {
+				otherMatches = append(otherMatches, id)
+			}
+		}
 
 		avgScore := func(id uint) float64 {
 			img, txt := bestImageScore[id], textScore[id]
@@ -314,18 +327,23 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				return img
 			default:
 				return txt
+				}
 			}
-		}
 
-		slices.SortFunc(recordIDs, func(a uint, b uint) int {
+		// Sort exact matches first, then sort other matches by score
+		slices.SortFunc(exactMatches, func(a, b uint) int { return 0 }) // Exact matches already prioritized
+		slices.SortFunc(otherMatches, func(a uint, b uint) int {
 			sa, sb := avgScore(a), avgScore(b)
 			if sa > sb {
 				return -1
-			} else if sa < sb {
+				} else if sa < sb {
 				return 1
-			}
+				}
 			return 0
-		})
+			})
+
+		// Combine: exact matches first, then other matches
+		recordIDs = append(exactMatches, otherMatches...)
 
 		var filteredSortedRecords []Record
 
