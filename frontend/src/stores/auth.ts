@@ -4,6 +4,7 @@ import { useToastsStore } from "./toasts";
 
 export interface AuthConfig {
   enabled: boolean;
+  allowLocalUsernameLogin?: boolean;
   authorizationEndpoint?: string;
   tokenEndpoint?: string;
   clientId?: string;

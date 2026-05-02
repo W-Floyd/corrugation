@@ -41,10 +41,11 @@ func FetchOIDCConfig(discoveryURL string, insecureSkipVerify bool) (*OIDCConfig,
 
 // AuthFrontendConfig is returned to the frontend so it can initiate the OIDC flow.
 type AuthFrontendConfig struct {
-	Enabled               bool   `json:"enabled"`
-	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
-	TokenEndpoint         string `json:"tokenEndpoint,omitempty"`
-	ClientID              string `json:"clientId,omitempty"`
+	Enabled                 bool   `json:"enabled"`
+	AllowLocalUsernameLogin bool   `json:"allowLocalUsernameLogin"`
+	AuthorizationEndpoint   string `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint           string `json:"tokenEndpoint,omitempty"`
+	ClientID                string `json:"clientId,omitempty"`
 }
 
 var globalAuthConfig = AuthFrontendConfig{}
@@ -68,7 +69,13 @@ var LoginLocalOperation = huma.Operation{
 }
 
 func GetAuthConfigHandler(_ context.Context, _ *struct{}) (*struct{ Body AuthFrontendConfig }, error) {
-	return &struct{ Body AuthFrontendConfig }{Body: globalAuthConfig}, nil
+	cfg, err := loadGlobalConfig()
+	if err != nil {
+		return nil, err
+	}
+	result := globalAuthConfig
+	result.AllowLocalUsernameLogin = cfg.AllowLocalUsernameLogin
+	return &struct{ Body AuthFrontendConfig }{Body: result}, nil
 }
 
 func LoginLocalHandler(_ context.Context, input *struct {

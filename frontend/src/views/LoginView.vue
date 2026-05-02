@@ -8,7 +8,10 @@
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in</h1>
 
       <!-- Local username login -->
-      <div class="space-y-4">
+      <div
+        v-if="authStore.authConfig.allowLocalUsernameLogin"
+        class="space-y-4"
+      >
         <input
           v-model="username"
           type="text"

@@ -489,7 +489,7 @@ const handleSearchByImage = async (): Promise<void> => {
     return;
 
   try {
-    const artifactId = props.appRecord.Artifacts![0];
+    const artifactId = props.appRecord.Artifacts![0].ID;
     const response = await fetch(`/api/artifact/${artifactId}`);
     const artifactFile = await response.blob();
     const file = new File([artifactFile], `artifact-${artifactId}.jpg`, {
@@ -567,7 +567,7 @@ const images = computed(() => {
   const artifacts = editMode.value
     ? localRecord.value.Artifacts
     : props.appRecord.Artifacts;
-  return artifacts ?? [];
+  return (artifacts ?? []).map((a) => a.ID);
 });
 
 const handleEditArtifact = async (file: File): Promise<void> => {
