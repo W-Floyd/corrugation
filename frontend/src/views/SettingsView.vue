@@ -82,6 +82,7 @@ function toggleBarcodeFormat(fmt: string) {
 }
 const globalConfigLoading = ref(false);
 const globalConfigSaving = ref(false);
+const recordsStore = useRecordsStore();
 const ollamaModels = ref<string[]>([]);
 const ollamaPullModel = ref("");
 const ollamaPulling = ref(false);
@@ -179,7 +180,6 @@ const suggestionJobsPageInput = ref(1);
 const suggestionJobsShowAll = ref(false);
 const suggestionJobsStatusFilter = ref("");
 
-const recordsStore = useRecordsStore();
 const isAdmin = computed(() => authStore.isAdmin);
 const currentUsername = computed(() => authStore.username);
 
