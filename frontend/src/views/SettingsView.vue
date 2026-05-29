@@ -1,16 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, computed, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useToastsStore } from "@/stores/toasts";
+import { useRecordsStore } from "@/stores/records";
 import { api } from "@/api";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const toastsStore = useToastsStore();
 
-type Tab = "user" | "global" | "users";
-const activeTab = ref<Tab>("user");
+type Tab = "user" | "global" | "users" | "jobs";
+const validTabs: Tab[] = ["user", "global", "users", "jobs"];
+
+function tabFromRoute(): Tab {
+  const t = route.params.tab;
+  const s = Array.isArray(t) ? t[0] : t;
+  return validTabs.includes(s as Tab) ? (s as Tab) : "user";
+}
+
+const activeTab = ref<Tab>(tabFromRoute());
 
 // --- User config ---
 const userConfig = ref({
@@ -18,9 +28,14 @@ const userConfig = ref({
   infinityImageModel: "" as string,
   infinityTextQueryPrefix: "" as string,
   infinityTextDocumentPrefix: "" as string,
+  // null = use global default; string[] = explicit override (may be empty to disable)
+  enabledBarcodeFormats: null as string[] | null,
+  // null = inherit global; positive number = cap dimensions for this user
+  maximumEmbeddingDimensions: null as number | null,
 });
 const userConfigLoading = ref(false);
 const userConfigSaving = ref(false);
+const invalidatingEmbeddings = ref(false);
 
 // --- Global config ---
 const globalConfig = ref({
@@ -33,14 +48,73 @@ const globalConfig = ref({
   infinityImageModel: "",
   infinityTextQueryPrefix: "",
   infinityTextDocumentPrefix: "",
+  enabledBarcodeFormats: [] as string[],
+  // null = use model output as-is; positive number = cap embedding dimensions
+  maximumEmbeddingDimensions: null as number | null,
 });
+
+const allBarcodeFormats = ref<{ value: string; label: string }[]>([]);
+
+async function loadCapabilities() {
+  try {
+    const caps = await api.getCapabilities();
+    allBarcodeFormats.value = caps.barcodeFormats;
+  } catch {
+    // non-fatal
+  }
+}
+
+function isBarcodeFormatEnabled(fmt: string): boolean {
+  return globalConfig.value.enabledBarcodeFormats.includes(fmt);
+}
+
+function toggleBarcodeFormat(fmt: string) {
+  const idx = globalConfig.value.enabledBarcodeFormats.indexOf(fmt);
+  if (idx === -1) {
+    globalConfig.value.enabledBarcodeFormats.push(fmt);
+  } else {
+    globalConfig.value.enabledBarcodeFormats.splice(idx, 1);
+  }
+}
 const globalConfigLoading = ref(false);
 const globalConfigSaving = ref(false);
+
+// --- Backfill ---
+const backfillPreview = ref<{ records: number; artifacts: number } | null>(
+  null,
+);
+const backfillPreviewLoading = ref(false);
+const runningRecordBackfill = ref(false);
+const runningArtifactBackfill = ref(false);
 
 // --- Users list ---
 const users = ref<{ id: number; username: string; isAdmin: boolean }[]>([]);
 const usersLoading = ref(false);
 
+// --- Embedding jobs ---
+type EmbeddingJob = {
+  id: number;
+  jobType: string;
+  targetID: number;
+  username: string;
+  status: string;
+  errorMsg?: string;
+  retryCount: number;
+  embedModel: string;
+  dimensions?: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+const jobs = ref<EmbeddingJob[]>([]);
+const jobsTotal = ref(0);
+const jobsPage = ref(0);
+const jobsPageSize = 50;
+const jobsLoading = ref(false);
+const jobsShowAll = ref(false);
+const jobsStatusFilter = ref("");
+
+const recordsStore = useRecordsStore();
 const isAdmin = computed(() => authStore.isAdmin);
 const currentUsername = computed(() => authStore.username);
 
@@ -57,12 +131,16 @@ async function loadUserConfig() {
       infinityImageModel: gcfg.infinityImageModel,
       infinityTextQueryPrefix: gcfg.infinityTextQueryPrefix,
       infinityTextDocumentPrefix: gcfg.infinityTextDocumentPrefix,
+      enabledBarcodeFormats: gcfg.enabledBarcodeFormats ?? [],
+      maximumEmbeddingDimensions: gcfg.maximumEmbeddingDimensions ?? null,
     };
     userConfig.value = {
       infinityTextModel: cfg.infinityTextModel ?? "",
       infinityImageModel: cfg.infinityImageModel ?? "",
       infinityTextQueryPrefix: cfg.infinityTextQueryPrefix ?? "",
       infinityTextDocumentPrefix: cfg.infinityTextDocumentPrefix ?? "",
+      enabledBarcodeFormats: cfg.enabledBarcodeFormats ?? null,
+      maximumEmbeddingDimensions: cfg.maximumEmbeddingDimensions ?? null,
     };
   } catch {
     // toast already shown by apiFetch
@@ -80,6 +158,8 @@ async function saveUserConfig() {
       infinityTextQueryPrefix: userConfig.value.infinityTextQueryPrefix || null,
       infinityTextDocumentPrefix:
         userConfig.value.infinityTextDocumentPrefix || null,
+      enabledBarcodeFormats: userConfig.value.enabledBarcodeFormats,
+      maximumEmbeddingDimensions: userConfig.value.maximumEmbeddingDimensions,
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -103,6 +183,8 @@ async function loadGlobalConfig() {
       infinityImageModel: cfg.infinityImageModel,
       infinityTextQueryPrefix: cfg.infinityTextQueryPrefix,
       infinityTextDocumentPrefix: cfg.infinityTextDocumentPrefix,
+      enabledBarcodeFormats: cfg.enabledBarcodeFormats ?? [],
+      maximumEmbeddingDimensions: cfg.maximumEmbeddingDimensions ?? null,
     };
   } catch {
     // toast already shown
@@ -123,6 +205,61 @@ async function saveGlobalConfig() {
   }
 }
 
+async function loadBackfillPreview() {
+  backfillPreviewLoading.value = true;
+  try {
+    backfillPreview.value = await api.getBackfillPreview();
+  } catch {
+    // toast already shown
+  } finally {
+    backfillPreviewLoading.value = false;
+  }
+}
+
+async function runRecordBackfill() {
+  runningRecordBackfill.value = true;
+  try {
+    await api.runRecordBackfill();
+    toastsStore.add("Record backfill started", "success");
+    await loadBackfillPreview();
+  } catch {
+    // toast already shown
+  } finally {
+    runningRecordBackfill.value = false;
+  }
+}
+
+async function runArtifactBackfill() {
+  runningArtifactBackfill.value = true;
+  try {
+    await api.runArtifactBackfill();
+    toastsStore.add("Artifact backfill started", "success");
+    await loadBackfillPreview();
+  } catch {
+    // toast already shown
+  } finally {
+    runningArtifactBackfill.value = false;
+  }
+}
+
+async function invalidateEmbeddings() {
+  if (
+    !confirm(
+      "Delete all your embeddings? They will be regenerated on next search or access.",
+    )
+  )
+    return;
+  invalidatingEmbeddings.value = true;
+  try {
+    await api.invalidateUserEmbeddings();
+    toastsStore.add("Embeddings invalidated", "success");
+  } catch {
+    // toast already shown
+  } finally {
+    invalidatingEmbeddings.value = false;
+  }
+}
+
 async function loadUsers() {
   usersLoading.value = true;
   try {
@@ -133,6 +270,57 @@ async function loadUsers() {
     usersLoading.value = false;
   }
 }
+
+async function loadJobs() {
+  jobsLoading.value = true;
+  try {
+    const result = await api.getEmbeddingJobs({
+      all: jobsShowAll.value,
+      status: jobsStatusFilter.value || undefined,
+      limit: jobsPageSize,
+      offset: jobsPage.value * jobsPageSize,
+    });
+    jobs.value = result.jobs;
+    jobsTotal.value = result.total;
+  } catch {
+    // toast already shown
+  } finally {
+    jobsLoading.value = false;
+  }
+}
+
+function jobsSetPage(page: number) {
+  jobsPage.value = page;
+  loadJobs();
+}
+
+async function clearJobsByStatus(status: string) {
+  try {
+    await api.deleteBulkEmbeddingJobs(status, jobsShowAll.value);
+    await loadJobs();
+  } catch {
+    // toast already shown
+  }
+}
+
+async function deleteJob(id: number) {
+  try {
+    await api.deleteEmbeddingJob(id);
+    jobs.value = jobs.value.filter((j) => j.id !== id);
+  } catch {
+    // toast already shown
+  }
+}
+
+let jobsReloadTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  () => recordsStore.embeddingProgressTick,
+  () => {
+    if (activeTab.value !== "jobs") return;
+    if (jobsReloadTimer) clearTimeout(jobsReloadTimer);
+    jobsReloadTimer = setTimeout(() => loadJobs(), 500);
+  },
+);
 
 async function toggleAdmin(user: {
   id: number;
@@ -154,13 +342,25 @@ async function toggleAdmin(user: {
 
 function selectTab(tab: Tab) {
   activeTab.value = tab;
+  router.replace({ name: "settings", params: { tab } });
   if (tab === "user") loadUserConfig();
-  else if (tab === "global") loadGlobalConfig();
-  else if (tab === "users") loadUsers();
+  else if (tab === "global") {
+    loadGlobalConfig();
+    loadBackfillPreview();
+  } else if (tab === "users") loadUsers();
+  else if (tab === "jobs") loadJobs();
 }
 
 onMounted(() => {
-  loadUserConfig();
+  loadCapabilities();
+  const tab = tabFromRoute();
+  activeTab.value = tab;
+  if (tab === "user") loadUserConfig();
+  else if (tab === "global") {
+    loadGlobalConfig();
+    loadBackfillPreview();
+  } else if (tab === "users") loadUsers();
+  else if (tab === "jobs") loadJobs();
 });
 </script>
 
@@ -197,8 +397,8 @@ onMounted(() => {
       >
         <button
           v-for="tab in isAdmin
-            ? (['user', 'global', 'users'] as Tab[])
-            : (['user'] as Tab[])"
+            ? (['user', 'global', 'users', 'jobs'] as Tab[])
+            : (['user', 'jobs'] as Tab[])"
           :key="tab"
           @click="selectTab(tab)"
           :class="[
@@ -213,7 +413,9 @@ onMounted(() => {
               ? "My Settings"
               : tab === "global"
                 ? "Global Settings"
-                : "Users"
+                : tab === "users"
+                  ? "Users"
+                  : "Embedding Jobs"
           }}
         </button>
       </div>
@@ -227,8 +429,9 @@ onMounted(() => {
           class="flex flex-col gap-4"
         >
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Override Infinity embedding model settings for your account. Leave
-            blank to use server defaults.
+            These settings control how your records and images are indexed for
+            search. Leave a field blank to inherit the server default shown in
+            the placeholder.
           </p>
 
           <div>
@@ -241,6 +444,10 @@ onMounted(() => {
               :placeholder="globalConfig.infinityTextModel || 'Server default'"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
             />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Model used to embed record titles and descriptions for text
+              search.
+            </p>
           </div>
 
           <div>
@@ -253,6 +460,9 @@ onMounted(() => {
               :placeholder="globalConfig.infinityImageModel || 'Server default'"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
             />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Model used to embed artifact images for image similarity search.
+            </p>
           </div>
 
           <div>
@@ -267,6 +477,11 @@ onMounted(() => {
               "
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
             />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Prepended to search queries before embedding. Some models require
+              a task-specific prefix to return good results (e.g.
+              <span class="font-mono">Represent this sentence…</span>).
+            </p>
           </div>
 
           <div>
@@ -279,15 +494,155 @@ onMounted(() => {
               :placeholder="globalConfig.infinityTextDocumentPrefix || 'None'"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
             />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Prepended to record text before embedding at index time. Usually
+              blank unless the model requires asymmetric input.
+            </p>
           </div>
 
           <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Maximum embedding dimensions</label
+            >
+            <input
+              :value="userConfig.maximumEmbeddingDimensions ?? ''"
+              @input="
+                (e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  userConfig.maximumEmbeddingDimensions =
+                    v === '' ? null : Math.max(1, parseInt(v) || 1);
+                }
+              "
+              type="number"
+              min="1"
+              :placeholder="
+                globalConfig.maximumEmbeddingDimensions
+                  ? String(globalConfig.maximumEmbeddingDimensions)
+                  : 'Model default'
+              "
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Caps embedding dimensions sent to Infinity for your account. Leave
+              blank to inherit the global setting.
+            </p>
+          </div>
+
+          <hr class="border-gray-200 dark:border-gray-700" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Barcode / QR code detection
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            When images are uploaded, they are scanned for barcodes and QR
+            codes. By default your account uses the formats configured globally.
+            Enable the override below to use a different set for your account
+            only.
+          </p>
+
+          <div class="flex items-center gap-3">
+            <input
+              id="barcodeOverride"
+              type="checkbox"
+              :checked="userConfig.enabledBarcodeFormats !== null"
+              @change="
+                userConfig.enabledBarcodeFormats =
+                  userConfig.enabledBarcodeFormats !== null
+                    ? null
+                    : [...(globalConfig.enabledBarcodeFormats ?? [])]
+              "
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="barcodeOverride" class="text-sm font-medium"
+              >Use a custom format list for my account</label
+            >
+          </div>
+
+          <template v-if="userConfig.enabledBarcodeFormats !== null">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div
+                v-for="fmt in allBarcodeFormats"
+                :key="fmt.value"
+                class="flex items-center gap-2"
+              >
+                <input
+                  :id="`user-barcode-${fmt.value}`"
+                  type="checkbox"
+                  :checked="
+                    userConfig.enabledBarcodeFormats!.includes(fmt.value)
+                  "
+                  @change="
+                    userConfig.enabledBarcodeFormats!.includes(fmt.value)
+                      ? userConfig.enabledBarcodeFormats!.splice(
+                          userConfig.enabledBarcodeFormats!.indexOf(fmt.value),
+                          1,
+                        )
+                      : userConfig.enabledBarcodeFormats!.push(fmt.value)
+                  "
+                  class="h-4 w-4 rounded border-gray-300 text-blue-600"
+                />
+                <label
+                  :for="`user-barcode-${fmt.value}`"
+                  class="text-sm font-medium"
+                  >{{ fmt.label }}</label
+                >
+              </div>
+            </div>
+            <p
+              v-if="userConfig.enabledBarcodeFormats.length === 0"
+              class="text-sm text-amber-600 dark:text-amber-400"
+            >
+              No formats selected — barcode scanning is disabled for your
+              account.
+            </p>
+            <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+              Overrides the global setting for your account only.
+            </p>
+          </template>
+          <template v-else>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              <template
+                v-if="
+                  globalConfig.enabledBarcodeFormats &&
+                  globalConfig.enabledBarcodeFormats.length > 0
+                "
+              >
+                Using global defaults:
+                {{
+                  globalConfig.enabledBarcodeFormats
+                    .map(
+                      (v) =>
+                        allBarcodeFormats.find((f) => f.value === v)?.label ??
+                        v,
+                    )
+                    .join(", ")
+                }}.
+              </template>
+              <template v-else>
+                Barcode scanning is disabled globally. Enable formats in Global
+                Settings or override them here.
+              </template>
+            </p>
+          </template>
+
+          <div class="flex gap-3">
             <button
               type="submit"
               :disabled="userConfigSaving"
               class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
               {{ userConfigSaving ? "Saving…" : "Save" }}
+            </button>
+            <button
+              type="button"
+              :disabled="invalidatingEmbeddings"
+              @click="invalidateEmbeddings"
+              class="rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
+            >
+              {{
+                invalidatingEmbeddings
+                  ? "Invalidating…"
+                  : "Invalidate my embeddings"
+              }}
             </button>
           </div>
         </form>
@@ -415,6 +770,60 @@ onMounted(() => {
           </div>
 
           <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Maximum embedding dimensions</label
+            >
+            <input
+              :value="globalConfig.maximumEmbeddingDimensions ?? ''"
+              @input="
+                (e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  globalConfig.maximumEmbeddingDimensions =
+                    v === '' ? null : Math.max(1, parseInt(v) || 1);
+                }
+              "
+              type="number"
+              min="1"
+              placeholder="Model default"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Caps embedding dimensions sent to Infinity server-wide. Leave
+              blank to use whatever the model provides.
+            </p>
+          </div>
+
+          <hr class="border-gray-200 dark:border-gray-700" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Barcode / QR code detection
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Formats to scan for when images are uploaded. Uncheck all to
+            disable.
+          </p>
+
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div
+              v-for="fmt in allBarcodeFormats"
+              :key="fmt.value"
+              class="flex items-center gap-2"
+            >
+              <input
+                :id="`barcode-${fmt.value}`"
+                type="checkbox"
+                :checked="isBarcodeFormatEnabled(fmt.value)"
+                @change="toggleBarcodeFormat(fmt.value)"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600"
+              />
+              <label
+                :for="`barcode-${fmt.value}`"
+                class="text-sm font-medium"
+                >{{ fmt.label }}</label
+              >
+            </div>
+          </div>
+
+          <div>
             <button
               type="submit"
               :disabled="globalConfigSaving"
@@ -423,7 +832,237 @@ onMounted(() => {
               {{ globalConfigSaving ? "Saving…" : "Save" }}
             </button>
           </div>
+
+          <hr class="border-gray-200 dark:border-gray-700" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">Backfills</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Enqueue embedding jobs for items that have not yet been indexed.
+          </p>
+
+          <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            <div>
+              <p class="text-sm font-medium">Record text embeddings</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                <template v-if="backfillPreviewLoading">Counting…</template>
+                <template v-else-if="backfillPreview">
+                  {{ backfillPreview.records }} record{{
+                    backfillPreview.records !== 1 ? "s" : ""
+                  }}
+                  without embeddings
+                </template>
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="runRecordBackfill"
+              :disabled="runningRecordBackfill || backfillPreviewLoading"
+              class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{ runningRecordBackfill ? "Starting…" : "Run" }}
+            </button>
+          </div>
+
+          <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            <div>
+              <p class="text-sm font-medium">Artifact image embeddings</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                <template v-if="backfillPreviewLoading">Counting…</template>
+                <template v-else-if="backfillPreview">
+                  {{ backfillPreview.artifacts }} artifact{{
+                    backfillPreview.artifacts !== 1 ? "s" : ""
+                  }}
+                  without embeddings
+                </template>
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="runArtifactBackfill"
+              :disabled="runningArtifactBackfill || backfillPreviewLoading"
+              class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{ runningArtifactBackfill ? "Starting…" : "Run" }}
+            </button>
+          </div>
         </form>
+      </div>
+
+      <!-- Embedding Jobs Tab -->
+      <div v-if="activeTab === 'jobs'" class="max-w-3xl">
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+          <select
+            v-model="jobsStatusFilter"
+            @change="
+              jobsPage = 0;
+              loadJobs();
+            "
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="done">Done</option>
+            <option value="failed">Failed</option>
+          </select>
+          <label v-if="isAdmin" class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              v-model="jobsShowAll"
+              @change="
+                jobsPage = 0;
+                loadJobs();
+              "
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            Show all users
+          </label>
+          <div class="ml-auto flex gap-2">
+            <button
+              @click="clearJobsByStatus('pending')"
+              :disabled="jobsLoading"
+              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
+            >
+              Clear pending
+            </button>
+            <button
+              @click="clearJobsByStatus('done')"
+              :disabled="jobsLoading"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              Clear done
+            </button>
+            <button
+              @click="loadJobs"
+              :disabled="jobsLoading"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              {{ jobsLoading ? "Loading…" : "Refresh" }}
+            </button>
+          </div>
+        </div>
+        <div v-if="jobsLoading && jobs.length === 0" class="text-gray-500">
+          Loading…
+        </div>
+        <div v-else-if="jobs.length === 0" class="text-sm text-gray-500">
+          No embedding jobs found.
+        </div>
+        <div
+          v-else
+          class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <table class="w-full text-xs">
+            <thead>
+              <tr
+                class="border-b border-gray-200 bg-white text-left text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+              >
+                <th class="px-3 py-2 font-semibold">Type</th>
+                <th class="px-3 py-2 font-semibold">ID</th>
+                <th class="px-3 py-2 font-semibold">Model</th>
+                <th class="px-3 py-2 font-semibold">Dims</th>
+                <th class="px-3 py-2 font-semibold">User</th>
+                <th class="px-3 py-2 font-semibold">Source</th>
+                <th class="px-3 py-2 font-semibold">Status</th>
+                <th class="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody
+              class="divide-y divide-gray-100 bg-white dark:divide-gray-700/50 dark:bg-gray-800"
+            >
+              <template v-for="job in jobs" :key="job.id">
+                <tr>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{ job.jobType }}
+                  </td>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{ job.targetID }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-700 dark:text-gray-300">
+                    {{ job.embedModel }}
+                  </td>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{ job.dimensions ?? "—" }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
+                    {{ job.username || "—" }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
+                    {{ job.source }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      :class="[
+                        'rounded-full px-2 py-0.5 font-medium',
+                        job.status === 'done'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                          : job.status === 'failed'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                            : job.status === 'processing'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+                      ]"
+                      >{{ job.status }}</span
+                    >
+                  </td>
+                  <td class="px-3 py-2">
+                    <button
+                      v-if="job.status === 'pending'"
+                      @click="deleteJob(job.id)"
+                      class="rounded px-1.5 py-0.5 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                      title="Delete job"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="job.errorMsg">
+                  <td
+                    colspan="8"
+                    class="px-3 pb-2 text-red-600 dark:text-red-400"
+                  >
+                    {{ job.errorMsg }}
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="jobsTotal > jobsPageSize"
+          class="mt-3 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
+        >
+          <span
+            >{{ jobsPage * jobsPageSize + 1 }}–{{
+              Math.min((jobsPage + 1) * jobsPageSize, jobsTotal)
+            }}
+            of {{ jobsTotal }}</span
+          >
+          <div class="flex gap-1">
+            <button
+              @click="jobsSetPage(jobsPage - 1)"
+              :disabled="jobsPage === 0"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+            >
+              ←
+            </button>
+            <button
+              @click="jobsSetPage(jobsPage + 1)"
+              :disabled="(jobsPage + 1) * jobsPageSize >= jobsTotal"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+            >
+              →
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Users Tab -->
