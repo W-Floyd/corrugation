@@ -22,7 +22,6 @@ export const useRecordsStore = defineStore("records", () => {
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
   const searchSuggested = ref(true);
-  const ollamaPullTick = ref(0);
   const lastOllamaPullEvent = ref<{
     model: string;
     success: boolean;
@@ -196,11 +195,9 @@ export const useRecordsStore = defineStore("records", () => {
       } else if (e.data.startsWith("ollama_pull_complete:")) {
         const model = e.data.slice("ollama_pull_complete:".length);
         lastOllamaPullEvent.value = { model, success: true };
-        ollamaPullTick.value++;
       } else if (e.data.startsWith("ollama_pull_failed:")) {
         const model = e.data.slice("ollama_pull_failed:".length);
         lastOllamaPullEvent.value = { model, success: false };
-        ollamaPullTick.value++;
       } else if (e.data === "embedding_server_online") {
         if (offlineToastId !== null) {
           useToastsStore().remove(offlineToastId);
@@ -508,7 +505,6 @@ export const useRecordsStore = defineStore("records", () => {
     searchTextEmbedded,
     searchTextSubstring,
     searchSuggested,
-    ollamaPullTick,
     lastOllamaPullEvent,
     apiSearchResults,
     apiSearchResultsPartial,

@@ -103,9 +103,8 @@ async function pullOllamaModel() {
 }
 
 watch(
-  () => recordsStore.ollamaPullTick,
-  async () => {
-    const event = recordsStore.lastOllamaPullEvent;
+  () => recordsStore.lastOllamaPullEvent,
+  async (event) => {
     if (!event) return;
     ollamaPulling.value = false;
     if (event.success) {
