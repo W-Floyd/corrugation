@@ -43,6 +43,9 @@ export const useRecordsStore = defineStore("records", () => {
     };
   } | null>(null);
 
+  // Incremented on every embedding_progress WebSocket message — watch this to react to job updates
+  const embeddingProgressTick = ref(0);
+
   let ws: WebSocket | null = null;
   let offlineToastId: number | null = null;
 
@@ -174,6 +177,7 @@ export const useRecordsStore = defineStore("records", () => {
         return;
       }
       if (e.data.startsWith("embedding_progress")) {
+        embeddingProgressTick.value++;
         updateEmbeddingProgressForSearch(e.data);
       } else if (e.data === "embedding_server_offline") {
         if (offlineToastId === null) {
@@ -199,18 +203,29 @@ export const useRecordsStore = defineStore("records", () => {
     };
   }
 
+  // embedding_progress:{jobID}:{jobType}:{targetID}
+  function parseEmbeddingProgressMessage(
+    msg: string,
+  ): { jobID: number; jobType: string; targetID: number } | null {
+    const parts = msg.split(":");
+    if (parts.length !== 4) return null;
+    return {
+      jobID: parseInt(parts[1], 10),
+      jobType: parts[2],
+      targetID: parseInt(parts[3], 10),
+    };
+  }
+
   function updateEmbeddingProgressForSearch(fullMessage: string): void {
     if (!searchProgress.value) return;
-    const jobType = fullMessage.includes(":record:")
-      ? ("record" as "record" | "artifact")
-      : ("artifact" as "record" | "artifact");
-    const progressObj = searchProgress.value[jobType];
+    const parsed = parseEmbeddingProgressMessage(fullMessage);
+    if (!parsed) return;
+    const { jobType, targetID: id } = parsed;
+    if (jobType !== "record" && jobType !== "artifact") return;
+    const progressObj = searchProgress.value[jobType as "record" | "artifact"];
     if (!progressObj) return;
     const arr = progressObj.pending;
     if (!arr.length) return;
-    const idMatch = fullMessage.match(/:(\d+)$/);
-    if (!idMatch || !idMatch[1]) return;
-    const id = parseInt(idMatch[1], 10);
 
     if (arr.includes(id)) {
       arr.splice(arr.indexOf(id), 1);
@@ -484,6 +499,7 @@ export const useRecordsStore = defineStore("records", () => {
     filterToOnlyImage,
     isLoading,
     searchProgress,
+    embeddingProgressTick,
     reload,
     connectWS,
     setCurrentRecord,
