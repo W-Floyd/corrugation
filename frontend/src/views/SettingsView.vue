@@ -200,6 +200,29 @@ watch(suggestionJobsShowAll, (v) =>
 
 const isAdmin = computed(() => authStore.isAdmin);
 
+// Returns true when a user Infinity field has been overridden from the global value.
+const infinityUserOverrides = computed(() => ({
+  textModel:
+    !!userConfig.value.infinityTextModel &&
+    userConfig.value.infinityTextModel !== globalConfig.value.infinityTextModel,
+  imageModel:
+    !!userConfig.value.infinityImageModel &&
+    userConfig.value.infinityImageModel !==
+      globalConfig.value.infinityImageModel,
+  textQueryPrefix:
+    userConfig.value.infinityTextQueryPrefix !== "" &&
+    userConfig.value.infinityTextQueryPrefix !==
+      globalConfig.value.infinityTextQueryPrefix,
+  textDocumentPrefix:
+    userConfig.value.infinityTextDocumentPrefix !== "" &&
+    userConfig.value.infinityTextDocumentPrefix !==
+      globalConfig.value.infinityTextDocumentPrefix,
+  maxDims:
+    userConfig.value.maximumEmbeddingDimensions != null &&
+    userConfig.value.maximumEmbeddingDimensions !==
+      globalConfig.value.maximumEmbeddingDimensions,
+}));
+
 // Returns true when a user Ollama field has been overridden from the global value.
 const ollamaUserOverrides = computed(() => ({
   address:
@@ -272,13 +295,27 @@ async function saveUserConfig() {
   userConfigSaving.value = true;
   try {
     await api.updateUserConfig({
-      infinityTextModel: userConfig.value.infinityTextModel || null,
-      infinityImageModel: userConfig.value.infinityImageModel || null,
-      infinityTextQueryPrefix: userConfig.value.infinityTextQueryPrefix || null,
-      infinityTextDocumentPrefix:
+      infinityTextModel: ollamaNullIfGlobal(
+        userConfig.value.infinityTextModel || null,
+        globalConfig.value.infinityTextModel,
+      ),
+      infinityImageModel: ollamaNullIfGlobal(
+        userConfig.value.infinityImageModel || null,
+        globalConfig.value.infinityImageModel,
+      ),
+      infinityTextQueryPrefix: ollamaNullIfGlobal(
+        userConfig.value.infinityTextQueryPrefix || null,
+        globalConfig.value.infinityTextQueryPrefix,
+      ),
+      infinityTextDocumentPrefix: ollamaNullIfGlobal(
         userConfig.value.infinityTextDocumentPrefix || null,
+        globalConfig.value.infinityTextDocumentPrefix,
+      ),
       enabledBarcodeFormats: userConfig.value.enabledBarcodeFormats,
-      maximumEmbeddingDimensions: userConfig.value.maximumEmbeddingDimensions,
+      maximumEmbeddingDimensions: ollamaNullIfGlobal(
+        userConfig.value.maximumEmbeddingDimensions,
+        globalConfig.value.maximumEmbeddingDimensions,
+      ),
       ollamaAddress: ollamaNullIfGlobal(
         userConfig.value.ollamaAddress || null,
         globalConfig.value.ollamaAddress,
@@ -671,10 +708,21 @@ onMounted(() => {
               >Text embedding model</label
             >
             <input
-              v-model="userConfig.infinityTextModel"
+              :value="
+                userConfig.infinityTextModel || globalConfig.infinityTextModel
+              "
+              @input="
+                userConfig.infinityTextModel = (
+                  $event.target as HTMLInputElement
+                ).value
+              "
               type="text"
-              :placeholder="globalConfig.infinityTextModel || 'Server default'"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                infinityUserOverrides.textModel
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Model used to embed record titles and descriptions for text
@@ -687,10 +735,21 @@ onMounted(() => {
               >Image embedding model</label
             >
             <input
-              v-model="userConfig.infinityImageModel"
+              :value="
+                userConfig.infinityImageModel || globalConfig.infinityImageModel
+              "
+              @input="
+                userConfig.infinityImageModel = (
+                  $event.target as HTMLInputElement
+                ).value
+              "
               type="text"
-              :placeholder="globalConfig.infinityImageModel || 'Server default'"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                infinityUserOverrides.imageModel
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Model used to embed artifact images for image similarity search.
@@ -702,12 +761,23 @@ onMounted(() => {
               >Text query prefix</label
             >
             <input
-              v-model="userConfig.infinityTextQueryPrefix"
-              type="text"
-              :placeholder="
-                globalConfig.infinityTextQueryPrefix || 'Server default'
+              :value="
+                userConfig.infinityTextQueryPrefix !== ''
+                  ? userConfig.infinityTextQueryPrefix
+                  : globalConfig.infinityTextQueryPrefix
               "
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              @input="
+                userConfig.infinityTextQueryPrefix = (
+                  $event.target as HTMLInputElement
+                ).value
+              "
+              type="text"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                infinityUserOverrides.textQueryPrefix
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Prepended to search queries before embedding. Some models require
@@ -721,10 +791,23 @@ onMounted(() => {
               >Text document prefix</label
             >
             <input
-              v-model="userConfig.infinityTextDocumentPrefix"
+              :value="
+                userConfig.infinityTextDocumentPrefix !== ''
+                  ? userConfig.infinityTextDocumentPrefix
+                  : globalConfig.infinityTextDocumentPrefix
+              "
+              @input="
+                userConfig.infinityTextDocumentPrefix = (
+                  $event.target as HTMLInputElement
+                ).value
+              "
               type="text"
-              :placeholder="globalConfig.infinityTextDocumentPrefix || 'None'"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                infinityUserOverrides.textDocumentPrefix
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Prepended to record text before embedding at index time. Usually
@@ -737,7 +820,11 @@ onMounted(() => {
               >Maximum embedding dimensions</label
             >
             <input
-              :value="userConfig.maximumEmbeddingDimensions ?? ''"
+              :value="
+                userConfig.maximumEmbeddingDimensions ??
+                globalConfig.maximumEmbeddingDimensions ??
+                ''
+              "
               @input="
                 (e) => {
                   const v = (e.target as HTMLInputElement).value;
@@ -747,12 +834,12 @@ onMounted(() => {
               "
               type="number"
               min="1"
-              :placeholder="
-                globalConfig.maximumEmbeddingDimensions
-                  ? String(globalConfig.maximumEmbeddingDimensions)
-                  : 'Model default'
-              "
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                infinityUserOverrides.maxDims
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Caps embedding dimensions sent to Infinity for your account. Leave
