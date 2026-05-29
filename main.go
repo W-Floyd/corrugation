@@ -166,6 +166,7 @@ func main() {
 		hooks.OnStart(func() {
 			backend.StartEmbeddingWorkers()
 			backend.StartSuggestionWorkers()
+			go backend.EnsureOllamaModel()
 			flags := backend.BackfillOnStartFlags()
 			if options.BackfillAllOnStart {
 				options.BackfillLegacyEmbeddingsOnStart = true

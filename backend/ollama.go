@@ -147,6 +147,57 @@ func effectiveOllamaConfig() (address, visionModel string) {
 	return
 }
 
+// EnsureOllamaModel checks whether the configured vision model is available
+// and pulls it in the background if not. Safe to call at startup.
+func EnsureOllamaModel() {
+	addr, model := effectiveOllamaConfig()
+	if addr == "" || model == "" {
+		return
+	}
+
+	resp, err := http.Get(addr + "/api/tags")
+	if err != nil {
+		Log.Infow("ollama: could not check models at startup", "error", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var tagsResp struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&tagsResp); err != nil {
+		return
+	}
+
+	for _, m := range tagsResp.Models {
+		if m.Name == model {
+			Log.Infow("ollama: vision model already available", "model", model)
+			return
+		}
+	}
+
+	Log.Infow("ollama: vision model not found, pulling", "model", model)
+	body, _ := json.Marshal(map[string]any{"name": model, "stream": false})
+	client := &http.Client{Timeout: 30 * time.Minute}
+	pullResp, err := client.Post(addr+"/api/pull", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		Log.Errorw("ollama: pull failed", "model", model, "error", err)
+		BroadcastAll("ollama_pull_failed:" + model)
+		return
+	}
+	defer pullResp.Body.Close()
+	if pullResp.StatusCode != http.StatusOK {
+		msg, _ := io.ReadAll(pullResp.Body)
+		Log.Errorw("ollama: pull error response", "model", model, "status", pullResp.StatusCode, "body", string(msg))
+		BroadcastAll("ollama_pull_failed:" + model)
+		return
+	}
+	Log.Infow("ollama: pull complete", "model", model)
+	BroadcastAll("ollama_pull_complete:" + model)
+}
+
 // --- List models endpoint ---
 
 var ListOllamaModelsOperation = huma.Operation{
