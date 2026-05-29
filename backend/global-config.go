@@ -68,32 +68,36 @@ func SetInitialInfinityConfig(text, image, queryPrefix, docPrefix string) error 
 	return nil
 }
 
+// SetInitialOllamaConfig writes CLI/env-var values to GlobalConfig.
+// Non-empty/non-zero values always overwrite the DB so the compose file wins on
+// every restart. Empty/zero values only seed when the DB field is unset.
+// The prompt is special: empty means "use built-in constant" and only seeds.
 func SetInitialOllamaConfig(address, visionModel string, numCtx, imageMaxDim int, suggestPrompt string) error {
 	cfg, err := loadGlobalConfig()
 	if err != nil {
 		return err
 	}
 	changed := false
-	if cfg.OllamaAddress == "" {
-		cfg.OllamaAddress = address
-		changed = true
+	set := func(dst *string, val string) {
+		if val != "" && *dst != val {
+			*dst = val
+			changed = true
+		}
 	}
-	if cfg.OllamaVisionModel == "" {
-		cfg.OllamaVisionModel = visionModel
-		changed = true
+	setInt := func(dst *int, val int) {
+		if val > 0 && *dst != val {
+			*dst = val
+			changed = true
+		}
 	}
-	if cfg.OllamaNumCtx == 0 {
-		cfg.OllamaNumCtx = numCtx
-		changed = true
-	}
-	if cfg.OllamaImageMaxDim == 0 {
-		cfg.OllamaImageMaxDim = imageMaxDim
-		changed = true
-	}
+	set(&cfg.OllamaAddress, address)
+	set(&cfg.OllamaVisionModel, visionModel)
+	setInt(&cfg.OllamaNumCtx, numCtx)
+	setInt(&cfg.OllamaImageMaxDim, imageMaxDim)
 	if cfg.OllamaSuggestPrompt == "" {
 		p := suggestPrompt
 		if p == "" {
-			p = ollamaSuggestPrompt // use built-in constant when no CLI value
+			p = ollamaSuggestPrompt
 		}
 		cfg.OllamaSuggestPrompt = p
 		changed = true
