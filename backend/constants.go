@@ -16,11 +16,18 @@ var (
 	infinityTextDocumentPrefix = ""
 
 	ollamaAddress      = "http://ollama:11434"
-	ollamaVisionModel  = "qwen3.5:2b"
+	ollamaVisionModel  = "moondream"
 
 	embeddingSemaphore  = make(chan struct{}, 4)
 	suggestionSemaphore = make(chan struct{}, 1)
 )
+
+func SetSuggestionConcurrency(n int) {
+	if n < 1 {
+		n = 1
+	}
+	suggestionSemaphore = make(chan struct{}, n)
+}
 
 func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocumentPrefix string) {
 	infinityAddress = address

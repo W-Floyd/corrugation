@@ -36,13 +36,14 @@ type Options struct {
 	BackfillSuggestionsOnStart         bool `help:"Backfill missing Ollama content suggestions for all artifacts on server startup" default:"false"`
 	AllowLocalUsernameLogin    bool   `help:"Allow local username login without OIDC for testing" default:"false"`
 	EmbeddingConcurrency       int    `help:"Max parallel embedding requests" default:"4"`
+	SuggestionConcurrency      int    `help:"Max parallel Ollama suggestion requests" default:"1"`
 	InfinityAddress            string `help:"Infinity embeddings server address" default:"http://localhost:8002"`
 	InfinityTextModel          string `help:"Infinity text embeddings model ID" default:"BAAI/bge-large-en-v1.5"`
 	InfinityImageModel         string `help:"Infinity image embeddings model ID" default:"openai/clip-vit-large-patch14"`
 	InfinityTextQueryPrefix    string `help:"Prefix prepended to text search queries before embedding" default:"Represent this sentence for searching relevant passages: "`
 	InfinityTextDocumentPrefix string `help:"Prefix prepended to text documents before embedding" default:""`
 	OllamaAddress              string `help:"Ollama server address for image content suggestions" default:"http://localhost:11434"`
-	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"qwen3.5:2b"`
+	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"moondream"`
 	LegacyImportUser           string `help:"Username for legacy imports" default:"legacy"`
 	PprofAddr                  string `help:"pprof HTTP listener address; empty to disable" default:""`
 }
@@ -55,6 +56,7 @@ func main() {
 		backend.SetInfinityConfig(options.InfinityAddress, options.InfinityTextModel, options.InfinityImageModel, options.InfinityTextQueryPrefix, options.InfinityTextDocumentPrefix)
 		backend.SetOllamaConfig(options.OllamaAddress, options.OllamaVisionModel)
 		backend.SetEmbeddingConcurrency(options.EmbeddingConcurrency)
+		backend.SetSuggestionConcurrency(options.SuggestionConcurrency)
 		if options.PprofAddr != "" {
 			go func() {
 				backend.Log.Infof("pprof listening on %s", options.PprofAddr)
