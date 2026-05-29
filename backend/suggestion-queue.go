@@ -73,6 +73,7 @@ func retryFailedSuggestionJobs() {
 			"status":      JobStatusPending,
 			"error_msg":   "",
 			"retry_count": j.RetryCount + 1,
+			"duration_ms": nil,
 		})
 		Log.Infow("retrying failed suggestion job", "jobID", j.ID, "attempt", j.RetryCount+1)
 		select {

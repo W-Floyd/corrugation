@@ -1013,7 +1013,7 @@ onMounted(() => {
                 v-else
                 v-model="globalConfig.ollamaVisionModel"
                 type="text"
-                placeholder="qwen3.5:2b"
+                placeholder="moondream"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
               />
               <button
@@ -1045,7 +1045,7 @@ onMounted(() => {
               <input
                 v-model="ollamaPullModel"
                 type="text"
-                placeholder="e.g. qwen3.5:2b, llama3.2-vision"
+                placeholder="e.g. moondream, llama3.2-vision"
                 :disabled="ollamaPulling"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                 @keydown.enter.prevent="pullOllamaModel"
@@ -1336,7 +1336,8 @@ onMounted(() => {
                     class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
                   >
                     {{
-                      job.durationMs != null
+                      job.durationMs != null &&
+                      (job.status === "done" || job.status === "failed")
                         ? job.durationMs >= 1000
                           ? (job.durationMs / 1000).toFixed(1) + "s"
                           : job.durationMs + "ms"
@@ -1557,7 +1558,8 @@ onMounted(() => {
                     class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
                   >
                     {{
-                      job.durationMs != null
+                      job.durationMs != null &&
+                      (job.status === "done" || job.status === "failed")
                         ? job.durationMs >= 1000
                           ? (job.durationMs / 1000).toFixed(1) + "s"
                           : job.durationMs + "ms"

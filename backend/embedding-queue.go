@@ -85,6 +85,7 @@ func retryFailedJobs() {
 			"status":      JobStatusPending,
 			"error_msg":   "",
 			"retry_count": j.RetryCount + 1,
+			"duration_ms": nil,
 		})
 		Log.Infow("retrying failed embedding job", "jobID", j.ID, "attempt", j.RetryCount+1)
 		select {
