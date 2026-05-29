@@ -3,6 +3,10 @@ package backend
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"time"
 
 	"gorm.io/driver/sqlite"
@@ -50,6 +54,33 @@ func ConnectDB(dbFilePath string) (err error) {
 	}
 
 	return
+}
+
+// BackupDB creates a timestamped copy of the database via VACUUM INTO, then
+// prunes backups in backupDir beyond the keep most recent. keep=0 disables.
+// Must be called after ConnectDB.
+func BackupDB(backupDir string, keep int) error {
+	if keep == 0 {
+		return nil
+	}
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return fmt.Errorf("create backup dir: %w", err)
+	}
+
+	dest := filepath.Join(backupDir, fmt.Sprintf("db.sqlite.%s", time.Now().Format("20060102-150405")))
+	Log.Infow("backing up database", "dest", dest)
+	if err := db.Exec("VACUUM INTO ?", dest).Error; err != nil {
+		return fmt.Errorf("vacuum into: %w", err)
+	}
+
+	entries, _ := filepath.Glob(filepath.Join(backupDir, "db.sqlite.*"))
+	sort.Strings(entries)
+	for _, old := range entries[:max(0, len(entries)-keep)] {
+		if err := os.Remove(old); err != nil {
+			Log.Warnw("failed to remove old backup", "path", old, "error", err)
+		}
+	}
+	return nil
 }
 
 func InitAndMigrateDB() error {

@@ -27,6 +27,7 @@ type Options struct {
 	OIDCClientID               string `help:"OAuth2 client ID registered in Authentik"`
 	OIDCInsecureSkipVerify     bool   `help:"Skip TLS certificate verification for OIDC discovery and JWKS requests"`
 	LogLevel                   string `help:"Log level: silent, error, warn, info" default:"warn"`
+	BackupCount                       int  `help:"Number of startup database backups to keep (0 to disable)" default:"5"`
 	BackfillAllOnStart                bool `help:"Enable all backfill-on-start options" default:"false"`
 	BackfillRecordEmbeddingsOnStart   bool `help:"Backfill missing record text embeddings on server startup" default:"false"`
 	BackfillArtifactEmbeddingsOnStart bool `help:"Backfill missing artifact image embeddings on server startup" default:"false"`
@@ -71,6 +72,12 @@ func main() {
 		err := backend.ConnectDB(dbPath)
 		if err != nil {
 			backend.Log.Fatal(err)
+		}
+		if dbExists {
+			backupDir := filepath.Join(options.Data, "backups")
+			if err := backend.BackupDB(backupDir, options.BackupCount); err != nil {
+				backend.Log.Warnf("database backup failed: %v", err)
+			}
 		}
 		if err = backend.InitAndMigrateDB(); err != nil {
 			backend.Log.Fatal(err)
