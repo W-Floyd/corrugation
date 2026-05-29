@@ -41,7 +41,7 @@ type ArtifactSuggestion struct {
 	Model
 	ArtifactID  uint   `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
 	OllamaModel string `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
-	PromptHash  string `gorm:"not null;index"`
+	PromptHash  string `gorm:"not null;default:'';index"`
 	Name        string
 	Description string
 	Quantity    *uint
