@@ -3,6 +3,7 @@ package backend
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"image/jpeg"
 	"net/http"
 	"strconv"
@@ -25,24 +26,41 @@ func isOllamaReady() bool {
 }
 
 func waitForOllama() {
-	addr, _ := effectiveOllamaConfig()
-	Log.Infow("ollama: waiting for health check", "url", addr)
+	addr, model := effectiveOllamaConfig()
+	Log.Infow("ollama: waiting for server and model", "url", addr, "model", model)
 	for {
-		addr, _ = effectiveOllamaConfig()
+		addr, model = effectiveOllamaConfig()
 		resp, err := http.Get(addr + "/api/tags")
 		if err != nil {
 			Log.Infow("ollama: not ready, retrying in 2s", "error", err)
-		} else {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				Log.Info("ollama: health check passed, suggestions enabled")
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		var tagsResp struct {
+			Models []struct {
+				Name string `json:"name"`
+			} `json:"models"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&tagsResp)
+		resp.Body.Close()
+		if err != nil || resp.StatusCode != http.StatusOK {
+			Log.Infow("ollama: bad response, retrying in 2s", "status", resp.StatusCode)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		for _, m := range tagsResp.Models {
+			if m.Name == model {
+				Log.Infow("ollama: server up and model available", "model", model)
 				close(ollamaReady)
 				BroadcastAll("suggestion_server_online")
 				return
 			}
-			Log.Infow("ollama: not ready, retrying in 2s", "status", resp.StatusCode)
 		}
-		time.Sleep(2 * time.Second)
+
+		Log.Infow("ollama: server up but model not yet available, retrying in 5s", "model", model)
+		time.Sleep(5 * time.Second)
 	}
 }
 
