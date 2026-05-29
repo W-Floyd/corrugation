@@ -993,9 +993,23 @@ onMounted(() => {
               >Ollama vision model</label
             >
             <div class="flex gap-2">
-              <input
+              <select
+                v-if="ollamaModels.length > 0"
                 v-model="globalConfig.ollamaVisionModel"
-                list="ollama-models-list"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              >
+                <option value="" disabled>Select a model…</option>
+                <option
+                  v-for="model in ollamaModels"
+                  :key="model"
+                  :value="model"
+                >
+                  {{ model }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="globalConfig.ollamaVisionModel"
                 type="text"
                 placeholder="qwen3.5:2b"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
@@ -1009,13 +1023,6 @@ onMounted(() => {
                 ↺
               </button>
             </div>
-            <datalist id="ollama-models-list">
-              <option
-                v-for="model in ollamaModels"
-                :key="model"
-                :value="model"
-              />
-            </datalist>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Vision model used for the "Suggest" button when creating records.
               <span
@@ -1035,7 +1042,6 @@ onMounted(() => {
             <div class="flex gap-2">
               <input
                 v-model="ollamaPullModel"
-                list="ollama-models-list"
                 type="text"
                 placeholder="e.g. qwen3.5:2b, llama3.2-vision"
                 :disabled="ollamaPulling"
