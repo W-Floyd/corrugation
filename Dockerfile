@@ -20,7 +20,6 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target="/root/.cache/go-build" go mod download
 COPY main.go main.go
 COPY backend/ backend/
-COPY oldbackend/ oldbackend/
 RUN --mount=type=cache,target="/root/.cache/go-build" go build -ldflags="-extldflags -static" -o main . && mkdir -p /tmp
 
 # Stage 2: Final image
