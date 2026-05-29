@@ -42,7 +42,7 @@ type Options struct {
 	InfinityTextQueryPrefix    string `help:"Prefix prepended to text search queries before embedding" default:"Represent this sentence for searching relevant passages: "`
 	InfinityTextDocumentPrefix string `help:"Prefix prepended to text documents before embedding" default:""`
 	OllamaAddress              string `help:"Ollama server address for image content suggestions" default:"http://localhost:11434"`
-	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"moondream2"`
+	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"qwen3.5:2b"`
 	LegacyImportUser           string `help:"Username for legacy imports" default:"legacy"`
 	PprofAddr                  string `help:"pprof HTTP listener address; empty to disable" default:""`
 }

@@ -16,7 +16,7 @@ var (
 	infinityTextDocumentPrefix = ""
 
 	ollamaAddress      = "http://ollama:11434"
-	ollamaVisionModel  = "moondream2"
+	ollamaVisionModel  = "qwen3.5:2b"
 
 	embeddingSemaphore  = make(chan struct{}, 4)
 	suggestionSemaphore = make(chan struct{}, 1)
