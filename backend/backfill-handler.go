@@ -1,0 +1,67 @@
+package backend
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+)
+
+var GetBackfillPreviewOperation = huma.Operation{
+	Method: http.MethodGet,
+	Path:   "/api/backfill/preview",
+}
+
+type BackfillPreview struct {
+	Records   int64 `json:"records"`
+	Artifacts int64 `json:"artifacts"`
+}
+
+func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body BackfillPreview }, err error) {
+	if err = requireAdmin(ctx); err != nil {
+		return
+	}
+
+	var p BackfillPreview
+	if err = db.Model(&Record{}).
+		Where("id NOT IN (SELECT DISTINCT record_id FROM embeddings WHERE record_id IS NOT NULL AND deleted_at IS NULL)").
+		Count(&p.Records).Error; err != nil {
+		return
+	}
+	if err = db.Model(&Artifact{}).
+		Where("id NOT IN (SELECT DISTINCT artifact_id FROM embeddings WHERE artifact_id IS NOT NULL AND deleted_at IS NULL)").
+		Count(&p.Artifacts).Error; err != nil {
+		return
+	}
+
+	output = &struct{ Body BackfillPreview }{Body: p}
+	return
+}
+
+var RunRecordBackfillOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/backfill/records",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func RunRecordBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	go backfillRecordEmbeddings()
+	return nil, nil
+}
+
+var RunArtifactBackfillOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/backfill/artifacts",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func RunArtifactBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	go backfillArtifactEmbeddings()
+	return nil, nil
+}
