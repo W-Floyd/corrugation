@@ -163,6 +163,7 @@ const jobsStatusFilter = ref("");
 type SuggestionJob = {
   id: number;
   artifactID: number;
+  recordID?: number;
   ollamaModel: string;
   username: string;
   status: string;
@@ -1559,6 +1560,7 @@ onMounted(() => {
               <tr
                 class="border-b border-gray-200 bg-white text-left text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
               >
+                <th class="px-3 py-2 font-semibold">Record ID</th>
                 <th class="px-3 py-2 font-semibold">Artifact ID</th>
                 <th class="px-3 py-2 font-semibold">Model</th>
                 <th class="px-3 py-2 font-semibold">User</th>
@@ -1573,6 +1575,11 @@ onMounted(() => {
             >
               <template v-for="job in suggestionJobs" :key="job.id">
                 <tr>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{ job.recordID ?? "—" }}
+                  </td>
                   <td
                     class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
                   >
@@ -1627,7 +1634,7 @@ onMounted(() => {
                 </tr>
                 <tr v-if="job.errorMsg">
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="px-3 pb-2 text-red-600 dark:text-red-400"
                   >
                     {{ job.errorMsg }}

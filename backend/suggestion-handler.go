@@ -50,6 +50,7 @@ func GetArtifactSuggestionHandler(_ context.Context, input *struct {
 type SuggestionJobInfo struct {
 	ID          uint      `json:"id"`
 	ArtifactID  uint      `json:"artifactID"`
+	RecordID    *uint     `json:"recordID,omitempty"`
 	OllamaModel string    `json:"ollamaModel"`
 	Username    string    `json:"username"`
 	Status      string    `json:"status"`
@@ -103,11 +104,28 @@ func ListSuggestionJobs(ctx context.Context, input *struct {
 		return
 	}
 
+	// Resolve artifact → record mappings in one query.
+	artifactIDs := make([]uint, len(jobs))
+	for i, j := range jobs {
+		artifactIDs[i] = j.ArtifactID
+	}
+	type artRecord struct {
+		ID       uint
+		RecordID *uint
+	}
+	var arts []artRecord
+	db.Model(&Artifact{}).Select("id, record_id").Where("id IN ?", artifactIDs).Scan(&arts)
+	recordByArtifact := make(map[uint]*uint, len(arts))
+	for _, a := range arts {
+		recordByArtifact[a.ID] = a.RecordID
+	}
+
 	infos := make([]SuggestionJobInfo, len(jobs))
 	for i, j := range jobs {
 		infos[i] = SuggestionJobInfo{
 			ID:          j.ID,
 			ArtifactID:  j.ArtifactID,
+			RecordID:    recordByArtifact[j.ArtifactID],
 			OllamaModel: j.OllamaModel,
 			Username:    j.Username,
 			Status:      j.Status,
