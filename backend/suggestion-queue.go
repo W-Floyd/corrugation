@@ -1,10 +1,14 @@
 package backend
 
 import (
+	"bytes"
 	"context"
+	"image/jpeg"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/boxes-ltd/imaging"
 )
 
 // closed once the Ollama health check succeeds; workers block until then
@@ -230,6 +234,18 @@ func processSuggestionJob(jobID uint) {
 	broadcastSuggestionProgress(job)
 }
 
+func toJPEG(data []byte) ([]byte, error) {
+	img, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx context.Context) error {
 	artifact, err := GetArtifactFromDB(artifactID)
 	if err != nil {
@@ -249,8 +265,13 @@ func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx conte
 		return err
 	}
 
+	jpegData, err := toJPEG(*data)
+	if err != nil {
+		return err
+	}
+
 	addr, _ := effectiveOllamaConfig()
-	suggestions, err := generateItemSuggestions(addr, ollamaModel, *data)
+	suggestions, err := generateItemSuggestions(addr, ollamaModel, jpegData)
 	if err != nil {
 		return err
 	}
