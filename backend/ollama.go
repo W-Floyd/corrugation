@@ -106,7 +106,11 @@ func generateItemSuggestions(address, model, prompt string, numCtx int, imageDat
 		Images:  []string{b64},
 		Stream:  false,
 		Format:  schema,
-		Options: map[string]any{"num_ctx": numCtx},
+		Options: map[string]any{
+			"num_ctx":       numCtx,
+			"num_predict":   512,
+			"repeat_penalty": 1.3,
+		},
 	}
 
 	body, err := json.Marshal(reqBody)
