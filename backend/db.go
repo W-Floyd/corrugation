@@ -135,11 +135,13 @@ func InitAndMigrateDB() error {
 	Log.Info("running DB migrations")
 	return db.AutoMigrate(
 		&Artifact{},
+		&ArtifactSuggestion{},
 		&EmbeddingJob{},
 		&Embedding{},
 		&GlobalConfig{},
 		&Record{},
 		&ScannedCode{},
+		&SuggestionJob{},
 		&User{},
 	)
 }

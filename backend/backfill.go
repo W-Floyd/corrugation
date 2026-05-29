@@ -25,6 +25,11 @@ func Backfill(flags BackfillFlags) (err error) {
 			return
 		}
 	}
+	if flags.Suggestions {
+		if err = backfillArtifactSuggestions(); err != nil {
+			return
+		}
+	}
 	return
 }
 

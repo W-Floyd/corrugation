@@ -20,6 +20,7 @@ type GlobalConfig struct {
 	MaximumEmbeddingDimensions *uint
 	OllamaAddress              string
 	OllamaVisionModel          string
+	BackfillSuggestionsOnStart bool
 }
 
 func loadGlobalConfig() (GlobalConfig, error) {
@@ -98,6 +99,7 @@ type BackfillFlags struct {
 	RecordEmbeddings   bool
 	ArtifactEmbeddings bool
 	ArtifactOwners     bool
+	Suggestions        bool
 }
 
 func BackfillOnStartFlags() BackfillFlags {
@@ -110,5 +112,6 @@ func BackfillOnStartFlags() BackfillFlags {
 		RecordEmbeddings:   cfg.BackfillRecordEmbeddingsOnStart,
 		ArtifactEmbeddings: cfg.BackfillArtifactEmbeddingsOnStart,
 		ArtifactOwners:     cfg.BackfillArtifactOwnersOnStart,
+		Suggestions:        cfg.BackfillSuggestionsOnStart,
 	}
 }

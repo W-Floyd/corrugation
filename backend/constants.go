@@ -18,7 +18,8 @@ var (
 	ollamaAddress      = "http://ollama:11434"
 	ollamaVisionModel  = "moondream2"
 
-	embeddingSemaphore = make(chan struct{}, 4)
+	embeddingSemaphore  = make(chan struct{}, 4)
+	suggestionSemaphore = make(chan struct{}, 1)
 )
 
 func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocumentPrefix string) {

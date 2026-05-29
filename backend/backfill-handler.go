@@ -16,6 +16,7 @@ type BackfillPreview struct {
 	LegacyEmbeddings int64 `json:"legacyEmbeddings"`
 	Records          int64 `json:"records"`
 	Artifacts        int64 `json:"artifacts"`
+	Suggestions      int64 `json:"suggestions"`
 }
 
 func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body BackfillPreview }, err error) {
@@ -38,6 +39,11 @@ func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body 
 	if err = db.Model(&Artifact{}).
 		Where("id NOT IN (SELECT DISTINCT artifact_id FROM embeddings WHERE artifact_id IS NOT NULL AND deleted_at IS NULL)").
 		Count(&p.Artifacts).Error; err != nil {
+		return
+	}
+	_, ollamaModel := effectiveOllamaConfig()
+	p.Suggestions, err = SuggestionBackfillCount(ollamaModel)
+	if err != nil {
 		return
 	}
 
@@ -70,6 +76,21 @@ func RunArtifactBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
 		return nil, err
 	}
 	go backfillArtifactEmbeddings()
+	return nil, nil
+}
+
+var RunSuggestionsBackfillOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/backfill/suggestions",
+	DefaultStatus: http.StatusNoContent,
+	OperationID:   "run-suggestions-backfill",
+}
+
+func RunSuggestionsBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	go backfillArtifactSuggestions()
 	return nil, nil
 }
 

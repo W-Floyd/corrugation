@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/danielgtaylor/huma/v2"
+	"gorm.io/gorm"
 )
 
 type ollamaGenerateRequest struct {
@@ -31,6 +32,48 @@ type ItemSuggestions struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Quantity    *uint  `json:"quantity,omitempty"`
+}
+
+// ArtifactSuggestion is the persisted cache of an Ollama suggestion for an artifact.
+type ArtifactSuggestion struct {
+	Model
+	ArtifactID  uint   `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
+	OllamaModel string `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
+	Name        string
+	Description string
+	Quantity    *uint
+}
+
+func saveSuggestion(artifactID uint, model string, s ItemSuggestions) error {
+	var existing ArtifactSuggestion
+	err := db.Where("artifact_id = ? AND ollama_model = ?", artifactID, model).First(&existing).Error
+	if err == nil {
+		return db.Model(&existing).Updates(map[string]interface{}{
+			"name":        s.Name,
+			"description": s.Description,
+			"quantity":    s.Quantity,
+		}).Error
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	return db.Create(&ArtifactSuggestion{
+		ArtifactID:  artifactID,
+		OllamaModel: model,
+		Name:        s.Name,
+		Description: s.Description,
+		Quantity:    s.Quantity,
+	}).Error
+}
+
+// GetArtifactSuggestion returns the cached suggestion for an artifact+model, or nil if not found.
+func GetArtifactSuggestion(artifactID uint, model string) (*ArtifactSuggestion, error) {
+	var s ArtifactSuggestion
+	err := db.Where("artifact_id = ? AND ollama_model = ?", artifactID, model).First(&s).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &s, err
 }
 
 const suggestPrompt = `You are analyzing a household inventory item photo. Return a JSON object with these fields:

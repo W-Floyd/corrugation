@@ -33,6 +33,7 @@ type Options struct {
 	BackfillRecordEmbeddingsOnStart    bool `help:"Backfill missing record text embeddings on server startup" default:"false"`
 	BackfillArtifactEmbeddingsOnStart  bool `help:"Backfill missing artifact image embeddings on server startup" default:"false"`
 	BackfillArtifactOwnersOnStart      bool `help:"Assign owners to ownerless artifacts on server startup" default:"false"`
+	BackfillSuggestionsOnStart         bool `help:"Backfill missing Ollama content suggestions for all artifacts on server startup" default:"false"`
 	AllowLocalUsernameLogin    bool   `help:"Allow local username login without OIDC for testing" default:"false"`
 	EmbeddingConcurrency       int    `help:"Max parallel embedding requests" default:"4"`
 	InfinityAddress            string `help:"Infinity embeddings server address" default:"http://localhost:8002"`
@@ -164,23 +165,26 @@ func main() {
 		// Tell the CLI how to start your router.
 		hooks.OnStart(func() {
 			backend.StartEmbeddingWorkers()
+			backend.StartSuggestionWorkers()
 			flags := backend.BackfillOnStartFlags()
 			if options.BackfillAllOnStart {
 				options.BackfillLegacyEmbeddingsOnStart = true
 				options.BackfillRecordEmbeddingsOnStart = true
 				options.BackfillArtifactEmbeddingsOnStart = true
 				options.BackfillArtifactOwnersOnStart = true
+				options.BackfillSuggestionsOnStart = true
 			}
 			flags.LegacyEmbeddings = flags.LegacyEmbeddings || options.BackfillLegacyEmbeddingsOnStart
 			flags.RecordEmbeddings = flags.RecordEmbeddings || options.BackfillRecordEmbeddingsOnStart
 			flags.ArtifactEmbeddings = flags.ArtifactEmbeddings || options.BackfillArtifactEmbeddingsOnStart
 			flags.ArtifactOwners = flags.ArtifactOwners || options.BackfillArtifactOwnersOnStart
+			flags.Suggestions = flags.Suggestions || options.BackfillSuggestionsOnStart
 			if flags.LegacyEmbeddings {
 				if err := backend.BackfillLegacyEmbeddingsOnStart(); err != nil {
 					backend.Log.Warnf("backfill legacy embeddings failed: %v", err)
 				}
 			}
-			if flags.RecordEmbeddings || flags.ArtifactEmbeddings || flags.ArtifactOwners {
+			if flags.RecordEmbeddings || flags.ArtifactEmbeddings || flags.ArtifactOwners || flags.Suggestions {
 				go backend.Backfill(flags)
 			}
 			err := http.ListenAndServe(fmt.Sprintf("%s:%d", options.Address, options.Port), router)

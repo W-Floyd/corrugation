@@ -210,6 +210,9 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
 	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, userID, UsernameFromContext(ctx), imageModel, "store", effectiveMaxEmbeddingDimensions(user))
 
+	_, ollamaModel := effectiveOllamaConfig()
+	EnqueueSuggestionJob(i.ID, userID, UsernameFromContext(ctx), ollamaModel, "store")
+
 	codes, scanErr := scanBarcodes(i.ID, userID, user, b)
 	if scanErr != nil {
 		Log.Warnw("barcode scan failed", "artifactID", i.ID, "error", scanErr)
