@@ -13,8 +13,9 @@ var GetBackfillPreviewOperation = huma.Operation{
 }
 
 type BackfillPreview struct {
-	Records   int64 `json:"records"`
-	Artifacts int64 `json:"artifacts"`
+	LegacyEmbeddings int64 `json:"legacyEmbeddings"`
+	Records          int64 `json:"records"`
+	Artifacts        int64 `json:"artifacts"`
 }
 
 func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body BackfillPreview }, err error) {
@@ -23,6 +24,11 @@ func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body 
 	}
 
 	var p BackfillPreview
+	if err = db.Model(&Embedding{}).Unscoped().
+		Where("substr(data, 1, 1) = X'5B'").
+		Count(&p.LegacyEmbeddings).Error; err != nil {
+		return
+	}
 	if err = db.Model(&Record{}).
 		Where("id NOT IN (SELECT DISTINCT record_id FROM embeddings WHERE record_id IS NOT NULL AND deleted_at IS NULL)").
 		Where("(title IS NOT NULL AND title != '') OR (reference_number IS NOT NULL AND reference_number != '') OR (description IS NOT NULL AND description != '')").

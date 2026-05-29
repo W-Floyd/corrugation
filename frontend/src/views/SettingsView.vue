@@ -81,9 +81,11 @@ const globalConfigLoading = ref(false);
 const globalConfigSaving = ref(false);
 
 // --- Backfill ---
-const backfillPreview = ref<{ records: number; artifacts: number } | null>(
-  null,
-);
+const backfillPreview = ref<{
+  legacyEmbeddings: number;
+  records: number;
+  artifacts: number;
+} | null>(null);
 const backfillPreviewLoading = ref(false);
 const runningLegacyEmbeddingsBackfill = ref(false);
 const runningRecordBackfill = ref(false);
@@ -879,7 +881,17 @@ onMounted(() => {
             <div>
               <p class="text-sm font-medium">Legacy embeddings</p>
               <p class="text-xs text-gray-500 dark:text-gray-400">
-                Delete old JSON-format embeddings so they are regenerated
+                <template v-if="backfillPreviewLoading">Counting…</template>
+                <template v-else-if="backfillPreview">
+                  {{ backfillPreview.legacyEmbeddings }} legacy embedding{{
+                    backfillPreview.legacyEmbeddings !== 1 ? "s" : ""
+                  }}
+                  to delete
+                </template>
+                <template v-else
+                  >Delete old JSON-format embeddings so they are
+                  regenerated</template
+                >
               </p>
             </div>
             <button

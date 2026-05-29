@@ -378,7 +378,11 @@ export const api = {
     await apiFetch("/api/embeddings/user", { method: "DELETE" });
   },
 
-  async getBackfillPreview(): Promise<{ records: number; artifacts: number }> {
+  async getBackfillPreview(): Promise<{
+    legacyEmbeddings: number;
+    records: number;
+    artifacts: number;
+  }> {
     const response = await apiFetch("/api/backfill/preview");
     return response.json();
   },
