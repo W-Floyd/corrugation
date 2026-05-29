@@ -20,8 +20,8 @@ var (
 	ollamaNumCtx       = 4096
 	ollamaImageMaxDim  = 512
 	ollamaSuggestPrompt = `/no_think You are analyzing a household inventory item photo. Return a JSON object with these fields:
-- "name": a short, descriptive name for the item using only the most relevant adjectives in this order where applicable: size, physical quality, age, shape, color, origin, material, purpose (string)
-- "description": a brief description of the item including notable features (string)
+- "name": what the item IS as a noun. Prepend only the most relevant distinguishing adjectives in this order: color, material, purpose. The item type noun is always required — a color or adjective alone is not acceptable. No commas. (string)
+- "description": additional notable features not already stated in the name. Omit if nothing useful to add. (string)
 - "quantity": estimated visible quantity as a whole number, or null if unclear (number or null)
 
 Respond with valid JSON only. No explanation, no markdown.`
