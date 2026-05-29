@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"gorm.io/gorm"
@@ -185,6 +186,52 @@ func ListOllamaModels(_ context.Context, _ *struct{}) (output *struct{ Body []st
 	}
 	output = &struct{ Body []string }{Body: names}
 	return
+}
+
+// --- Pull model endpoint ---
+
+var PullOllamaModelOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/ollama/pull",
+	DefaultStatus: http.StatusAccepted,
+	OperationID:   "pull-ollama-model",
+}
+
+func PullOllamaModel(_ context.Context, input *struct {
+	Body struct {
+		Model string `json:"model" doc:"Model name to pull"`
+	}
+}) (*struct{}, error) {
+	addr, _ := effectiveOllamaConfig()
+	if addr == "" {
+		return nil, huma.Error503ServiceUnavailable("ollama not configured")
+	}
+	if input.Body.Model == "" {
+		return nil, huma.Error400BadRequest("model name is required")
+	}
+
+	model := input.Body.Model
+	go func() {
+		body, _ := json.Marshal(map[string]any{"name": model, "stream": false})
+		client := &http.Client{Timeout: 30 * time.Minute}
+		resp, err := client.Post(addr+"/api/pull", "application/json", bytes.NewBuffer(body))
+		if err != nil {
+			Log.Errorw("ollama pull failed", "model", model, "error", err)
+			BroadcastAll("ollama_pull_failed:" + model)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			msg, _ := io.ReadAll(resp.Body)
+			Log.Errorw("ollama pull error response", "model", model, "status", resp.StatusCode, "body", string(msg))
+			BroadcastAll("ollama_pull_failed:" + model)
+			return
+		}
+		Log.Infow("ollama pull complete", "model", model)
+		BroadcastAll("ollama_pull_complete:" + model)
+	}()
+
+	return nil, nil
 }
 
 // --- Suggest endpoint ---

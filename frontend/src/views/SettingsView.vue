@@ -83,10 +83,39 @@ function toggleBarcodeFormat(fmt: string) {
 const globalConfigLoading = ref(false);
 const globalConfigSaving = ref(false);
 const ollamaModels = ref<string[]>([]);
+const ollamaPullModel = ref("");
+const ollamaPulling = ref(false);
 
 async function loadOllamaModels() {
   ollamaModels.value = await api.getOllamaModels();
 }
+
+async function pullOllamaModel() {
+  const model = ollamaPullModel.value.trim();
+  if (!model) return;
+  ollamaPulling.value = true;
+  try {
+    await api.pullOllamaModel(model); // returns 202 immediately
+  } catch {
+    ollamaPulling.value = false;
+    // error toast already shown by apiFetch
+  }
+}
+
+watch(
+  () => recordsStore.ollamaPullTick,
+  async () => {
+    const event = recordsStore.lastOllamaPullEvent;
+    if (!event) return;
+    ollamaPulling.value = false;
+    if (event.success) {
+      toastsStore.add(`Pulled ${event.model}`, "success");
+      await loadOllamaModels();
+    } else {
+      toastsStore.add(`Failed to pull ${event.model}`, "warn");
+    }
+  },
+);
 
 // --- Backfill ---
 const backfillPreview = ref<{
@@ -990,7 +1019,6 @@ onMounted(() => {
             </datalist>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Vision model used for the "Suggest" button when creating records.
-              Requires the model to be pulled in Ollama first.
               <span
                 v-if="ollamaModels.length > 0"
                 class="text-green-600 dark:text-green-400"
@@ -1000,6 +1028,33 @@ onMounted(() => {
                 }}
                 available.
               </span>
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium">Pull model</label>
+            <div class="flex gap-2">
+              <input
+                v-model="ollamaPullModel"
+                list="ollama-models-list"
+                type="text"
+                placeholder="e.g. moondream2, llama3.2-vision"
+                :disabled="ollamaPulling"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                @keydown.enter.prevent="pullOllamaModel"
+              />
+              <button
+                type="button"
+                @click="pullOllamaModel"
+                :disabled="ollamaPulling || !ollamaPullModel.trim()"
+                class="shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+              >
+                {{ ollamaPulling ? "Pulling…" : "Pull" }}
+              </button>
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Downloads the model from the Ollama registry. You will be notified
+              when complete.
             </p>
           </div>
 
