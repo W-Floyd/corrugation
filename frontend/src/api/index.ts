@@ -285,6 +285,7 @@ export const api = {
     backfillRecordEmbeddingsOnStart: boolean;
     backfillArtifactEmbeddingsOnStart: boolean;
     backfillArtifactOwnersOnStart: boolean;
+    backfillSuggestionsOnStart: boolean;
     allowLocalUsernameLogin: boolean;
     infinityTextModel: string;
     infinityImageModel: string;
@@ -292,6 +293,11 @@ export const api = {
     infinityTextDocumentPrefix: string;
     enabledBarcodeFormats: string[];
     maximumEmbeddingDimensions?: number;
+    ollamaAddress: string;
+    ollamaVisionModel: string;
+    ollamaNumCtx: number;
+    ollamaImageMaxDim: number;
+    ollamaSuggestPrompt: string;
   }> {
     const response = await apiFetch("/api/config/global");
     return response.json();

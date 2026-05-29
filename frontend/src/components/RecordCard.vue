@@ -641,7 +641,7 @@ onUnmounted(() => {
 const displayPathSegments = computed(() => {
   const segs = formatOptionSegments(props.appRecord.ID);
   if (isDataless.value && placeholderSuggestion.value && segs.length > 0) {
-    const last = segs[segs.length - 1];
+    const last = segs[segs.length - 1]!;
     if (!last.isRef) {
       return [
         ...segs.slice(0, -1),
@@ -940,7 +940,7 @@ defineExpose({ cardEl });
                   :class="
                     seg.isRef
                       ? 'font-mono text-blue-600 dark:text-blue-400'
-                      : seg.isPlaceholder
+                      : 'isPlaceholder' in seg && seg.isPlaceholder
                         ? 'text-gray-300 italic dark:text-gray-600'
                         : ''
                   "

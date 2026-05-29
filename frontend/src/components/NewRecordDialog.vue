@@ -112,7 +112,7 @@ const handleSuggest = async (): Promise<void> => {
   }
   suggesting.value = true;
   try {
-    const suggestions = await api.suggestFromImage(files.value[0]);
+    const suggestions = await api.suggestFromImage(files.value[0]!);
     if (suggestions.name && !title.value) title.value = suggestions.name;
     if (suggestions.description && !description.value)
       description.value = suggestions.description;
