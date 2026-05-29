@@ -295,8 +295,13 @@ async function loadJobs() {
       limit: jobsPageSize,
       offset: jobsPage.value * jobsPageSize,
     });
-    jobs.value = result.jobs;
     jobsTotal.value = result.total;
+    // If the current page is past the last page with data, jump to the last valid page.
+    if (result.jobs.length === 0 && result.total > 0) {
+      jobsPage.value = Math.max(0, Math.ceil(result.total / jobsPageSize) - 1);
+      return loadJobs();
+    }
+    jobs.value = result.jobs;
   } catch {
     // toast already shown
   } finally {
