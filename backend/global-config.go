@@ -22,6 +22,7 @@ type GlobalConfig struct {
 	OllamaVisionModel          string
 	OllamaNumCtx               int
 	OllamaImageMaxDim          int
+	OllamaSuggestPrompt        string
 	BackfillSuggestionsOnStart bool
 }
 
@@ -67,7 +68,7 @@ func SetInitialInfinityConfig(text, image, queryPrefix, docPrefix string) error 
 	return nil
 }
 
-func SetInitialOllamaConfig(address, visionModel string, numCtx, imageMaxDim int) error {
+func SetInitialOllamaConfig(address, visionModel string, numCtx, imageMaxDim int, suggestPrompt string) error {
 	cfg, err := loadGlobalConfig()
 	if err != nil {
 		return err
@@ -87,6 +88,10 @@ func SetInitialOllamaConfig(address, visionModel string, numCtx, imageMaxDim int
 	}
 	if cfg.OllamaImageMaxDim == 0 {
 		cfg.OllamaImageMaxDim = imageMaxDim
+		changed = true
+	}
+	if cfg.OllamaSuggestPrompt == "" {
+		cfg.OllamaSuggestPrompt = suggestPrompt
 		changed = true
 	}
 	if changed {

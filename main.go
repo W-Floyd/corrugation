@@ -46,6 +46,7 @@ type Options struct {
 	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"moondream"`
 	OllamaNumCtx               int    `help:"Ollama context window size for image suggestions" default:"4096"`
 	OllamaImageMaxDim          int    `help:"Max image dimension (px) sent to Ollama; 0 = no resize" default:"512"`
+	OllamaSuggestPrompt        string `help:"Prompt sent to Ollama vision model for content suggestions; empty = built-in default" default:""`
 	LegacyImportUser           string `help:"Username for legacy imports" default:"legacy"`
 	PprofAddr                  string `help:"pprof HTTP listener address; empty to disable" default:""`
 }
@@ -56,7 +57,7 @@ func main() {
 
 		backend.Log.Info("init backend")
 		backend.SetInfinityConfig(options.InfinityAddress, options.InfinityTextModel, options.InfinityImageModel, options.InfinityTextQueryPrefix, options.InfinityTextDocumentPrefix)
-		backend.SetOllamaConfig(options.OllamaAddress, options.OllamaVisionModel, options.OllamaNumCtx, options.OllamaImageMaxDim)
+		backend.SetOllamaConfig(options.OllamaAddress, options.OllamaVisionModel, options.OllamaNumCtx, options.OllamaImageMaxDim, options.OllamaSuggestPrompt)
 		backend.SetEmbeddingConcurrency(options.EmbeddingConcurrency)
 		backend.SetSuggestionConcurrency(options.SuggestionConcurrency)
 		if options.PprofAddr != "" {
@@ -100,7 +101,7 @@ func main() {
 		if err = backend.SetInitialAllowLocalUsernameLogin(options.AllowLocalUsernameLogin); err != nil {
 			backend.Log.Fatalf("failed to persist allow-local-username-login: %v", err)
 		}
-		if err = backend.SetInitialOllamaConfig(options.OllamaAddress, options.OllamaVisionModel, options.OllamaNumCtx, options.OllamaImageMaxDim); err != nil {
+		if err = backend.SetInitialOllamaConfig(options.OllamaAddress, options.OllamaVisionModel, options.OllamaNumCtx, options.OllamaImageMaxDim, options.OllamaSuggestPrompt); err != nil {
 			backend.Log.Fatalf("failed to seed ollama config: %v", err)
 		}
 

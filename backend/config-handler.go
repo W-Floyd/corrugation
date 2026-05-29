@@ -46,6 +46,7 @@ type GlobalConfigBody struct {
 	OllamaVisionModel          string `json:"ollamaVisionModel" doc:"Ollama vision model for image content suggestions"`
 	OllamaNumCtx               int    `json:"ollamaNumCtx" doc:"Ollama context window size (num_ctx) for image suggestions"`
 	OllamaImageMaxDim          int    `json:"ollamaImageMaxDim" doc:"Max image dimension (px) before sending to Ollama; 0 = no resize"`
+	OllamaSuggestPrompt        string `json:"ollamaSuggestPrompt" doc:"Prompt sent to Ollama for content suggestions; empty = built-in default"`
 }
 
 type UserConfigBody struct {
@@ -60,6 +61,7 @@ type UserConfigBody struct {
 	OllamaVisionModel          *string `json:"ollamaVisionModel,omitempty" doc:"Override Ollama vision model"`
 	OllamaNumCtx               *int    `json:"ollamaNumCtx,omitempty" doc:"Override Ollama context window size"`
 	OllamaImageMaxDim          *int    `json:"ollamaImageMaxDim,omitempty" doc:"Override max image dimension sent to Ollama"`
+	OllamaSuggestPrompt        *string `json:"ollamaSuggestPrompt,omitempty" doc:"Override suggestion prompt"`
 }
 
 func barcodeFormatsToSlice(s string) []string {
@@ -122,6 +124,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		OllamaVisionModel:                 cfg.OllamaVisionModel,
 		OllamaNumCtx:                      cfg.OllamaNumCtx,
 		OllamaImageMaxDim:                 cfg.OllamaImageMaxDim,
+		OllamaSuggestPrompt:               cfg.OllamaSuggestPrompt,
 	}}
 	return
 }
@@ -156,6 +159,7 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 		OllamaVisionModel:                 input.Body.OllamaVisionModel,
 		OllamaNumCtx:                      input.Body.OllamaNumCtx,
 		OllamaImageMaxDim:                 input.Body.OllamaImageMaxDim,
+		OllamaSuggestPrompt:               input.Body.OllamaSuggestPrompt,
 	}
 	if err = saveGlobalConfig(cfg); err != nil {
 		return
@@ -188,6 +192,7 @@ func GetUserConfig(ctx context.Context, _ *struct{}) (output *struct{ Body UserC
 		OllamaVisionModel:          u.OllamaVisionModel,
 		OllamaNumCtx:               u.OllamaNumCtx,
 		OllamaImageMaxDim:          u.OllamaImageMaxDim,
+		OllamaSuggestPrompt:        u.OllamaSuggestPrompt,
 	}
 	if u.EnabledBarcodeFormats != nil {
 		s := barcodeFormatsToSlice(*u.EnabledBarcodeFormats)
@@ -220,6 +225,7 @@ func PutUserConfig(ctx context.Context, input *struct {
 	u.OllamaVisionModel = input.Body.OllamaVisionModel
 	u.OllamaNumCtx = input.Body.OllamaNumCtx
 	u.OllamaImageMaxDim = input.Body.OllamaImageMaxDim
+	u.OllamaSuggestPrompt = input.Body.OllamaSuggestPrompt
 	if input.Body.EnabledBarcodeFormats != nil {
 		s := barcodeFormatsToString(*input.Body.EnabledBarcodeFormats)
 		u.EnabledBarcodeFormats = &s

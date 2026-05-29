@@ -19,6 +19,12 @@ var (
 	ollamaVisionModel  = "moondream"
 	ollamaNumCtx       = 4096
 	ollamaImageMaxDim  = 512
+	ollamaSuggestPrompt = `You are analyzing a household inventory item photo. Return a JSON object with these fields:
+- "name": a short, descriptive name for the item (string)
+- "description": a brief description of the item including notable features (string)
+- "quantity": estimated visible quantity as a whole number, or null if unclear (number or null)
+
+Respond with valid JSON only. No explanation, no markdown.`
 
 	embeddingSemaphore  = make(chan struct{}, 4)
 	suggestionSemaphore = make(chan struct{}, 1)
@@ -39,7 +45,7 @@ func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocu
 	infinityTextDocumentPrefix = textDocumentPrefix
 }
 
-func SetOllamaConfig(address, visionModel string, numCtx, imageMaxDim int) {
+func SetOllamaConfig(address, visionModel string, numCtx, imageMaxDim int, suggestPrompt string) {
 	ollamaAddress = address
 	ollamaVisionModel = visionModel
 	if numCtx > 0 {
@@ -47,6 +53,9 @@ func SetOllamaConfig(address, visionModel string, numCtx, imageMaxDim int) {
 	}
 	if imageMaxDim > 0 {
 		ollamaImageMaxDim = imageMaxDim
+	}
+	if suggestPrompt != "" {
+		ollamaSuggestPrompt = suggestPrompt
 	}
 }
 

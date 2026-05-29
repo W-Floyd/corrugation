@@ -302,7 +302,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		}
 		var suggestionTexts []suggestionText
 		if search.SearchSuggested && search.SearchTextSubstring {
-			_, ollamaModel, _, _ := effectiveOllamaConfig()
+			_, ollamaModel, _, _, _ := effectiveOllamaConfig()
 			db.Table("artifact_suggestions").
 				Select("artifacts.record_id, artifact_suggestions.name, artifact_suggestions.description").
 				Joins("JOIN artifacts ON artifacts.id = artifact_suggestions.artifact_id AND artifacts.record_id IN ?", scopedRecordIDs).

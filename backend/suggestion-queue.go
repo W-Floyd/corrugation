@@ -26,10 +26,10 @@ func isOllamaReady() bool {
 }
 
 func waitForOllama() {
-	addr, model, _, _ := effectiveOllamaConfig()
+	addr, model, _, _, _ := effectiveOllamaConfig()
 	Log.Infow("ollama: waiting for server and model", "url", addr, "model", model)
 	for {
-		addr, model, _, _ = effectiveOllamaConfig()
+		addr, model, _, _, _ = effectiveOllamaConfig()
 		resp, err := http.Get(addr + "/api/tags")
 		if err != nil {
 			Log.Infow("ollama: not ready, retrying in 2s", "error", err)
@@ -222,10 +222,12 @@ func processSuggestionJob(jobID uint) {
 		return
 	}
 
-	// Fast dedup: skip if suggestion already exists for this artifact+model
+	// Fast dedup: skip if a fresh suggestion (matching current prompt hash) already exists.
+	_, _, currentPrompt, _, _ := effectiveOllamaConfig()
+	promptHash := InputHash(currentPrompt)
 	var count int64
 	db.Model(&ArtifactSuggestion{}).
-		Where("artifact_id = ? AND ollama_model = ?", job.ArtifactID, job.OllamaModel).
+		Where("artifact_id = ? AND ollama_model = ? AND prompt_hash = ?", job.ArtifactID, job.OllamaModel, promptHash).
 		Count(&count)
 	if count > 0 {
 		db.Model(&job).Update("status", JobStatusDone)
@@ -294,19 +296,19 @@ func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx conte
 	}
 
 	_, user, _, _ := UserFromContext(ctx)
-	addr, _, numCtx, imageMaxDim := effectiveOllamaConfig(user)
+	addr, _, prompt, numCtx, imageMaxDim := effectiveOllamaConfig(user)
 
 	jpegData, err := toJPEG(*data, imageMaxDim)
 	if err != nil {
 		return err
 	}
 
-	suggestions, err := generateItemSuggestions(addr, ollamaModel, numCtx, jpegData)
+	suggestions, err := generateItemSuggestions(addr, ollamaModel, prompt, numCtx, jpegData)
 	if err != nil {
 		return err
 	}
 
-	if err = saveSuggestion(artifactID, ollamaModel, suggestions); err != nil {
+	if err = saveSuggestion(artifactID, ollamaModel, InputHash(prompt), suggestions); err != nil {
 		return err
 	}
 
@@ -342,11 +344,12 @@ func saveSuggestionTextEmbedding(artifactID uint, s ItemSuggestions, ctx context
 }
 
 func backfillArtifactSuggestions() error {
-	addr, model, _, _ := effectiveOllamaConfig()
+	addr, model, prompt, _, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		Log.Warn("ollama not configured, skipping suggestion backfill")
 		return nil
 	}
+	promptHash := InputHash(prompt)
 
 	type artifactRow struct {
 		ID      uint
@@ -357,7 +360,7 @@ func backfillArtifactSuggestions() error {
 		Select("artifacts.id, artifacts.owner_id").
 		Where("record_id IS NOT NULL").
 		Where("record_id IN (SELECT id FROM records)").
-		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ?)", model).
+		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ? AND prompt_hash = ?)", model, promptHash).
 		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL)").
 		Where("id NOT IN (SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
 		Scan(&artifacts).Error
@@ -405,10 +408,11 @@ func backfillArtifactSuggestions() error {
 
 // SuggestionBackfillCount returns the number of artifacts without a cached suggestion for the given model.
 func SuggestionBackfillCount(model string) (int64, error) {
+	_, _, prompt, _, _ := effectiveOllamaConfig()
 	var count int64
 	err := db.Model(&Artifact{}).
 		Where("record_id IS NOT NULL").
-		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ?)", model).
+		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ? AND prompt_hash = ?)", model, InputHash(prompt)).
 		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL)").
 		Where("id NOT IN (SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
 		Count(&count).Error

@@ -11,7 +11,7 @@ const (
 	minimumImageToImageSearchConfidence float64 = 0.6
 	minimumTextToImageSearchConfidence  float64 = 0.2
 	minimumTextSearchConfidence         float64 = 0.9
-	minimumSuggestionSearchConfidence   float64 = 0.75
+	minimumSuggestionSearchConfidence   float64 = 0.2
 )
 
 // cosineSimilarity computes the cosine similarity between two vectors.
@@ -133,7 +133,7 @@ func SearchBySuggestion(ctx context.Context, search string, artifactRecordMap ma
 			embeddedArtifacts[*emb.ArtifactID] = true
 		}
 	}
-	_, ollamaModel, _, _ := effectiveOllamaConfig()
+	_, ollamaModel, _, _, _ := effectiveOllamaConfig()
 	for artifactID, recordID := range artifactRecordMap {
 		if recordID == nil || embeddedArtifacts[artifactID] {
 			continue

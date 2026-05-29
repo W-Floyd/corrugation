@@ -315,6 +315,7 @@ export const api = {
     ollamaVisionModel: string;
     ollamaNumCtx: number;
     ollamaImageMaxDim: number;
+    ollamaSuggestPrompt: string;
   }): Promise<void> {
     await apiFetch("/api/config/global", {
       method: "PUT",
@@ -334,6 +335,7 @@ export const api = {
     ollamaVisionModel?: string;
     ollamaNumCtx?: number;
     ollamaImageMaxDim?: number;
+    ollamaSuggestPrompt?: string;
   }> {
     const response = await apiFetch("/api/config/user");
     return response.json();
@@ -350,6 +352,7 @@ export const api = {
     ollamaVisionModel?: string | null;
     ollamaNumCtx?: number | null;
     ollamaImageMaxDim?: number | null;
+    ollamaSuggestPrompt?: string | null;
   }): Promise<void> {
     await apiFetch("/api/config/user", {
       method: "PUT",

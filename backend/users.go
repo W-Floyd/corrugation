@@ -21,6 +21,7 @@ type User struct {
 	OllamaVisionModel          *string
 	OllamaNumCtx               *int
 	OllamaImageMaxDim          *int
+	OllamaSuggestPrompt        *string
 }
 
 var userCache sync.Map // username → User

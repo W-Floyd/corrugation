@@ -41,16 +41,18 @@ type ArtifactSuggestion struct {
 	Model
 	ArtifactID  uint   `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
 	OllamaModel string `gorm:"not null;uniqueIndex:idx_artifact_suggestion"`
+	PromptHash  string `gorm:"not null;index"`
 	Name        string
 	Description string
 	Quantity    *uint
 }
 
-func saveSuggestion(artifactID uint, model string, s ItemSuggestions) error {
+func saveSuggestion(artifactID uint, model, promptHash string, s ItemSuggestions) error {
 	var existing ArtifactSuggestion
 	err := db.Where("artifact_id = ? AND ollama_model = ?", artifactID, model).First(&existing).Error
 	if err == nil {
 		return db.Model(&existing).Updates(map[string]interface{}{
+			"prompt_hash": promptHash,
 			"name":        s.Name,
 			"description": s.Description,
 			"quantity":    s.Quantity,
@@ -62,6 +64,7 @@ func saveSuggestion(artifactID uint, model string, s ItemSuggestions) error {
 	return db.Create(&ArtifactSuggestion{
 		ArtifactID:  artifactID,
 		OllamaModel: model,
+		PromptHash:  promptHash,
 		Name:        s.Name,
 		Description: s.Description,
 		Quantity:    s.Quantity,
@@ -85,7 +88,7 @@ const suggestPrompt = `You are analyzing a household inventory item photo. Retur
 
 Respond with valid JSON only. No explanation, no markdown.`
 
-func generateItemSuggestions(address, model string, numCtx int, imageData []byte) (ItemSuggestions, error) {
+func generateItemSuggestions(address, model, prompt string, numCtx int, imageData []byte) (ItemSuggestions, error) {
 	b64 := base64.StdEncoding.EncodeToString(imageData)
 
 	schema := map[string]any{
@@ -99,7 +102,7 @@ func generateItemSuggestions(address, model string, numCtx int, imageData []byte
 	}
 	reqBody := ollamaGenerateRequest{
 		Model:   model,
-		Prompt:  suggestPrompt,
+		Prompt:  prompt,
 		Images:  []string{b64},
 		Stream:  false,
 		Format:  schema,
@@ -147,9 +150,10 @@ func generateItemSuggestions(address, model string, numCtx int, imageData []byte
 
 // effectiveOllamaConfig returns the active Ollama address, vision model, and num_ctx.
 // Priority: per-user override → GlobalConfig → CLI-seeded constants.
-func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx, imageMaxDim int) {
+func effectiveOllamaConfig(u ...*User) (address, visionModel, suggestPrompt string, numCtx, imageMaxDim int) {
 	address = ollamaAddress
 	visionModel = ollamaVisionModel
+	suggestPrompt = ollamaSuggestPrompt
 	numCtx = ollamaNumCtx
 	imageMaxDim = ollamaImageMaxDim
 
@@ -165,6 +169,9 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx, ima
 		}
 		if cfg.OllamaImageMaxDim > 0 {
 			imageMaxDim = cfg.OllamaImageMaxDim
+		}
+		if cfg.OllamaSuggestPrompt != "" {
+			suggestPrompt = cfg.OllamaSuggestPrompt
 		}
 	}
 
@@ -185,6 +192,9 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx, ima
 		if user.OllamaImageMaxDim != nil {
 			imageMaxDim = *user.OllamaImageMaxDim
 		}
+		if user.OllamaSuggestPrompt != nil {
+			suggestPrompt = *user.OllamaSuggestPrompt
+		}
 	}
 	return
 }
@@ -192,7 +202,7 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx, ima
 // EnsureOllamaModel checks whether the configured vision model is available
 // and pulls it in the background if not. Safe to call at startup.
 func EnsureOllamaModel() {
-	addr, model, _, _ := effectiveOllamaConfig()
+	addr, model, _, _, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		return
 	}
@@ -250,7 +260,7 @@ var ListOllamaModelsOperation = huma.Operation{
 }
 
 func ListOllamaModels(_ context.Context, _ *struct{}) (output *struct{ Body []string }, err error) {
-	addr, _, _, _ := effectiveOllamaConfig()
+	addr, _, _, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		output = &struct{ Body []string }{Body: []string{}}
 		return
@@ -295,7 +305,7 @@ func PullOllamaModel(_ context.Context, input *struct {
 		Model string `json:"model" doc:"Model name to pull"`
 	}
 }) (*struct{}, error) {
-	addr, _, _, _ := effectiveOllamaConfig()
+	addr, _, _, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		return nil, huma.Error503ServiceUnavailable("ollama not configured")
 	}
@@ -342,7 +352,7 @@ func SuggestFromImage(ctx context.Context, input *struct {
 	}]
 }) (output *struct{ Body ItemSuggestions }, err error) {
 	_, user, _, _ := UserFromContext(ctx)
-	addr, model, numCtx, _ := effectiveOllamaConfig(user)
+	addr, model, prompt, numCtx, _ := effectiveOllamaConfig(user)
 	if addr == "" {
 		err = huma.Error503ServiceUnavailable("ollama not configured")
 		return
@@ -355,7 +365,7 @@ func SuggestFromImage(ctx context.Context, input *struct {
 		return
 	}
 
-	suggestions, suggestErr := generateItemSuggestions(addr, model, numCtx, data)
+	suggestions, suggestErr := generateItemSuggestions(addr, model, prompt, numCtx, data)
 	if suggestErr != nil {
 		Log.Errorw("ollama suggest failed", "error", suggestErr)
 		err = huma.Error503ServiceUnavailable("suggestion failed: " + suggestErr.Error())

@@ -36,6 +36,7 @@ const userConfig = ref({
   ollamaVisionModel: null as string | null,
   ollamaNumCtx: null as number | null,
   ollamaImageMaxDim: null as number | null,
+  ollamaSuggestPrompt: null as string | null,
 });
 const userConfigLoading = ref(false);
 const userConfigSaving = ref(false);
@@ -61,6 +62,7 @@ const globalConfig = ref({
   ollamaVisionModel: "",
   ollamaNumCtx: 4096,
   ollamaImageMaxDim: 512,
+  ollamaSuggestPrompt: "",
 });
 
 const allBarcodeFormats = ref<{ value: string; label: string }[]>([]);
@@ -226,6 +228,7 @@ async function loadUserConfig() {
       ollamaVisionModel: cfg.ollamaVisionModel ?? null,
       ollamaNumCtx: cfg.ollamaNumCtx ?? null,
       ollamaImageMaxDim: cfg.ollamaImageMaxDim ?? null,
+      ollamaSuggestPrompt: cfg.ollamaSuggestPrompt ?? null,
     };
   } catch {
     // toast already shown by apiFetch
@@ -249,6 +252,7 @@ async function saveUserConfig() {
       ollamaVisionModel: userConfig.value.ollamaVisionModel || null,
       ollamaNumCtx: userConfig.value.ollamaNumCtx,
       ollamaImageMaxDim: userConfig.value.ollamaImageMaxDim,
+      ollamaSuggestPrompt: userConfig.value.ollamaSuggestPrompt || null,
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -280,6 +284,7 @@ async function loadGlobalConfig() {
       ollamaVisionModel: cfg.ollamaVisionModel ?? "",
       ollamaNumCtx: cfg.ollamaNumCtx ?? 4096,
       ollamaImageMaxDim: cfg.ollamaImageMaxDim ?? 512,
+      ollamaSuggestPrompt: cfg.ollamaSuggestPrompt ?? "",
     };
   } catch {
     // toast already shown
@@ -809,6 +814,20 @@ onMounted(() => {
             />
           </div>
 
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Suggestion prompt</label
+            >
+            <textarea
+              v-model="userConfig.ollamaSuggestPrompt"
+              rows="6"
+              :placeholder="
+                globalConfig.ollamaSuggestPrompt || 'Server default'
+              "
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800"
+            />
+          </div>
+
           <hr class="border-gray-200 dark:border-gray-700" />
           <p class="text-xs text-gray-500 dark:text-gray-400">
             Barcode / QR code detection
@@ -1195,6 +1214,22 @@ onMounted(() => {
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Images are resized to fit within this square before sending. 0 =
               no resize.
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Suggestion prompt</label
+            >
+            <textarea
+              v-model="globalConfig.ollamaSuggestPrompt"
+              rows="6"
+              placeholder="Built-in default (leave blank to use default)"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Changing the prompt marks existing suggestions as stale — the
+              backfill will regenerate them automatically.
             </p>
           </div>
 
