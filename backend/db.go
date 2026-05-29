@@ -52,17 +52,17 @@ func ConnectDB(dbFilePath string) (err error) {
 	return
 }
 
-func InitAndMigrateDB() (err error) {
+func InitAndMigrateDB() error {
 	Log.Info("running DB migrations")
-	db.AutoMigrate(
+	return db.AutoMigrate(
 		&Artifact{},
 		&EmbeddingJob{},
 		&Embedding{},
 		&GlobalConfig{},
 		&Record{},
+		&ScannedCode{},
 		&User{},
 	)
-	return nil
 }
 
 type Model struct {

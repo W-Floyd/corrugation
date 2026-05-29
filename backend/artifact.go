@@ -143,6 +143,11 @@ func DeleteArtifactFromDB(ctx context.Context, ID uint) (err error) {
 	} else if n > 1 {
 		err = huma.Error500InternalServerError(errorMoreArtifactsThanExpected)
 	}
+
+	if delErr := deleteScannedCodesForArtifact(ID); delErr != nil {
+		Log.Warnw("failed to delete scanned codes for artifact", "artifactID", ID, "error", delErr)
+	}
+
 	return
 }
 
@@ -204,7 +209,16 @@ func (i *Image) Store(ctx context.Context, file huma.FormFile) (err error) {
 	*i = Image(a)
 
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
-	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, userID, UsernameFromContext(ctx), imageModel, "store")
+	EnqueueEmbeddingJob(JobTypeArtifact, i.ID, userID, UsernameFromContext(ctx), imageModel, "store", effectiveMaxEmbeddingDimensions(user))
+
+	codes, scanErr := scanBarcodes(i.ID, userID, user, b)
+	if scanErr != nil {
+		Log.Warnw("barcode scan failed", "artifactID", i.ID, "error", scanErr)
+	} else if len(codes) > 0 {
+		if saveErr := saveScannedCodes(codes); saveErr != nil {
+			Log.Warnw("failed to save scanned codes", "artifactID", i.ID, "error", saveErr)
+		}
+	}
 
 	return
 }

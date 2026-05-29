@@ -178,8 +178,23 @@ func CreateRecord(ctx context.Context, input *struct {
 		return
 	}
 
+	// Auto-populate ReferenceNumber from the first scanned code on attached artifacts
+	// when the caller didn't supply one.
+	if record.ReferenceNumber == nil && len(record.Artifacts) > 0 {
+		for _, a := range record.Artifacts {
+			codes, codesErr := getScannedCodesForArtifact(a.ID)
+			if codesErr == nil && len(codes) > 0 {
+				if chkErr := checkReferenceNumberAvailable(codes[0].Value, userID, nil); chkErr == nil {
+					record.ReferenceNumber = &codes[0].Value
+					db.Model(&record).Update("reference_number", codes[0].Value)
+				}
+				break
+			}
+		}
+	}
+
 	textModel, _, _, _ := effectiveInfinityConfig(user)
-	EnqueueEmbeddingJob(JobTypeRecord, record.ID, userID, username, textModel, "store")
+	EnqueueEmbeddingJob(JobTypeRecord, record.ID, userID, username, textModel, "store", effectiveMaxEmbeddingDimensions(user))
 	err = nil
 	output = &RecordOutput{
 		Body: record,
