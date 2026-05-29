@@ -28,20 +28,37 @@ type ArtifactSuggestionBody struct {
 func GetArtifactSuggestionHandler(ctx context.Context, input *struct {
 	ID uint `path:"id"`
 }) (output *struct{ Body ArtifactSuggestionBody }, err error) {
-	_, user, userID, _ := UserFromContext(ctx)
-	_, model, _, _, _ := effectiveOllamaConfig(user)
+	username, user, userID, _ := UserFromContext(ctx)
+	_, ollamaModel, currentPrompt, _, _ := effectiveOllamaConfig(user)
+	_, textModel, _, _ := effectiveInfinityConfig(user)
+	currentPromptHash := InputHash(currentPrompt)
 
-	s, err := GetArtifactSuggestion(input.ID, model)
+	s, err := GetArtifactSuggestion(input.ID, ollamaModel)
 	if err != nil {
 		return
 	}
 	if s == nil {
 		// Not cached — enqueue lazily and signal pending.
-		_, ollamaModel, _, _, _ := effectiveOllamaConfig(user)
-		EnqueueSuggestionJob(input.ID, userID, UsernameFromContext(ctx), ollamaModel, "request")
+		EnqueueSuggestionJob(input.ID, userID, username, ollamaModel, "request")
 		output = &struct{ Body ArtifactSuggestionBody }{Body: ArtifactSuggestionBody{Status: "pending"}}
 		return
 	}
+
+	// Check staleness: prompt changed or text embedding missing.
+	stale := s.PromptHash != currentPromptHash
+	if !stale {
+		var embCount int64
+		db.Model(&Embedding{}).
+			Where("artifact_id = ? AND embed_model = ?", input.ID, textModel).
+			Count(&embCount)
+		stale = embCount == 0
+	}
+	if stale {
+		EnqueueSuggestionJob(input.ID, userID, username, ollamaModel, "request")
+		output = &struct{ Body ArtifactSuggestionBody }{Body: ArtifactSuggestionBody{Status: "stale"}}
+		return
+	}
+
 	output = &struct{ Body ArtifactSuggestionBody }{Body: ArtifactSuggestionBody{
 		Status:      "ready",
 		Name:        s.Name,

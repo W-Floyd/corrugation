@@ -598,7 +598,7 @@ async function loadPlaceholderSuggestion(): Promise<void> {
   if (!artifactId || !isDataless.value) return;
   const s = await api.getArtifactSuggestion(artifactId);
   if (!s) return;
-  if (s.status === "pending") {
+  if (s.status === "pending" || s.status === "stale") {
     placeholderPending.value = true;
   } else if (s.status === "ready" && s.name) {
     placeholderPending.value = false;
@@ -661,7 +661,7 @@ async function fetchSuggestion(): Promise<void> {
   suggestionPanelOpen.value = true;
   try {
     const s = await api.getArtifactSuggestion(artifactId);
-    if (s?.status === "pending") {
+    if (s?.status === "pending" || s?.status === "stale") {
       suggestion.value = null;
       suggestionPending.value = true;
     } else if (s?.status === "ready") {

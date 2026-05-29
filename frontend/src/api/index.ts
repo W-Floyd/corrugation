@@ -458,7 +458,7 @@ export const api = {
   },
 
   async getArtifactSuggestion(id: number): Promise<{
-    status: "ready" | "pending";
+    status: "ready" | "pending" | "stale";
     name?: string;
     description?: string;
     quantity?: number;
