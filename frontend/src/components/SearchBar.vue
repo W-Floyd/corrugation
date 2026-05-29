@@ -7,6 +7,7 @@ import EarthIcon from "vue-material-design-icons/Earth.vue";
 import TextBoxSearchIcon from "vue-material-design-icons/TextBoxSearch.vue";
 import ImageSearchIcon from "vue-material-design-icons/ImageSearch.vue";
 import TextSearchIcon from "vue-material-design-icons/TextSearch.vue";
+import BrainIcon from "vue-material-design-icons/Brain.vue";
 import { useRecordsStore } from "@/stores/records";
 
 const props = defineProps<{ showHint?: boolean }>();
@@ -144,6 +145,25 @@ onBeforeUnmount(() => {
           :size="16"
         />
         <KbdHint contents="I" :show="props.showHint" :center="true" />
+      </label>
+    </div>
+
+    <!-- Suggestion embedding toggle -->
+    <div class="flex items-center">
+      <label
+        class="relative flex cursor-pointer items-center"
+        title="Use Ollama suggestion embeddings in search"
+      >
+        <input
+          type="checkbox"
+          v-model="recordsStore.searchSuggested"
+          class="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+        />
+        <BrainIcon
+          class="relative ml-1 text-sm text-gray-600 dark:text-gray-400"
+          :size="16"
+        />
+        <KbdHint contents="S" :show="props.showHint" :center="true" />
       </label>
     </div>
 

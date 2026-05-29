@@ -139,6 +139,7 @@ export const api = {
       searchImage?: boolean;
       searchTextEmbedded?: boolean;
       searchTextSubstring?: boolean;
+      searchSuggested?: boolean;
     } = {},
   ): Promise<{
     results: {
@@ -160,6 +161,7 @@ export const api = {
       params.set("searchTextEmbedded", "true");
     if (opts.searchTextSubstring !== false)
       params.set("searchTextSubstring", "true");
+    if (opts.searchSuggested !== false) params.set("searchSuggested", "true");
     const response = await apiFetch(`/api/records?${params}`);
     const partial = response.status === 207;
     const records: BackendRecord[] = await response.json();

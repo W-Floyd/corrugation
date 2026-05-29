@@ -21,6 +21,7 @@ export const useRecordsStore = defineStore("records", () => {
   const searchImage = ref(true);
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
+  const searchSuggested = ref(true);
   const apiSearchResults = ref<BackendRecord[]>([]);
   const apiSearchResultsPartial = ref<boolean>(false);
   const apiSearchScores = ref<
@@ -363,6 +364,7 @@ export const useRecordsStore = defineStore("records", () => {
             searchImage: searchImage.value,
             searchTextEmbedded: searchTextEmbedded.value,
             searchTextSubstring: searchTextSubstring.value,
+            searchSuggested: searchSuggested.value,
           });
           if (partial) {
             const scope: PartialScope = {
@@ -492,6 +494,7 @@ export const useRecordsStore = defineStore("records", () => {
     searchImage,
     searchTextEmbedded,
     searchTextSubstring,
+    searchSuggested,
     apiSearchResults,
     apiSearchResultsPartial,
     apiSearchScores,

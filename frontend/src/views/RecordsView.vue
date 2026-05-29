@@ -281,6 +281,14 @@ const handleKeydown = (e: KeyboardEvent): void => {
       }
       break;
 
+    case "s":
+    case "S":
+      if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        recordsStore.searchSuggested = !recordsStore.searchSuggested;
+      }
+      break;
+
     case "w":
     case "W":
       if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
