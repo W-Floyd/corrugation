@@ -1248,7 +1248,7 @@ onMounted(() => {
             <button
               @click="clearJobsByStatus('pending')"
               :disabled="jobsLoading"
-              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
             >
               Clear pending
             </button>
@@ -1262,7 +1262,7 @@ onMounted(() => {
             <button
               @click="clearJobsByStatus('failed')"
               :disabled="jobsLoading"
-              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
             >
               Clear failed
             </button>
@@ -1463,7 +1463,7 @@ onMounted(() => {
             <button
               @click="clearSuggestionJobsByStatus('pending')"
               :disabled="suggestionJobsLoading"
-              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
             >
               Clear pending
             </button>
@@ -1477,7 +1477,7 @@ onMounted(() => {
             <button
               @click="clearSuggestionJobsByStatus('failed')"
               :disabled="suggestionJobsLoading"
-              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
             >
               Clear failed
             </button>
