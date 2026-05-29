@@ -23,6 +23,8 @@ type BytesOutput struct {
 
 func RegisterHandlers(api huma.API) {
 
+	huma.Register(api, GetCapabilitiesOperation, GetCapabilities)
+
 	huma.Register(api, GetAuthConfigOperation, GetAuthConfigHandler)
 	huma.Register(api, LoginLocalOperation, LoginLocalHandler)
 	huma.Register(api, GetMeOperation, GetMeHandler)
@@ -42,10 +44,16 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, FlushStaleEmbeddingsOperation, FlushStaleEmbeddings)
 	huma.Register(api, GetEmbeddingProgressOperation, GetEmbeddingProgress)
 	huma.Register(api, GetSearchEmbeddingProgressOperation, GetSearchEmbeddingProgress)
+	huma.Register(api, ListEmbeddingJobsOperation, ListEmbeddingJobs)
+	huma.Register(api, DeletePendingEmbeddingJobsOperation, DeletePendingEmbeddingJobs)
+	huma.Register(api, DeleteEmbeddingJobOperation, DeleteEmbeddingJob)
+	huma.Register(api, InvalidateUserEmbeddingsOperation, InvalidateUserEmbeddings)
 
 	huma.Register(api, CreateArtifactOperation, CreateArtifact)
 	huma.Register(api, GetArtifactOperation, GetArtifact)
 	huma.Register(api, DeleteArtifactOperation, DeleteArtifact)
+	huma.Register(api, GetArtifactScannedCodesOperation, GetArtifactScannedCodes)
+	huma.Register(api, GetRecordScannedCodesOperation, GetRecordScannedCodes)
 
 	huma.Register(api, GetGlobalConfigOperation, GetGlobalConfig)
 	huma.Register(api, PutGlobalConfigOperation, PutGlobalConfig)
@@ -54,6 +62,10 @@ func RegisterHandlers(api huma.API) {
 
 	huma.Register(api, ListUsersOperation, ListUsers)
 	huma.Register(api, SetUserAdminOperation, SetUserAdmin)
+
+	huma.Register(api, GetBackfillPreviewOperation, GetBackfillPreview)
+	huma.Register(api, RunRecordBackfillOperation, RunRecordBackfill)
+	huma.Register(api, RunArtifactBackfillOperation, RunArtifactBackfill)
 
 	// Image search endpoint
 	huma.Register(api, SearchByImageOperation, SearchByImageHandler)
