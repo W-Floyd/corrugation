@@ -1246,18 +1246,18 @@ onMounted(() => {
           </label>
           <div class="ml-auto flex gap-2">
             <button
-              @click="clearJobsByStatus('pending')"
-              :disabled="jobsLoading"
-              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
-            >
-              Clear pending
-            </button>
-            <button
               @click="clearJobsByStatus('done')"
               :disabled="jobsLoading"
               class="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-400 dark:hover:bg-green-900"
             >
               Clear done
+            </button>
+            <button
+              @click="clearJobsByStatus('pending')"
+              :disabled="jobsLoading"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+            >
+              Clear pending
             </button>
             <button
               @click="clearJobsByStatus('failed')"
@@ -1461,18 +1461,18 @@ onMounted(() => {
           </label>
           <div class="ml-auto flex gap-2">
             <button
-              @click="clearSuggestionJobsByStatus('pending')"
-              :disabled="suggestionJobsLoading"
-              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
-            >
-              Clear pending
-            </button>
-            <button
               @click="clearSuggestionJobsByStatus('done')"
               :disabled="suggestionJobsLoading"
               class="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-400 dark:hover:bg-green-900"
             >
               Clear done
+            </button>
+            <button
+              @click="clearSuggestionJobsByStatus('pending')"
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+            >
+              Clear pending
             </button>
             <button
               @click="clearSuggestionJobsByStatus('failed')"
