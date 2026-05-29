@@ -582,6 +582,49 @@ const suggestion = ref<Suggestion | null>(null);
 const suggestionLoading = ref(false);
 const suggestionPanelOpen = ref(false);
 
+const isDataless = computed(
+  () =>
+    !props.appRecord.Title &&
+    !props.appRecord.Description &&
+    !props.appRecord.ReferenceNumber,
+);
+
+const placeholderSuggestion = ref<Suggestion | null>(null);
+
+async function loadPlaceholderSuggestion(): Promise<void> {
+  const artifactId = props.appRecord.Artifacts?.[0]?.ID;
+  if (!artifactId || !isDataless.value) return;
+  const s = await api.getArtifactSuggestion(artifactId);
+  if (s) placeholderSuggestion.value = s;
+}
+
+watch(
+  () => isDataless.value && !!props.appRecord.Artifacts?.length,
+  (should) => {
+    if (should && !placeholderSuggestion.value) loadPlaceholderSuggestion();
+  },
+  { immediate: true },
+);
+
+// Path segments for search display — leaf node overridden with suggestion name when dataless.
+const displayPathSegments = computed(() => {
+  const segs = formatOptionSegments(props.appRecord.ID);
+  if (isDataless.value && placeholderSuggestion.value && segs.length > 0) {
+    const last = segs[segs.length - 1];
+    if (!last.isRef) {
+      return [
+        ...segs.slice(0, -1),
+        {
+          text: placeholderSuggestion.value.name,
+          isRef: false,
+          isPlaceholder: true,
+        },
+      ];
+    }
+  }
+  return segs.map((s) => ({ ...s, isPlaceholder: false }));
+});
+
 async function fetchSuggestion(): Promise<void> {
   const artifactId = props.appRecord.Artifacts?.[0]?.ID;
   if (!artifactId) return;
@@ -833,15 +876,15 @@ defineExpose({ cardEl });
         >
           <div class="text-xl font-bold" :title="`ID: ${appRecord.ID}`">
             <template v-if="recordsStore.searchtext.trim()">
-              <template
-                v-for="(seg, i) in formatOptionSegments(appRecord.ID)"
-                :key="i"
+              <template v-for="(seg, i) in displayPathSegments" :key="i"
                 ><span v-if="i > 0">/</span
                 ><span
                   :class="
                     seg.isRef
                       ? 'font-mono text-blue-600 dark:text-blue-400'
-                      : ''
+                      : seg.isPlaceholder
+                        ? 'text-gray-300 italic dark:text-gray-600'
+                        : ''
                   "
                   >{{ seg.text }}</span
                 ></template
@@ -862,8 +905,12 @@ defineExpose({ cardEl });
                 }}</span>
               </span>
               <span
-                v-else-if="!appRecord.ReferenceNumber"
-                class="font-normal text-gray-400 dark:text-gray-500"
+                v-else-if="placeholderSuggestion"
+                class="font-normal text-gray-300 italic dark:text-gray-600"
+                :title="`AI suggestion: ${placeholderSuggestion.name}`"
+                >{{ placeholderSuggestion.name }}</span
+              >
+              <span v-else class="font-normal text-gray-400 dark:text-gray-500"
                 >({{ appRecord.ID }})</span
               >
             </template>
@@ -958,6 +1005,18 @@ defineExpose({ cardEl });
       <div v-if="!editMode && appRecord.Description">
         <p class="text-gray-600 dark:text-gray-400">
           {{ appRecord.Description }}
+        </p>
+      </div>
+      <div
+        v-else-if="
+          !editMode && isDataless && placeholderSuggestion?.description
+        "
+      >
+        <p
+          class="text-gray-300 italic dark:text-gray-600"
+          :title="`AI suggestion: ${placeholderSuggestion.description}`"
+        >
+          {{ placeholderSuggestion.description }}
         </p>
       </div>
       <div v-else-if="editMode">
