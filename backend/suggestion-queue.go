@@ -356,6 +356,7 @@ func backfillArtifactSuggestions() error {
 	err := db.Model(&Artifact{}).
 		Select("artifacts.id, artifacts.owner_id").
 		Where("record_id IS NOT NULL").
+		Where("record_id IN (SELECT id FROM records)").
 		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ?)", model).
 		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL)").
 		Where("id NOT IN (SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
