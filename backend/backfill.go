@@ -92,19 +92,24 @@ func backfillRecordEmbeddings() (err error) {
 			u = userByID[key.id]
 		}
 		textModel, _, _, docPrefix := effectiveInfinityConfig(&u)
+		maxDims := effectiveMaxEmbeddingDimensions(&u)
 		ctx := context.WithValue(dbCtx, usernameContextKey, u.Username)
-		backfillRecordEmbeddingsForUser(ctx, textModel, docPrefix, ownerRecords)
+		backfillRecordEmbeddingsForUser(ctx, textModel, docPrefix, maxDims, ownerRecords)
 	}
 	return
 }
 
-func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix string, records []Record) (err error) {
+func backfillRecordEmbeddingsForUser(ctx context.Context, textModel, docPrefix string, maxDims *uint, records []Record) (err error) {
 	recordIDs := make([]uint, len(records))
 	for i, r := range records {
 		recordIDs[i] = r.ID
 	}
 
-	embeddings, err := gorm.G[Embedding](db).Where("record_id IN ? AND embed_model = ?", recordIDs, textModel).Find(dbCtx)
+	q := gorm.G[Embedding](db).Where("record_id IN ? AND embed_model = ?", recordIDs, textModel)
+	if maxDims != nil {
+		q = q.Where("dimensions = ?", *maxDims)
+	}
+	embeddings, err := q.Find(dbCtx)
 	if err != nil {
 		Log.Errorw("backfill: failed to fetch embeddings", "model", textModel, "error", err)
 		return
@@ -155,28 +160,73 @@ func backfillArtifactOwners() (err error) {
 }
 
 func backfillArtifactEmbeddings() (err error) {
-	embeddings, err := gorm.G[Embedding](db).Where("artifact_id IS NOT NULL AND embed_model = ?", infinityImageModel).Find(dbCtx)
-	if err != nil {
-		Log.Errorw("backfill: failed to fetch artifact embeddings", "error", err)
-		return
-	}
-	embeddedIDs := map[uint]bool{}
-	for _, e := range embeddings {
-		if e.ArtifactID != nil {
-			embeddedIDs[*e.ArtifactID] = true
-		}
-	}
-
-	artifacts, err := gorm.G[Artifact](db).Select("id").Find(dbCtx)
+	artifacts, err := gorm.G[Artifact](db).Select("id, owner_id").Find(dbCtx)
 	if err != nil {
 		Log.Errorw("backfill: failed to fetch artifacts", "error", err)
 		return
 	}
-	artifactIDs := make([]uint, len(artifacts))
-	for i, a := range artifacts {
-		artifactIDs[i] = a.ID
+
+	ownerIDSet := map[uint]bool{}
+	for _, a := range artifacts {
+		if a.OwnerID != nil {
+			ownerIDSet[*a.OwnerID] = true
+		}
+	}
+	ownerIDs := make([]uint, 0, len(ownerIDSet))
+	for id := range ownerIDSet {
+		ownerIDs = append(ownerIDs, id)
+	}
+	var owners []User
+	if len(ownerIDs) > 0 {
+		if err = db.Where("id IN ?", ownerIDs).Find(&owners).Error; err != nil {
+			Log.Errorw("backfill: failed to fetch artifact owners", "error", err)
+			return
+		}
+	}
+	userByID := map[uint]User{}
+	for _, u := range owners {
+		userByID[u.ID] = u
 	}
 
-	generateMissingArtifactEmbeddings(dbCtx, artifactIDs, embeddedIDs, "backfill")
+	type ownerKey struct {
+		valid bool
+		id    uint
+	}
+	byOwner := map[ownerKey][]uint{}
+	for _, a := range artifacts {
+		var key ownerKey
+		if a.OwnerID != nil {
+			key = ownerKey{true, *a.OwnerID}
+		}
+		byOwner[key] = append(byOwner[key], a.ID)
+	}
+
+	for key, ids := range byOwner {
+		var u User
+		if key.valid {
+			u = userByID[key.id]
+		}
+		_, imageModel, _, _ := effectiveInfinityConfig(&u)
+		maxDims := effectiveMaxEmbeddingDimensions(&u)
+		ctx := context.WithValue(dbCtx, usernameContextKey, u.Username)
+
+		q := gorm.G[Embedding](db).Where("artifact_id IN ? AND embed_model = ?", ids, imageModel)
+		if maxDims != nil {
+			q = q.Where("dimensions = ?", *maxDims)
+		}
+		embeddings, fetchErr := q.Find(dbCtx)
+		if fetchErr != nil {
+			Log.Errorw("backfill: failed to fetch artifact embeddings", "error", fetchErr)
+			err = fetchErr
+			return
+		}
+		embeddedIDs := map[uint]bool{}
+		for _, e := range embeddings {
+			if e.ArtifactID != nil {
+				embeddedIDs[*e.ArtifactID] = true
+			}
+		}
+		generateMissingArtifactEmbeddings(ctx, ids, embeddedIDs, "backfill")
+	}
 	return
 }

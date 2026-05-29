@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"image"
 	"io"
 	"net/http"
@@ -164,7 +163,7 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 		if cached, ok := embeddingsCache.Load(*r.EmbeddingHash); ok {
 			recordVec = cached.(Embeddings)
 		} else {
-			if err = json.Unmarshal(*r.EmbeddingData, &recordVec); err != nil {
+			if recordVec, err = UnmarshalEmbeddings(*r.EmbeddingData); err != nil {
 				Log.Error(err)
 				return
 			}

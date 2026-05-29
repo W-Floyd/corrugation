@@ -12,6 +12,7 @@ type Embedding struct {
 	RecordID   *uint  `gorm:"index:idx_composite,priority:1"`
 	ArtifactID *uint  `gorm:"index:idx_composite,priority:1"`
 	EmbedModel string `gorm:"not null;index:idx_composite,priority:2"`
+	Dimensions uint   `gorm:"not null;default:0;index:idx_composite,priority:3"`
 	Data       []byte `gorm:"not null"`
 	Hash       string `gorm:"not null"`
 }
@@ -21,6 +22,8 @@ func saveEmbedding(recordID *uint, artifactID *uint, e Embeddings, model string,
 		return errors.New("saveEmbedding: both recordID and artifactID are nil")
 	}
 
+	dims := uint(len(e))
+
 	hash, data, err := e.MarshalEmbeddings(input)
 	if err != nil {
 		return err
@@ -28,9 +31,9 @@ func saveEmbedding(recordID *uint, artifactID *uint, e Embeddings, model string,
 
 	var existing []Embedding
 	if recordID != nil {
-		existing, err = gorm.G[Embedding](db).Where("record_id = ? AND embed_model = ?", *recordID, model).Find(dbCtx)
+		existing, err = gorm.G[Embedding](db).Where("record_id = ? AND embed_model = ? AND dimensions = ?", *recordID, model, dims).Find(dbCtx)
 	} else {
-		existing, err = gorm.G[Embedding](db).Where("artifact_id = ? AND embed_model = ?", *artifactID, model).Find(dbCtx)
+		existing, err = gorm.G[Embedding](db).Where("artifact_id = ? AND embed_model = ? AND dimensions = ?", *artifactID, model, dims).Find(dbCtx)
 	}
 	if err != nil {
 		return err
@@ -48,6 +51,7 @@ func saveEmbedding(recordID *uint, artifactID *uint, e Embeddings, model string,
 		RecordID:   recordID,
 		ArtifactID: artifactID,
 		EmbedModel: model,
+		Dimensions: dims,
 		Data:       data,
 		Hash:       hash,
 	}

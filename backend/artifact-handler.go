@@ -73,7 +73,7 @@ func GetArtifact(ctx context.Context, input *struct {
 	}
 
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
-	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, userID, username, imageModel, "search")
+	EnqueueEmbeddingJob(JobTypeArtifact, artifact.ID, userID, username, imageModel, "search", effectiveMaxEmbeddingDimensions(user))
 
 	etag := fmt.Sprintf(`"%d"`, artifact.UpdatedAt.UnixMilli())
 

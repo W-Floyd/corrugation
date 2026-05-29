@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"sync"
@@ -18,6 +20,7 @@ type infinityEmbeddingsRequest struct {
 	EncodingFormat string   `json:"encoding_format"`
 	Input          []string `json:"input"`
 	Modality       string   `json:"modality"`
+	Dimensions     uint     `json:"dimensions,omitempty"`
 }
 
 type infinityEmbeddingsReponse struct {
@@ -81,8 +84,9 @@ func GenerateTextDocumentEmbeddingsCtx(ctx context.Context, input string) (e Emb
 		return
 	}
 	textModel, _, _, docPrefix := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
 	fullInput = docPrefix + input
-	e, err = generateTextEmbeddings(fullInput, textModel)
+	e, err = generateTextEmbeddings(fullInput, textModel, maxDims)
 	return
 }
 
@@ -92,7 +96,8 @@ func GenerateTextQueryEmbeddingsCtx(ctx context.Context, input string) (embeddin
 		return
 	}
 	textModel, _, queryPrefix, _ := effectiveInfinityConfig(user)
-	embeddings, err = generateTextEmbeddings(queryPrefix+input, textModel)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
+	embeddings, err = generateTextEmbeddings(queryPrefix+input, textModel, maxDims)
 	return
 }
 
@@ -101,19 +106,38 @@ func GenerateImageQueryEmbeddingsCtx(ctx context.Context, input string) (embeddi
 	if err != nil {
 		return
 	}
-	_, imageModel, _, _ := effectiveInfinityConfig(user)
-	embeddings, err = generateTextEmbeddings(input, imageModel)
+	_, imageModel, queryPrefix, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
+	// Text query searching images: use text modality for cross-modal search
+	embeddings, err = generateTextEmbeddings(queryPrefix+input, imageModel, maxDims)
 	return
 }
 
-func generateTextEmbeddings(input string, model string) (e Embeddings, err error) {
-	infinityRequest := infinityEmbeddingsRequest{
+func generateTextEmbeddings(input, model string, maxDims *uint) (e Embeddings, err error) {
+	req := infinityEmbeddingsRequest{
 		Model:          model,
 		EncodingFormat: "float",
 		Input:          []string{input},
 		Modality:       "text",
 	}
-	e, err = infinityRequest.GenerateEmbeddings()
+	if maxDims != nil {
+		req.Dimensions = *maxDims
+	}
+	e, err = req.GenerateEmbeddings()
+	return
+}
+
+func generateImageEmbeddings(input, model string, maxDims *uint) (e Embeddings, err error) {
+	req := infinityEmbeddingsRequest{
+		Model:          model,
+		EncodingFormat: "float",
+		Input:          []string{input},
+		Modality:       "image",
+	}
+	if maxDims != nil {
+		req.Dimensions = *maxDims
+	}
+	e, err = req.GenerateEmbeddings()
 	return
 }
 
@@ -132,18 +156,12 @@ func (i *Image) GenerateEmbeddings(ctx context.Context) (err error) {
 		return
 	}
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
 
 	base64Image := base64.StdEncoding.EncodeToString(*i.Data)
 	base64Image = "data:" + http.DetectContentType(*i.Data) + ";base64," + base64Image
 
-	infinityRequest := infinityEmbeddingsRequest{
-		Model:          imageModel,
-		EncodingFormat: "float",
-		Input:          []string{base64Image},
-		Modality:       "image",
-	}
-
-	e, err := infinityRequest.GenerateEmbeddings()
+	e, err := generateImageEmbeddings(base64Image, imageModel, maxDims)
 	if err != nil {
 		return
 	}
@@ -182,15 +200,24 @@ func InputHash(input string) string {
 	return string(h.Sum(nil))
 }
 
-func (e *Embeddings) MarshalEmbeddings(input string) (hash string, jsonData []byte, err error) {
-	jsonData, err = json.Marshal(*e)
-	if err != nil {
-		return
+func (e *Embeddings) MarshalEmbeddings(input string) (hash string, data []byte, err error) {
+	data = make([]byte, len(*e)*8)
+	for i, f := range *e {
+		binary.NativeEndian.PutUint64(data[i*8:], math.Float64bits(f))
 	}
 
 	hash = InputHash(input)
-
 	embeddingsCache.LoadOrStore(hash, *e)
-
 	return
+}
+
+func UnmarshalEmbeddings(data []byte) (Embeddings, error) {
+	if len(data)%8 != 0 {
+		return nil, errors.New("embedding data length is not a multiple of 8")
+	}
+	e := make(Embeddings, len(data)/8)
+	for i := range e {
+		e[i] = math.Float64frombits(binary.NativeEndian.Uint64(data[i*8:]))
+	}
+	return e, nil
 }

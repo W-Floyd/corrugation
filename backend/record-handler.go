@@ -254,7 +254,7 @@ func UpdateRecord(ctx context.Context, input *struct {
 		return
 	}
 	textModel, _, _, _ := effectiveInfinityConfig(user)
-	EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
+	EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store", effectiveMaxEmbeddingDimensions(user))
 
 	output = &RecordOutput{Body: r}
 	return
@@ -368,7 +368,7 @@ func PatchRecord(ctx context.Context, input *struct {
 		}
 		textModel, _, _, _ := effectiveInfinityConfig(user)
 
-		EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store")
+		EnqueueEmbeddingJob(JobTypeRecord, r.ID, userID, username, textModel, "store", effectiveMaxEmbeddingDimensions(user))
 	}
 
 	output = &RecordOutput{Body: r}

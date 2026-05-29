@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -83,10 +82,9 @@ func (record *Record) PrettyString() (output string) {
 	return
 }
 
-// GetRecordEmbeddings returns text embeddings for the given record IDs.
-// Only jobs for those specific IDs are enqueued and waited on, so partial
-// reflects completeness within the requested scope only.
-func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]float64, partial bool, err error) {
+// GetRecordEmbeddings returns text embeddings for the given record IDs filtered
+// to the specified dimensions. dims=0 means no dimension filter (any stored dims).
+func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint, dims uint) (e map[uint][]float64, partial bool, err error) {
 	_, user, _, err := UserFromContext(ctx)
 	if err != nil {
 		return
@@ -97,8 +95,12 @@ func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]fl
 		return map[uint][]float64{}, false, nil
 	}
 
+	q := db.Where("record_id IN ? AND embed_model = ?", scopedIDs, textModel)
+	if dims > 0 {
+		q = q.Where("dimensions = ?", dims)
+	}
 	var embeddings []Embedding
-	if err = db.Where("record_id IN ? AND embed_model = ?", scopedIDs, textModel).Find(&embeddings).Error; err != nil {
+	if err = q.Find(&embeddings).Error; err != nil {
 		return
 	}
 
@@ -113,9 +115,12 @@ func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint) (e map[uint][]fl
 		if cached, ok := embeddingsCache.Load(emb.Hash); ok {
 			vec = cached.(Embeddings)
 		} else {
-			if err = json.Unmarshal(emb.Data, &vec); err != nil {
+			parsed, parseErr := UnmarshalEmbeddings(emb.Data)
+			if parseErr != nil {
+				err = parseErr
 				return
 			}
+			vec = parsed
 			embeddingsCache.Store(emb.Hash, Embeddings(vec))
 		}
 		e[*emb.RecordID] = vec
@@ -146,10 +151,11 @@ func generateMissingRecordEmbeddings(ctx context.Context, recordIDs []uint, embe
 		return
 	}
 	textModel, _, _, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
 
 	for _, id := range recordIDs {
 		if !embeddedIDs[id] {
-			EnqueueEmbeddingJob(JobTypeRecord, id, userID, username, textModel, source)
+			EnqueueEmbeddingJob(JobTypeRecord, id, userID, username, textModel, source, maxDims)
 			enqueued = append(enqueued, id)
 		}
 	}

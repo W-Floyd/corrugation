@@ -3,7 +3,6 @@ package backend
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"math"
@@ -406,7 +405,9 @@ type artifactEmbedding struct {
 	recordID  *uint
 }
 
-func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint) (e map[uint]*artifactEmbedding, partial bool, err error) {
+// GetArtifactEmbeddings returns image embeddings for the given artifact map filtered
+// to the specified dimensions. dims=0 means no dimension filter (any stored dims).
+func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint, dims uint) (e map[uint]*artifactEmbedding, partial bool, err error) {
 
 	artifactIDs := make([]uint, 0, len(artifactRecordMap))
 	for id := range artifactRecordMap {
@@ -414,7 +415,11 @@ func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint
 	}
 
 	loadEmbeddings := func(ids []uint) error {
-		embeddings, fetchErr := gorm.G[Embedding](db).Where("artifact_id IN ? AND embed_model = ?", ids, infinityImageModel).Find(dbCtx)
+		q := gorm.G[Embedding](db).Where("artifact_id IN ? AND embed_model = ?", ids, infinityImageModel)
+		if dims > 0 {
+			q = q.Where("dimensions = ?", dims)
+		}
+		embeddings, fetchErr := q.Find(dbCtx)
 		if fetchErr != nil {
 			return fetchErr
 		}
@@ -426,9 +431,11 @@ func GetArtifactEmbeddings(ctx context.Context, artifactRecordMap map[uint]*uint
 			if cached, ok := embeddingsCache.Load(emb.Hash); ok {
 				vec = cached.(Embeddings)
 			} else {
-				if jsonErr := json.Unmarshal(emb.Data, &vec); jsonErr != nil {
+				parsed, parseErr := UnmarshalEmbeddings(emb.Data)
+				if parseErr != nil {
 					continue
 				}
+				vec = parsed
 				embeddingsCache.Store(emb.Hash, Embeddings(vec))
 			}
 			e[*emb.ArtifactID] = &artifactEmbedding{
@@ -467,9 +474,10 @@ func generateMissingArtifactEmbeddings(ctx context.Context, artifactIDs []uint, 
 		return
 	}
 	_, imageModel, _, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
 	for _, id := range artifactIDs {
 		if !embeddedIDs[id] {
-			EnqueueEmbeddingJob(JobTypeArtifact, id, userID, username, imageModel, source)
+			EnqueueEmbeddingJob(JobTypeArtifact, id, userID, username, imageModel, source, maxDims)
 			enqueued = append(enqueued, id)
 		}
 	}

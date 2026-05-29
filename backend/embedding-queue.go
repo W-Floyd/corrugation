@@ -61,6 +61,7 @@ type EmbeddingJob struct {
 	ErrorMsg   string
 	RetryCount int
 	EmbedModel string `gorm:"not null;index:idx_embedding_job_dedup"`
+	Dimensions *uint  // nil = use model default; positive = requested cap passed to Infinity
 	Source     string // "store", "search", "backfill"
 }
 
@@ -95,18 +96,23 @@ func retryFailedJobs() {
 var embeddingJobQueue = make(chan uint, 4096)
 var embeddingSearchJobQueue = make(chan uint, 4096)
 
-// EnqueueEmbeddingJob creates a job if no pending/processing job exists for the same target+model.
+// EnqueueEmbeddingJob creates a job if no pending/processing job exists for the same target+model+dims.
 // the worker fast-path handles the case where the embedding already exists.
-func EnqueueEmbeddingJob(jobType string, targetID uint, ownerID *uint, username, embedModel, source string) {
+func EnqueueEmbeddingJob(jobType string, targetID uint, ownerID *uint, username, embedModel, source string, maxDims *uint) {
 	if db == nil {
 		return
 	}
 
 	var count int64
-	db.Model(&EmbeddingJob{}).
+	q := db.Model(&EmbeddingJob{}).
 		Where("job_type = ? AND target_id = ? AND embed_model = ? AND status IN ?",
-			jobType, targetID, embedModel, []string{JobStatusPending, JobStatusProcessing}).
-		Count(&count)
+			jobType, targetID, embedModel, []string{JobStatusPending, JobStatusProcessing})
+	if maxDims != nil {
+		q = q.Where("dimensions = ?", *maxDims)
+	} else {
+		q = q.Where("dimensions IS NULL")
+	}
+	q.Count(&count)
 	if count > 0 {
 		return
 	}
@@ -118,6 +124,7 @@ func EnqueueEmbeddingJob(jobType string, targetID uint, ownerID *uint, username,
 		Username:   username,
 		Status:     JobStatusPending,
 		EmbedModel: embedModel,
+		Dimensions: maxDims,
 		Source:     source,
 	}
 	if err := db.Create(&job).Error; err != nil {
@@ -212,12 +219,20 @@ func processEmbeddingJob(jobID uint) {
 		return
 	}
 
-	// Fast dedup: skip if embedding already exists for this target+model
+	// Fast dedup: skip if embedding already exists for this target+model+dims
 	var count int64
 	if job.JobType == JobTypeArtifact {
-		db.Model(&Embedding{}).Where("artifact_id = ? AND embed_model = ?", job.TargetID, job.EmbedModel).Count(&count)
+		q := db.Model(&Embedding{}).Where("artifact_id = ? AND embed_model = ?", job.TargetID, job.EmbedModel)
+		if job.Dimensions != nil {
+			q = q.Where("dimensions = ?", *job.Dimensions)
+		}
+		q.Count(&count)
 	} else {
-		db.Model(&Embedding{}).Where("record_id = ? AND embed_model = ?", job.TargetID, job.EmbedModel).Count(&count)
+		q := db.Model(&Embedding{}).Where("record_id = ? AND embed_model = ?", job.TargetID, job.EmbedModel)
+		if job.Dimensions != nil {
+			q = q.Where("dimensions = ?", *job.Dimensions)
+		}
+		q.Count(&count)
 	}
 	if count > 0 {
 		db.Model(&job).Update("status", JobStatusDone)

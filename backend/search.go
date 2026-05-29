@@ -26,12 +26,12 @@ func SearchByArtifact(ctx context.Context, search string, artifactRecordMap map[
 	id    uint
 	score float64
 }, partial bool, err error) {
-	es, partial, err := GetArtifactEmbeddings(ctx, artifactRecordMap)
+	searchEmbeddings, err := GenerateImageQueryEmbeddingsCtx(ctx, search)
 	if err != nil {
 		return
 	}
 
-	searchEmbeddings, err := GenerateImageQueryEmbeddingsCtx(ctx, search)
+	es, partial, err := GetArtifactEmbeddings(ctx, artifactRecordMap, uint(len(searchEmbeddings)))
 	if err != nil {
 		return
 	}
@@ -58,12 +58,12 @@ func SearchByRecord(ctx context.Context, search string, scopedIDs []uint) (recor
 	id    uint
 	score float64
 }, partial bool, err error) {
-	es, partial, err := GetRecordEmbeddings(ctx, scopedIDs)
+	searchEmbeddings, err := GenerateTextQueryEmbeddingsCtx(ctx, search)
 	if err != nil {
 		return
 	}
 
-	searchEmbeddings, err := GenerateTextQueryEmbeddingsCtx(ctx, search)
+	es, partial, err := GetRecordEmbeddings(ctx, scopedIDs, uint(len(searchEmbeddings)))
 	if err != nil {
 		return
 	}
