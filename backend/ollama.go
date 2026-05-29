@@ -20,7 +20,7 @@ type ollamaGenerateRequest struct {
 	Prompt  string         `json:"prompt"`
 	Images  []string       `json:"images"`
 	Stream  bool           `json:"stream"`
-	Format  string         `json:"format"`
+	Format  any            `json:"format"`
 	Options map[string]any `json:"options,omitempty"`
 }
 
@@ -88,12 +88,21 @@ Respond with valid JSON only. No explanation, no markdown.`
 func generateItemSuggestions(address, model string, numCtx int, imageData []byte) (ItemSuggestions, error) {
 	b64 := base64.StdEncoding.EncodeToString(imageData)
 
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"name":        map[string]any{"type": "string"},
+			"description": map[string]any{"type": "string"},
+			"quantity":    map[string]any{"type": []any{"integer", "null"}},
+		},
+		"required": []string{"name", "description", "quantity"},
+	}
 	reqBody := ollamaGenerateRequest{
 		Model:   model,
 		Prompt:  suggestPrompt,
 		Images:  []string{b64},
 		Stream:  false,
-		Format:  "json",
+		Format:  schema,
 		Options: map[string]any{"num_ctx": numCtx},
 	}
 
