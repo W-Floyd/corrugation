@@ -54,6 +54,102 @@ func SearchByArtifact(ctx context.Context, search string, artifactRecordMap map[
 	return
 }
 
+// SearchBySuggestion searches using text embeddings stored on artifacts
+// (generated from Ollama suggestion content) rather than record fields.
+func SearchBySuggestion(ctx context.Context, search string, artifactRecordMap map[uint]*uint) (recordResults []struct {
+	id    uint
+	score float64
+}, partial bool, err error) {
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return
+	}
+	textModel, _, _, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
+
+	searchEmbeddings, err := GenerateTextQueryEmbeddingsCtx(ctx, search)
+	if err != nil {
+		return
+	}
+
+	artifactIDs := make([]uint, 0, len(artifactRecordMap))
+	for id := range artifactRecordMap {
+		artifactIDs = append(artifactIDs, id)
+	}
+	if len(artifactIDs) == 0 {
+		return
+	}
+
+	q := db.Where("artifact_id IN ? AND embed_model = ?", artifactIDs, textModel)
+	dims := uint(len(searchEmbeddings))
+	if dims > 0 {
+		q = q.Where("dimensions = ?", dims)
+	}
+	if maxDims != nil {
+		q = q.Where("dimensions <= ?", *maxDims)
+	}
+	var embeddings []Embedding
+	if err = q.Find(&embeddings).Error; err != nil {
+		return
+	}
+
+	// best score per record across all its artifacts
+	bestScore := map[uint]float64{}
+	for _, emb := range embeddings {
+		if emb.ArtifactID == nil {
+			continue
+		}
+		recordID := artifactRecordMap[*emb.ArtifactID]
+		if recordID == nil {
+			continue
+		}
+
+		var vec Embeddings
+		if cached, ok := embeddingsCache.Load(emb.Hash); ok {
+			vec = cached.(Embeddings)
+		} else {
+			vec, err = UnmarshalEmbeddings(emb.Data)
+			if err != nil {
+				err = nil
+				continue
+			}
+			embeddingsCache.Store(emb.Hash, vec)
+		}
+
+		score, cmpErr := compareEmbeddings(vec, searchEmbeddings)
+		if cmpErr != nil {
+			continue
+		}
+		if score > bestScore[*recordID] {
+			bestScore[*recordID] = score
+		}
+	}
+
+	// enqueue suggestion jobs for artifacts that had no text embedding
+	embeddedArtifacts := map[uint]bool{}
+	for _, emb := range embeddings {
+		if emb.ArtifactID != nil {
+			embeddedArtifacts[*emb.ArtifactID] = true
+		}
+	}
+	_, ollamaModel := effectiveOllamaConfig()
+	for artifactID, recordID := range artifactRecordMap {
+		if recordID == nil || embeddedArtifacts[artifactID] {
+			continue
+		}
+		EnqueueSuggestionJob(artifactID, nil, UsernameFromContext(ctx), ollamaModel, "search")
+		partial = true
+	}
+
+	for recordID, score := range bestScore {
+		recordResults = append(recordResults, struct {
+			id    uint
+			score float64
+		}{id: recordID, score: score})
+	}
+	return
+}
+
 func SearchByRecord(ctx context.Context, search string, scopedIDs []uint) (recordResults []struct {
 	id    uint
 	score float64

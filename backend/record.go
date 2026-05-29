@@ -134,52 +134,6 @@ func GetRecordEmbeddings(ctx context.Context, scopedIDs []uint, dims uint) (e ma
 		}
 	}
 
-	// For records still missing a text embedding, fall back to suggestion-derived
-	// text embeddings stored on their artifacts.
-	if len(missingIDs) > 0 {
-		type artifactTextEmb struct {
-			RecordID   uint
-			Data       []byte
-			Hash       string
-		}
-		var artEmbs []artifactTextEmb
-		q2 := db.Table("embeddings").
-			Select("artifacts.record_id, embeddings.data, embeddings.hash").
-			Joins("JOIN artifacts ON artifacts.id = embeddings.artifact_id AND artifacts.record_id IN ? AND artifacts.deleted_at IS NULL", missingIDs).
-			Where("embeddings.embed_model = ? AND embeddings.artifact_id IS NOT NULL AND embeddings.deleted_at IS NULL", textModel)
-		if dims > 0 {
-			q2 = q2.Where("embeddings.dimensions = ?", dims)
-		}
-		if scanErr := q2.Scan(&artEmbs).Error; scanErr == nil {
-			for _, ae := range artEmbs {
-				if embeddedIDs[ae.RecordID] {
-					continue
-				}
-				var vec []float64
-				if cached, ok := embeddingsCache.Load(ae.Hash); ok {
-					vec = cached.(Embeddings)
-				} else {
-					parsed, parseErr := UnmarshalEmbeddings(ae.Data)
-					if parseErr != nil {
-						continue
-					}
-					vec = parsed
-					embeddingsCache.Store(ae.Hash, Embeddings(vec))
-				}
-				e[ae.RecordID] = vec
-				embeddedIDs[ae.RecordID] = true
-			}
-		}
-
-		// Recompute missing after artifact fallback.
-		missingIDs = missingIDs[:0]
-		for _, id := range scopedIDs {
-			if !embeddedIDs[id] {
-				missingIDs = append(missingIDs, id)
-			}
-		}
-	}
-
 	enqueuedIDs, err := generateMissingRecordEmbeddings(ctx, missingIDs, nil, "search")
 	if err != nil {
 		return

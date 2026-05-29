@@ -23,8 +23,10 @@ type RecordQuery struct {
 	SearchImages        bool
 	SearchTextEmbedded  bool
 	SearchTextSubstring bool
+	SearchSuggested     bool
 	MinTextToImageScore float64
 	MinTextScore        float64
+	MinSuggestionScore  float64
 	ChildrenDepth       int
 	ParentDepth         int
 }
@@ -34,6 +36,7 @@ func NewRecordQuery(query string) RecordQuery {
 		Query:               query,
 		MinTextToImageScore: minimumTextToImageSearchConfidence,
 		MinTextScore:        minimumTextSearchConfidence,
+		MinSuggestionScore:  minimumTextSearchConfidence,
 	}
 }
 
@@ -222,12 +225,12 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 			}
 		}
 
-		var artifactSearch, recordSearch []struct {
+		var artifactSearch, recordSearch, suggestionSearch []struct {
 			id    uint
 			score float64
 		}
-		var artifactErr, recordErr error
-		var artifactPartial, recordPartial bool
+		var artifactErr, recordErr, suggestionErr error
+		var artifactPartial, recordPartial, suggestionPartial bool
 		var wg sync.WaitGroup
 		if search.SearchImages {
 			wg.Go(func() {
@@ -239,6 +242,11 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				recordSearch, recordPartial, recordErr = SearchByRecord(ctx, search.Query, scopedRecordIDs)
 			})
 		}
+		if search.SearchSuggested {
+			wg.Go(func() {
+				suggestionSearch, suggestionPartial, suggestionErr = SearchBySuggestion(ctx, search.Query, artifactRecordMap)
+			})
+		}
 		wg.Wait()
 		if artifactErr != nil {
 			err = artifactErr
@@ -248,9 +256,14 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 			err = recordErr
 			return
 		}
-		partial = artifactPartial || recordPartial
+		if suggestionErr != nil {
+			err = suggestionErr
+			return
+		}
+		partial = artifactPartial || recordPartial || suggestionPartial
 
 		textScore := map[uint]float64{}
+		suggestionScore := map[uint]float64{}
 		bestImageScore := map[uint]float64{}
 		bestScore := map[uint]float64{}
 		exactRefScores := map[uint]float64{} // Track exact reference matches for prioritization
@@ -261,16 +274,25 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				bestImageScore[r.id] = r.score
 				if bestImageScore[r.id] > bestScore[r.id] {
 					bestScore[r.id] = bestImageScore[r.id]
-					}
 				}
 			}
+		}
 
 		for _, r := range recordSearch {
 			textScore[r.id] = r.score
 			if textScore[r.id] > bestScore[r.id] {
 				bestScore[r.id] = textScore[r.id]
-				}
 			}
+		}
+
+		for _, r := range suggestionSearch {
+			if r.score > suggestionScore[r.id] {
+				suggestionScore[r.id] = r.score
+			}
+			if suggestionScore[r.id] > bestScore[r.id] {
+				bestScore[r.id] = suggestionScore[r.id]
+			}
+		}
 
 		searchLower := strings.ToLower(search.Query)
 		for _, r := range records {
@@ -299,10 +321,12 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 
 		recordIDs := []uint{}
 		for id := range bestScore {
-			if bestImageScore[id] >= search.MinTextToImageScore || textScore[id] >= search.MinTextScore {
+			if bestImageScore[id] >= search.MinTextToImageScore ||
+				textScore[id] >= search.MinTextScore ||
+				suggestionScore[id] >= search.MinSuggestionScore {
 				recordIDs = append(recordIDs, id)
-				}
 			}
+		}
 
 		slices.Sort(recordIDs)
 		recordIDs = slices.Compact(recordIDs)
@@ -319,7 +343,8 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 		}
 
 		avgScore := func(id uint) float64 {
-			img, txt := bestImageScore[id], textScore[id]
+			img := bestImageScore[id]
+			txt := max(textScore[id], suggestionScore[id])
 			switch {
 			case img > 0 && txt > 0:
 				return (img + txt) / 2.0
@@ -327,8 +352,8 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				return img
 			default:
 				return txt
-				}
 			}
+		}
 
 		// Sort exact matches first, then sort other matches by score
 		slices.SortFunc(exactMatches, func(a, b uint) int { return 0 }) // Exact matches already prioritized
@@ -351,9 +376,9 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 			r, ok := recordMap[rid]
 			if ok && r != nil {
 				imageScore := bestImageScore[rid]
-				textScore := textScore[rid]
+				ts := max(textScore[rid], suggestionScore[rid])
 				r.SearchConfidenceImage = &imageScore
-				r.SearchConfidenceText = &textScore
+				r.SearchConfidenceText = &ts
 				filteredSortedRecords = append(filteredSortedRecords, *r)
 			}
 		}

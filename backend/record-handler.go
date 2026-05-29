@@ -25,6 +25,7 @@ type ListRecordsInput struct {
 	SearchImage         bool    `query:"searchImage" doc:"Use image embeddings in search" required:"false"`
 	SearchTextEmbedded  bool    `query:"searchTextEmbedded" doc:"Use text embeddings in search" required:"false"`
 	SearchTextSubstring bool    `query:"searchTextSubstring" doc:"Use substring matching in search" required:"false"`
+	SearchSuggested     bool    `query:"searchSuggested" doc:"Use Ollama suggestion-derived text embeddings in search" required:"false"`
 	MinImageScore       float64 `query:"minImageScore" doc:"Minimum image embedding score threshold" required:"false"`
 	MinTextScore        float64 `query:"minTextScore" doc:"Minimum text score threshold" required:"false"`
 }
@@ -89,6 +90,7 @@ func ListRecords(ctx context.Context, input *ListRecordsInput) (output *RecordsO
 	s.SearchImages = input.SearchImage
 	s.SearchTextEmbedded = input.SearchTextEmbedded
 	s.SearchTextSubstring = input.SearchTextSubstring
+	s.SearchSuggested = input.SearchSuggested
 	s.ChildrenDepth = input.ChildrenDepth
 	s.ParentDepth = input.ParentDepth
 	if input.MinImageScore > 0 {
