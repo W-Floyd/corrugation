@@ -18,6 +18,8 @@ type GlobalConfig struct {
 	EnabledBarcodeFormats string
 	// nil = use full model output; positive value caps embedding dimensions via Infinity.
 	MaximumEmbeddingDimensions *uint
+	OllamaAddress              string
+	OllamaVisionModel          string
 }
 
 func loadGlobalConfig() (GlobalConfig, error) {
@@ -55,6 +57,26 @@ func SetInitialInfinityConfig(text, image, queryPrefix, docPrefix string) error 
 	// (detected by text model being empty before the update above).
 	if changed {
 		cfg.InfinityTextDocumentPrefix = docPrefix
+	}
+	if changed {
+		return saveGlobalConfig(cfg)
+	}
+	return nil
+}
+
+func SetInitialOllamaConfig(address, visionModel string) error {
+	cfg, err := loadGlobalConfig()
+	if err != nil {
+		return err
+	}
+	changed := false
+	if cfg.OllamaAddress == "" {
+		cfg.OllamaAddress = address
+		changed = true
+	}
+	if cfg.OllamaVisionModel == "" {
+		cfg.OllamaVisionModel = visionModel
+		changed = true
 	}
 	if changed {
 		return saveGlobalConfig(cfg)

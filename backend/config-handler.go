@@ -40,7 +40,9 @@ type GlobalConfigBody struct {
 	InfinityTextDocumentPrefix        string   `json:"infinityTextDocumentPrefix" doc:"Server-wide default text document prefix"`
 	EnabledBarcodeFormats             []string `json:"enabledBarcodeFormats" doc:"Barcode/QR formats to detect on image upload. Valid: AZTEC, CODABAR, CODE_39, CODE_128, DATA_MATRIX, EAN_8, EAN_13, ITF, PDF_417, QR_CODE, RSS_14, RSS_EXPANDED, UPC_A, UPC_E. Empty disables scanning."`
 	// nil = use full model output; positive value caps embedding dimensions via Infinity.
-	MaximumEmbeddingDimensions *uint `json:"maximumEmbeddingDimensions,omitempty" doc:"Cap embedding dimensions sent to Infinity. nil = use model default."`
+	MaximumEmbeddingDimensions *uint  `json:"maximumEmbeddingDimensions,omitempty" doc:"Cap embedding dimensions sent to Infinity. nil = use model default."`
+	OllamaAddress              string `json:"ollamaAddress" doc:"Ollama service address for image content suggestions"`
+	OllamaVisionModel          string `json:"ollamaVisionModel" doc:"Ollama vision model for image content suggestions"`
 }
 
 type UserConfigBody struct {
@@ -108,6 +110,8 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		InfinityTextDocumentPrefix:        cfg.InfinityTextDocumentPrefix,
 		EnabledBarcodeFormats:             barcodeFormatsToSlice(cfg.EnabledBarcodeFormats),
 		MaximumEmbeddingDimensions:        cfg.MaximumEmbeddingDimensions,
+		OllamaAddress:                     cfg.OllamaAddress,
+		OllamaVisionModel:                 cfg.OllamaVisionModel,
 	}}
 	return
 }
@@ -137,6 +141,8 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 		InfinityTextDocumentPrefix:        input.Body.InfinityTextDocumentPrefix,
 		EnabledBarcodeFormats:             barcodeFormatsToString(input.Body.EnabledBarcodeFormats),
 		MaximumEmbeddingDimensions:        input.Body.MaximumEmbeddingDimensions,
+		OllamaAddress:                     input.Body.OllamaAddress,
+		OllamaVisionModel:                 input.Body.OllamaVisionModel,
 	}
 	if err = saveGlobalConfig(cfg); err != nil {
 		return

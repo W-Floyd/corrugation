@@ -15,6 +15,9 @@ var (
 	infinityTextQueryPrefix    = "Represent this sentence for searching relevant passages: "
 	infinityTextDocumentPrefix = ""
 
+	ollamaAddress      = "http://ollama:11434"
+	ollamaVisionModel  = "moondream2"
+
 	embeddingSemaphore = make(chan struct{}, 4)
 )
 
@@ -24,6 +27,11 @@ func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocu
 	infinityTextModel = textModel
 	infinityTextQueryPrefix = textQueryPrefix
 	infinityTextDocumentPrefix = textDocumentPrefix
+}
+
+func SetOllamaConfig(address, visionModel string) {
+	ollamaAddress = address
+	ollamaVisionModel = visionModel
 }
 
 func SetEmbeddingConcurrency(n int) {

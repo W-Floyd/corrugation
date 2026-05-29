@@ -40,6 +40,8 @@ type Options struct {
 	InfinityImageModel         string `help:"Infinity image embeddings model ID" default:"openai/clip-vit-large-patch14"`
 	InfinityTextQueryPrefix    string `help:"Prefix prepended to text search queries before embedding" default:"Represent this sentence for searching relevant passages: "`
 	InfinityTextDocumentPrefix string `help:"Prefix prepended to text documents before embedding" default:""`
+	OllamaAddress              string `help:"Ollama server address for image content suggestions" default:"http://localhost:11434"`
+	OllamaVisionModel          string `help:"Ollama vision model for image content suggestions" default:"moondream2"`
 	LegacyImportUser           string `help:"Username for legacy imports" default:"legacy"`
 	PprofAddr                  string `help:"pprof HTTP listener address; empty to disable" default:""`
 }
@@ -50,6 +52,7 @@ func main() {
 
 		backend.Log.Info("init backend")
 		backend.SetInfinityConfig(options.InfinityAddress, options.InfinityTextModel, options.InfinityImageModel, options.InfinityTextQueryPrefix, options.InfinityTextDocumentPrefix)
+		backend.SetOllamaConfig(options.OllamaAddress, options.OllamaVisionModel)
 		backend.SetEmbeddingConcurrency(options.EmbeddingConcurrency)
 		if options.PprofAddr != "" {
 			go func() {
@@ -91,6 +94,9 @@ func main() {
 		}
 		if err = backend.SetInitialAllowLocalUsernameLogin(options.AllowLocalUsernameLogin); err != nil {
 			backend.Log.Fatalf("failed to persist allow-local-username-login: %v", err)
+		}
+		if err = backend.SetInitialOllamaConfig(options.OllamaAddress, options.OllamaVisionModel); err != nil {
+			backend.Log.Fatalf("failed to seed ollama config: %v", err)
 		}
 
 		if !dbExists {
