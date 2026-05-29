@@ -325,8 +325,10 @@ func backfillArtifactSuggestions() error {
 	var artifacts []artifactRow
 	err := db.Model(&Artifact{}).
 		Select("artifacts.id, artifacts.owner_id").
+		Where("record_id IS NOT NULL").
 		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ?)", model).
-		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL UNION SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
+		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL)").
+		Where("id NOT IN (SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
 		Scan(&artifacts).Error
 	if err != nil {
 		Log.Errorw("backfill: failed to fetch artifacts for suggestions", "error", err)
@@ -374,8 +376,10 @@ func backfillArtifactSuggestions() error {
 func SuggestionBackfillCount(model string) (int64, error) {
 	var count int64
 	err := db.Model(&Artifact{}).
+		Where("record_id IS NOT NULL").
 		Where("id NOT IN (SELECT artifact_id FROM artifact_suggestions WHERE ollama_model = ?)", model).
-		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL UNION SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
+		Where("id NOT IN (SELECT small_preview_id FROM artifacts WHERE small_preview_id IS NOT NULL)").
+		Where("id NOT IN (SELECT large_preview_id FROM artifacts WHERE large_preview_id IS NOT NULL)").
 		Count(&count).Error
 	return count, err
 }
