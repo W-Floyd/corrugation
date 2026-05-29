@@ -36,7 +36,7 @@ func NewRecordQuery(query string) RecordQuery {
 		Query:               query,
 		MinTextToImageScore: minimumTextToImageSearchConfidence,
 		MinTextScore:        minimumTextSearchConfidence,
-		MinSuggestionScore:  minimumTextSearchConfidence,
+		MinSuggestionScore:  minimumSuggestionSearchConfidence,
 	}
 }
 

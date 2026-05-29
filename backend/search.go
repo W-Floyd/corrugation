@@ -11,6 +11,7 @@ const (
 	minimumImageToImageSearchConfidence float64 = 0.6
 	minimumTextToImageSearchConfidence  float64 = 0.2
 	minimumTextSearchConfidence         float64 = 0.9
+	minimumSuggestionSearchConfidence   float64 = 0.75
 )
 
 // cosineSimilarity computes the cosine similarity between two vectors.
