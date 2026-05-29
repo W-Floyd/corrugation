@@ -85,6 +85,7 @@ const backfillPreview = ref<{ records: number; artifacts: number } | null>(
   null,
 );
 const backfillPreviewLoading = ref(false);
+const runningLegacyEmbeddingsBackfill = ref(false);
 const runningRecordBackfill = ref(false);
 const runningArtifactBackfill = ref(false);
 
@@ -215,6 +216,18 @@ async function loadBackfillPreview() {
     // toast already shown
   } finally {
     backfillPreviewLoading.value = false;
+  }
+}
+
+async function runLegacyEmbeddingsBackfill() {
+  runningLegacyEmbeddingsBackfill.value = true;
+  try {
+    await api.runLegacyEmbeddingsBackfill();
+    toastsStore.add("Legacy embeddings backfill started", "success");
+  } catch {
+    // toast already shown
+  } finally {
+    runningLegacyEmbeddingsBackfill.value = false;
   }
 }
 
@@ -852,6 +865,25 @@ onMounted(() => {
           <p class="text-sm text-gray-500 dark:text-gray-400">
             Enqueue embedding jobs for items that have not yet been indexed.
           </p>
+
+          <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            <div>
+              <p class="text-sm font-medium">Legacy embeddings</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Delete old JSON-format embeddings so they are regenerated
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="runLegacyEmbeddingsBackfill"
+              :disabled="runningLegacyEmbeddingsBackfill"
+              class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{ runningLegacyEmbeddingsBackfill ? "Starting…" : "Run" }}
+            </button>
+          </div>
 
           <div
             class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"

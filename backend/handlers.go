@@ -66,6 +66,7 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, GetBackfillPreviewOperation, GetBackfillPreview)
 	huma.Register(api, RunRecordBackfillOperation, RunRecordBackfill)
 	huma.Register(api, RunArtifactBackfillOperation, RunArtifactBackfill)
+	huma.Register(api, RunLegacyEmbeddingsBackfillOperation, RunLegacyEmbeddingsBackfill)
 
 	// Image search endpoint
 	huma.Register(api, SearchByImageOperation, SearchByImageHandler)

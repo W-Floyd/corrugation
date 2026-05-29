@@ -66,3 +66,17 @@ func RunArtifactBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
 	go backfillArtifactEmbeddings()
 	return nil, nil
 }
+
+var RunLegacyEmbeddingsBackfillOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/backfill/legacy-embeddings",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func RunLegacyEmbeddingsBackfill(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	go BackfillLegacyEmbeddingsOnStart()
+	return nil, nil
+}

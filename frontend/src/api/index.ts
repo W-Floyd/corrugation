@@ -391,6 +391,10 @@ export const api = {
     await apiFetch("/api/backfill/artifacts", { method: "POST" });
   },
 
+  async runLegacyEmbeddingsBackfill(): Promise<void> {
+    await apiFetch("/api/backfill/legacy-embeddings", { method: "POST" });
+  },
+
   async getUsers(): Promise<
     { id: number; username: string; isAdmin: boolean }[]
   > {
