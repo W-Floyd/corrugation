@@ -148,10 +148,8 @@ const handleQuickCaptureOnRecord = async (recordId: number): Promise<void> => {
   try {
     const artifactId = await api.uploadArtifact(capturedFiles[0]);
     const appRecord = recordsStore.recordMap[recordId];
-    const artifacts = [
-      ...(appRecord?.Artifacts ?? []).map((a) => a.ID),
-      artifactId,
-    ];
+    const existingArtifacts = appRecord?.Artifacts ?? [];
+    const artifacts = [...existingArtifacts.map((a) => a.ID), artifactId];
     await api.patchRecord(recordId, { Artifacts: artifacts });
     await recordsStore.reload();
     toastsStore.add("Artifact captured and added", "success");
