@@ -18,6 +18,7 @@ import CloseIcon from "vue-material-design-icons/Close.vue";
 import ArrowUpIcon from "vue-material-design-icons/ArrowUp.vue";
 import AlertIcon from "vue-material-design-icons/Alert.vue";
 import ImageSearchIcon from "vue-material-design-icons/ImageSearch.vue";
+import BrainIcon from "vue-material-design-icons/Brain.vue";
 
 const props = defineProps<{
   appRecord: BackendRecord;
@@ -575,6 +576,54 @@ const images = computed(() => {
 
 const pendingImages = ref<string[]>([]);
 
+// --- Suggestions ---
+type Suggestion = { name: string; description: string; quantity?: number };
+const suggestion = ref<Suggestion | null>(null);
+const suggestionLoading = ref(false);
+const suggestionPanelOpen = ref(false);
+
+async function fetchSuggestion(): Promise<void> {
+  const artifactId = props.appRecord.Artifacts?.[0]?.ID;
+  if (!artifactId) return;
+  suggestionLoading.value = true;
+  suggestionPanelOpen.value = true;
+  try {
+    const s = await api.getArtifactSuggestion(artifactId);
+    suggestion.value = s;
+  } catch {
+    suggestion.value = null;
+  } finally {
+    suggestionLoading.value = false;
+  }
+}
+
+function applySuggestionField(field: keyof Suggestion): void {
+  if (!suggestion.value) return;
+  if (field === "name") localRecord.value.Title = suggestion.value.name;
+  else if (field === "description")
+    localRecord.value.Description = suggestion.value.description;
+  else if (field === "quantity" && suggestion.value.quantity != null)
+    localRecord.value.Quantity = suggestion.value.quantity;
+}
+
+function applyAllSuggestions(): void {
+  if (!suggestion.value) return;
+  if (suggestion.value.name && !localRecord.value.Title)
+    localRecord.value.Title = suggestion.value.name;
+  if (suggestion.value.description && !localRecord.value.Description)
+    localRecord.value.Description = suggestion.value.description;
+  if (suggestion.value.quantity != null && localRecord.value.Quantity == null)
+    localRecord.value.Quantity = suggestion.value.quantity;
+  suggestionPanelOpen.value = false;
+}
+
+watch(editMode, (on) => {
+  if (!on) {
+    suggestion.value = null;
+    suggestionPanelOpen.value = false;
+  }
+});
+
 const handleEditArtifact = async (file: File): Promise<void> => {
   const blobUrl = URL.createObjectURL(file);
   pendingImages.value = [...pendingImages.value, blobUrl];
@@ -906,6 +955,109 @@ defineExpose({ cardEl });
         ></textarea>
       </div>
 
+      <!-- Suggestion panel -->
+      <div
+        v-if="editMode && suggestionPanelOpen"
+        class="mt-2 rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm dark:border-purple-800 dark:bg-purple-900/20"
+        @click.stop
+      >
+        <div class="mb-2 flex items-center justify-between">
+          <span
+            class="text-xs font-semibold text-purple-700 dark:text-purple-300"
+            >AI Suggestions</span
+          >
+          <button
+            type="button"
+            @click.stop="suggestionPanelOpen = false"
+            class="text-purple-400 hover:text-purple-600 dark:hover:text-purple-200"
+          >
+            <CloseIcon :size="16" />
+          </button>
+        </div>
+
+        <div v-if="suggestionLoading" class="text-xs text-purple-500">
+          Loading…
+        </div>
+        <div v-else-if="!suggestion" class="text-xs text-purple-500">
+          No suggestion cached yet — still processing.
+        </div>
+        <template v-else>
+          <div class="flex flex-col gap-2">
+            <!-- Name -->
+            <div class="flex items-start gap-2">
+              <span class="w-14 shrink-0 text-xs text-gray-500">Name</span>
+              <div
+                class="flex flex-1 items-start gap-1 overflow-hidden text-xs"
+              >
+                <span class="truncate text-gray-400 line-through">{{
+                  localRecord.Title || "—"
+                }}</span>
+                <span class="shrink-0 text-purple-400">→</span>
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{
+                  suggestion.name || "—"
+                }}</span>
+              </div>
+              <button
+                type="button"
+                @click.stop="applySuggestionField('name')"
+                class="shrink-0 rounded px-1.5 py-0.5 text-xs text-purple-600 ring-1 ring-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+              >
+                Apply
+              </button>
+            </div>
+            <!-- Description -->
+            <div class="flex items-start gap-2">
+              <span class="w-14 shrink-0 text-xs text-gray-500">Desc</span>
+              <div class="flex flex-1 flex-col gap-0.5 overflow-hidden text-xs">
+                <span class="truncate text-gray-400 line-through">{{
+                  localRecord.Description || "—"
+                }}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{
+                  suggestion.description || "—"
+                }}</span>
+              </div>
+              <button
+                type="button"
+                @click.stop="applySuggestionField('description')"
+                class="shrink-0 rounded px-1.5 py-0.5 text-xs text-purple-600 ring-1 ring-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+              >
+                Apply
+              </button>
+            </div>
+            <!-- Quantity -->
+            <div
+              v-if="suggestion.quantity != null"
+              class="flex items-center gap-2"
+            >
+              <span class="w-14 shrink-0 text-xs text-gray-500">Qty</span>
+              <div class="flex flex-1 items-center gap-1 text-xs">
+                <span class="text-gray-400 line-through">{{
+                  localRecord.Quantity ?? "—"
+                }}</span>
+                <span class="shrink-0 text-purple-400">→</span>
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{
+                  suggestion.quantity
+                }}</span>
+              </div>
+              <button
+                type="button"
+                @click.stop="applySuggestionField('quantity')"
+                class="shrink-0 rounded px-1.5 py-0.5 text-xs text-purple-600 ring-1 ring-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click.stop="applyAllSuggestions"
+            class="mt-2 w-full rounded bg-purple-600 py-1 text-xs font-medium text-white hover:bg-purple-700"
+          >
+            Apply empty fields
+          </button>
+        </template>
+      </div>
+
       <!-- Children -->
       <div v-if="!editMode && recordsStore.hasChildren(appRecord.ID)">
         <p class="mb-2 font-semibold">Contains:</p>
@@ -1056,6 +1208,16 @@ defineExpose({ cardEl });
         >
           <CameraIcon :size="20" />
           <KbdHint contents="P" :show="showHint" />
+        </button>
+
+        <button
+          v-if="appRecord.Artifacts && appRecord.Artifacts.length > 0"
+          @click.stop="fetchSuggestion"
+          :disabled="suggestionLoading"
+          class="relative m-0 flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 p-0 text-white shadow hover:bg-purple-600 active:shadow-lg disabled:opacity-50"
+          title="Show AI suggestions"
+        >
+          <BrainIcon :size="20" />
         </button>
       </template>
     </div>
