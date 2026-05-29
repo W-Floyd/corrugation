@@ -1183,6 +1183,32 @@ onMounted(() => {
           </div>
 
           <div>
+            <label class="mb-1 block text-sm font-medium">Pull model</label>
+            <div class="flex gap-2">
+              <input
+                v-model="ollamaPullModel"
+                type="text"
+                placeholder="e.g. moondream, llama3.2-vision"
+                :disabled="ollamaPulling"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                @keydown.enter.prevent="pullOllamaModel"
+              />
+              <button
+                type="button"
+                @click="pullOllamaModel"
+                :disabled="ollamaPulling || !ollamaPullModel.trim()"
+                class="shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+              >
+                {{ ollamaPulling ? "Pulling…" : "Pull" }}
+              </button>
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Downloads the model from the Ollama registry. You will be notified
+              when complete.
+            </p>
+          </div>
+
+          <div>
             <label class="mb-1 block text-sm font-medium"
               >Context window (num_ctx)</label
             >
@@ -1230,32 +1256,6 @@ onMounted(() => {
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Changing the prompt marks existing suggestions as stale — the
               backfill will regenerate them automatically.
-            </p>
-          </div>
-
-          <div>
-            <label class="mb-1 block text-sm font-medium">Pull model</label>
-            <div class="flex gap-2">
-              <input
-                v-model="ollamaPullModel"
-                type="text"
-                placeholder="e.g. moondream, llama3.2-vision"
-                :disabled="ollamaPulling"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                @keydown.enter.prevent="pullOllamaModel"
-              />
-              <button
-                type="button"
-                @click="pullOllamaModel"
-                :disabled="ollamaPulling || !ollamaPullModel.trim()"
-                class="shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
-              >
-                {{ ollamaPulling ? "Pulling…" : "Pull" }}
-              </button>
-            </div>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Downloads the model from the Ollama registry. You will be notified
-              when complete.
             </p>
           </div>
 
