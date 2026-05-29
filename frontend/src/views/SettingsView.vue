@@ -113,6 +113,7 @@ const jobsTotal = ref(0);
 const jobsPage = ref(0);
 const jobsPageSize = 50;
 const jobsLoading = ref(false);
+const jobsPageInput = ref(1);
 const jobsShowAll = ref(false);
 const jobsStatusFilter = ref("");
 
@@ -311,6 +312,7 @@ async function loadJobs() {
 
 function jobsSetPage(page: number) {
   jobsPage.value = page;
+  jobsPageInput.value = page + 1;
   loadJobs();
 }
 
@@ -1097,7 +1099,15 @@ onMounted(() => {
             }}
             of {{ jobsTotal }}</span
           >
-          <div class="flex gap-1">
+          <div class="flex items-center gap-1">
+            <button
+              @click="jobsSetPage(0)"
+              :disabled="jobsPage === 0"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+              title="First page"
+            >
+              «
+            </button>
             <button
               @click="jobsSetPage(jobsPage - 1)"
               :disabled="jobsPage === 0"
@@ -1105,12 +1115,38 @@ onMounted(() => {
             >
               ←
             </button>
+            <input
+              type="number"
+              :min="1"
+              :max="Math.ceil(jobsTotal / jobsPageSize)"
+              v-model.number="jobsPageInput"
+              @change="
+                jobsSetPage(
+                  Math.min(
+                    Math.max(0, (isNaN(jobsPageInput) ? 1 : jobsPageInput) - 1),
+                    Math.ceil(jobsTotal / jobsPageSize) - 1,
+                  ),
+                )
+              "
+              class="w-14 rounded-lg border border-gray-300 bg-white px-2 py-1 text-center text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <span class="text-gray-400"
+              >/ {{ Math.ceil(jobsTotal / jobsPageSize) }}</span
+            >
             <button
               @click="jobsSetPage(jobsPage + 1)"
               :disabled="(jobsPage + 1) * jobsPageSize >= jobsTotal"
               class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
             >
               →
+            </button>
+            <button
+              @click="jobsSetPage(Math.ceil(jobsTotal / jobsPageSize) - 1)"
+              :disabled="(jobsPage + 1) * jobsPageSize >= jobsTotal"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+              title="Last page"
+            >
+              »
             </button>
           </div>
         </div>
