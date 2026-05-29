@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -97,6 +98,9 @@ func retryFailedJobs() {
 
 var embeddingJobQueue = make(chan uint, 4096)
 var embeddingSearchJobQueue = make(chan uint, 4096)
+
+// activeEmbeddingJobs tracks job IDs currently being executed by a worker goroutine.
+var activeEmbeddingJobs sync.Map // uint → struct{}
 
 // EnqueueEmbeddingJob creates a job if no pending/processing job exists for the same target+model+dims.
 // the worker fast-path handles the case where the embedding already exists.
@@ -241,6 +245,9 @@ func processEmbeddingJob(jobID uint) {
 		broadcastEmbeddingProgress(job)
 		return
 	}
+
+	activeEmbeddingJobs.Store(job.ID, struct{}{})
+	defer activeEmbeddingJobs.Delete(job.ID)
 
 	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
 	start := time.Now()

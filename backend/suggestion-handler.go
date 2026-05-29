@@ -123,6 +123,29 @@ func ListSuggestionJobs(ctx context.Context, input *struct {
 	return
 }
 
+var ResetStuckSuggestionJobsOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/suggestions/jobs/reset",
+	DefaultStatus: http.StatusNoContent,
+	OperationID:   "reset-stuck-suggestion-jobs",
+}
+
+func ResetStuckSuggestionJobs(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	var jobs []SuggestionJob
+	if err := db.Where("status = ?", JobStatusProcessing).Find(&jobs).Error; err != nil {
+		return nil, err
+	}
+	for _, j := range jobs {
+		if _, active := activeSuggestionJobs.Load(j.ID); !active {
+			db.Model(&j).Update("status", JobStatusPending)
+		}
+	}
+	return nil, nil
+}
+
 var DeletePendingSuggestionJobsOperation = huma.Operation{
 	Method:        http.MethodDelete,
 	Path:          "/api/suggestions/jobs",

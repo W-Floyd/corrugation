@@ -291,6 +291,29 @@ func DeleteEmbeddingJob(ctx context.Context, input *struct {
 	return nil, nil
 }
 
+var ResetStuckEmbeddingJobsOperation = huma.Operation{
+	Method:        http.MethodPost,
+	Path:          "/api/embeddings/jobs/reset",
+	DefaultStatus: http.StatusNoContent,
+	OperationID:   "reset-stuck-embedding-jobs",
+}
+
+func ResetStuckEmbeddingJobs(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	var jobs []EmbeddingJob
+	if err := db.Where("status = ?", JobStatusProcessing).Find(&jobs).Error; err != nil {
+		return nil, err
+	}
+	for _, j := range jobs {
+		if _, active := activeEmbeddingJobs.Load(j.ID); !active {
+			db.Model(&j).Update("status", JobStatusPending)
+		}
+	}
+	return nil, nil
+}
+
 var InvalidateUserEmbeddingsOperation = huma.Operation{
 	Method:        http.MethodDelete,
 	Path:          "/api/embeddings/user",

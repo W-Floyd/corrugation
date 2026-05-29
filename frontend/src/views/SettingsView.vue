@@ -1269,6 +1269,19 @@ onMounted(() => {
               Clear failed
             </button>
             <button
+              v-if="isAdmin"
+              @click="
+                async () => {
+                  await api.resetStuckEmbeddingJobs();
+                  await loadJobs();
+                }
+              "
+              :disabled="jobsLoading"
+              class="rounded-lg bg-yellow-100 px-3 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-200 disabled:opacity-50 dark:bg-yellow-900/40 dark:text-yellow-400 dark:hover:bg-yellow-900"
+            >
+              Reset stuck
+            </button>
+            <button
               @click="loadJobs"
               :disabled="jobsLoading"
               class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -1495,6 +1508,19 @@ onMounted(() => {
               class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
             >
               Clear failed
+            </button>
+            <button
+              v-if="isAdmin"
+              @click="
+                async () => {
+                  await api.resetStuckSuggestionJobs();
+                  await loadSuggestionJobs();
+                }
+              "
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-yellow-100 px-3 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-200 disabled:opacity-50 dark:bg-yellow-900/40 dark:text-yellow-400 dark:hover:bg-yellow-900"
+            >
+              Reset stuck
             </button>
             <button
               @click="loadSuggestionJobs"

@@ -6,6 +6,7 @@ import (
 	"image/jpeg"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/boxes-ltd/imaging"
@@ -88,6 +89,9 @@ func retryFailedSuggestionJobs() {
 }
 
 var suggestionJobQueue = make(chan uint, 4096)
+
+// activeSuggestionJobs tracks job IDs currently being executed by a worker goroutine.
+var activeSuggestionJobs sync.Map // uint → struct{}
 
 // EnqueueSuggestionJob creates a job if no pending/processing job exists for the same artifact+model.
 func EnqueueSuggestionJob(artifactID uint, ownerID *uint, username, ollamaModel, source string) {
@@ -210,6 +214,9 @@ func processSuggestionJob(jobID uint) {
 		broadcastSuggestionProgress(job)
 		return
 	}
+
+	activeSuggestionJobs.Store(job.ID, struct{}{})
+	defer activeSuggestionJobs.Delete(job.ID)
 
 	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
 	start := time.Now()

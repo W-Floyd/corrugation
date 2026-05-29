@@ -381,6 +381,10 @@ export const api = {
     return response.json();
   },
 
+  async resetStuckEmbeddingJobs(): Promise<void> {
+    await apiFetch("/api/embeddings/jobs/reset", { method: "POST" });
+  },
+
   async deleteBulkEmbeddingJobs(status: string, all?: boolean): Promise<void> {
     const params = new URLSearchParams({ status });
     if (all) params.set("all", "true");
@@ -424,6 +428,10 @@ export const api = {
     if (opts.offset != null) params.set("offset", String(opts.offset));
     const response = await apiFetch(`/api/suggestions/jobs?${params}`);
     return response.json();
+  },
+
+  async resetStuckSuggestionJobs(): Promise<void> {
+    await apiFetch("/api/suggestions/jobs/reset", { method: "POST" });
   },
 
   async deleteBulkSuggestionJobs(status: string, all?: boolean): Promise<void> {

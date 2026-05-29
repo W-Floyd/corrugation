@@ -47,6 +47,7 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, ListEmbeddingJobsOperation, ListEmbeddingJobs)
 	huma.Register(api, DeletePendingEmbeddingJobsOperation, DeletePendingEmbeddingJobs)
 	huma.Register(api, DeleteEmbeddingJobOperation, DeleteEmbeddingJob)
+	huma.Register(api, ResetStuckEmbeddingJobsOperation, ResetStuckEmbeddingJobs)
 	huma.Register(api, InvalidateUserEmbeddingsOperation, InvalidateUserEmbeddings)
 
 	huma.Register(api, CreateArtifactOperation, CreateArtifact)
@@ -79,5 +80,6 @@ func RegisterHandlers(api huma.API) {
 	huma.Register(api, ListSuggestionJobsOperation, ListSuggestionJobs)
 	huma.Register(api, DeletePendingSuggestionJobsOperation, DeletePendingSuggestionJobs)
 	huma.Register(api, DeleteSuggestionJobOperation, DeleteSuggestionJob)
+	huma.Register(api, ResetStuckSuggestionJobsOperation, ResetStuckSuggestionJobs)
 	huma.Register(api, RunSuggestionsBackfillOperation, RunSuggestionsBackfill)
 }
