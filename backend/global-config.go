@@ -12,6 +12,11 @@ type GlobalConfig struct {
 	InfinityImageModel                string
 	InfinityTextQueryPrefix           string
 	InfinityTextDocumentPrefix        string
+	// Comma-separated enabled barcode formats (e.g. "QR_CODE,CODE_128").
+	// Empty string disables barcode detection entirely.
+	EnabledBarcodeFormats string
+	// nil = use full model output; positive value caps embedding dimensions via Infinity.
+	MaximumEmbeddingDimensions *uint
 }
 
 func loadGlobalConfig() (GlobalConfig, error) {

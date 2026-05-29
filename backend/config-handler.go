@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -27,22 +28,46 @@ func requireAdmin(ctx context.Context) error {
 }
 
 type GlobalConfigBody struct {
-	LogLevel                          string `json:"logLevel" doc:"Log level: silent, panic, error, warn, info, debug"`
-	BackfillRecordEmbeddingsOnStart   bool   `json:"backfillRecordEmbeddingsOnStart" doc:"Backfill missing record text embeddings on server startup"`
-	BackfillArtifactEmbeddingsOnStart bool   `json:"backfillArtifactEmbeddingsOnStart" doc:"Backfill missing artifact image embeddings on server startup"`
-	BackfillArtifactOwnersOnStart     bool   `json:"backfillArtifactOwnersOnStart" doc:"Assign owners to ownerless artifacts on server startup"`
-	AllowLocalUsernameLogin           bool   `json:"allowLocalUsernameLogin" doc:"Allow local username login without authentication for testing"`
-	InfinityTextModel                 string `json:"infinityTextModel" doc:"Server-wide default text embedding model"`
-	InfinityImageModel                string `json:"infinityImageModel" doc:"Server-wide default image embedding model"`
-	InfinityTextQueryPrefix           string `json:"infinityTextQueryPrefix" doc:"Server-wide default text query prefix"`
-	InfinityTextDocumentPrefix        string `json:"infinityTextDocumentPrefix" doc:"Server-wide default text document prefix"`
+	LogLevel                          string   `json:"logLevel" doc:"Log level: silent, panic, error, warn, info, debug"`
+	BackfillRecordEmbeddingsOnStart   bool     `json:"backfillRecordEmbeddingsOnStart" doc:"Backfill missing record text embeddings on server startup"`
+	BackfillArtifactEmbeddingsOnStart bool     `json:"backfillArtifactEmbeddingsOnStart" doc:"Backfill missing artifact image embeddings on server startup"`
+	BackfillArtifactOwnersOnStart     bool     `json:"backfillArtifactOwnersOnStart" doc:"Assign owners to ownerless artifacts on server startup"`
+	AllowLocalUsernameLogin           bool     `json:"allowLocalUsernameLogin" doc:"Allow local username login without authentication for testing"`
+	InfinityTextModel                 string   `json:"infinityTextModel" doc:"Server-wide default text embedding model"`
+	InfinityImageModel                string   `json:"infinityImageModel" doc:"Server-wide default image embedding model"`
+	InfinityTextQueryPrefix           string   `json:"infinityTextQueryPrefix" doc:"Server-wide default text query prefix"`
+	InfinityTextDocumentPrefix        string   `json:"infinityTextDocumentPrefix" doc:"Server-wide default text document prefix"`
+	EnabledBarcodeFormats             []string `json:"enabledBarcodeFormats" doc:"Barcode/QR formats to detect on image upload. Valid: AZTEC, CODABAR, CODE_39, CODE_128, DATA_MATRIX, EAN_8, EAN_13, ITF, PDF_417, QR_CODE, RSS_14, RSS_EXPANDED, UPC_A, UPC_E. Empty disables scanning."`
+	// nil = use full model output; positive value caps embedding dimensions via Infinity.
+	MaximumEmbeddingDimensions *uint `json:"maximumEmbeddingDimensions,omitempty" doc:"Cap embedding dimensions sent to Infinity. nil = use model default."`
 }
 
 type UserConfigBody struct {
-	InfinityTextModel          *string `json:"infinityTextModel,omitempty" doc:"Override Infinity text embeddings model ID"`
-	InfinityImageModel         *string `json:"infinityImageModel,omitempty" doc:"Override Infinity image embeddings model ID"`
-	InfinityTextQueryPrefix    *string `json:"infinityTextQueryPrefix,omitempty" doc:"Override prefix prepended to text search queries"`
-	InfinityTextDocumentPrefix *string `json:"infinityTextDocumentPrefix,omitempty" doc:"Override prefix prepended to text documents"`
+	InfinityTextModel          *string   `json:"infinityTextModel,omitempty" doc:"Override Infinity text embeddings model ID"`
+	InfinityImageModel         *string   `json:"infinityImageModel,omitempty" doc:"Override Infinity image embeddings model ID"`
+	InfinityTextQueryPrefix    *string   `json:"infinityTextQueryPrefix,omitempty" doc:"Override prefix prepended to text search queries"`
+	InfinityTextDocumentPrefix *string   `json:"infinityTextDocumentPrefix,omitempty" doc:"Override prefix prepended to text documents"`
+	EnabledBarcodeFormats      *[]string `json:"enabledBarcodeFormats,omitempty" doc:"Override barcode/QR formats to detect. null = use global default; [] = disable; non-empty = specific formats."`
+	// nil = inherit global/model default; positive value overrides embedding dimensions for this user.
+	MaximumEmbeddingDimensions *uint `json:"maximumEmbeddingDimensions,omitempty" doc:"Override embedding dimensions. null = inherit global; positive = cap to this value."`
+}
+
+func barcodeFormatsToSlice(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func barcodeFormatsToString(formats []string) string {
+	return strings.Join(formats, ",")
 }
 
 // SetInitialLogLevel is called at startup with the flag value. Always persists to DB.
@@ -79,6 +104,8 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		InfinityImageModel:                cfg.InfinityImageModel,
 		InfinityTextQueryPrefix:           cfg.InfinityTextQueryPrefix,
 		InfinityTextDocumentPrefix:        cfg.InfinityTextDocumentPrefix,
+		EnabledBarcodeFormats:             barcodeFormatsToSlice(cfg.EnabledBarcodeFormats),
+		MaximumEmbeddingDimensions:        cfg.MaximumEmbeddingDimensions,
 	}}
 	return
 }
@@ -105,6 +132,8 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 		InfinityImageModel:                input.Body.InfinityImageModel,
 		InfinityTextQueryPrefix:           input.Body.InfinityTextQueryPrefix,
 		InfinityTextDocumentPrefix:        input.Body.InfinityTextDocumentPrefix,
+		EnabledBarcodeFormats:             barcodeFormatsToString(input.Body.EnabledBarcodeFormats),
+		MaximumEmbeddingDimensions:        input.Body.MaximumEmbeddingDimensions,
 	}
 	if err = saveGlobalConfig(cfg); err != nil {
 		return
@@ -127,12 +156,18 @@ func GetUserConfig(ctx context.Context, _ *struct{}) (output *struct{ Body UserC
 	if err != nil {
 		return
 	}
-	output = &struct{ Body UserConfigBody }{Body: UserConfigBody{
+	body := UserConfigBody{
 		InfinityTextModel:          u.InfinityTextModel,
 		InfinityImageModel:         u.InfinityImageModel,
 		InfinityTextQueryPrefix:    u.InfinityTextQueryPrefix,
 		InfinityTextDocumentPrefix: u.InfinityTextDocumentPrefix,
-	}}
+		MaximumEmbeddingDimensions: u.MaximumEmbeddingDimensions,
+	}
+	if u.EnabledBarcodeFormats != nil {
+		s := barcodeFormatsToSlice(*u.EnabledBarcodeFormats)
+		body.EnabledBarcodeFormats = &s
+	}
+	output = &struct{ Body UserConfigBody }{Body: body}
 	return
 }
 
@@ -145,16 +180,26 @@ var PutUserConfigOperation = huma.Operation{
 func PutUserConfig(ctx context.Context, input *struct {
 	Body UserConfigBody
 }) (output *struct{ Body UserConfigBody }, err error) {
-	uc := User{
-		Username:                   UsernameFromContext(ctx),
-		InfinityTextModel:          input.Body.InfinityTextModel,
-		InfinityImageModel:         input.Body.InfinityImageModel,
-		InfinityTextQueryPrefix:    input.Body.InfinityTextQueryPrefix,
-		InfinityTextDocumentPrefix: input.Body.InfinityTextDocumentPrefix,
-	}
-	if err = saveUser(uc); err != nil {
+	username := UsernameFromContext(ctx)
+	u, err := loadUser(username)
+	if err != nil {
 		return
 	}
+	u.InfinityTextModel = input.Body.InfinityTextModel
+	u.InfinityImageModel = input.Body.InfinityImageModel
+	u.InfinityTextQueryPrefix = input.Body.InfinityTextQueryPrefix
+	u.InfinityTextDocumentPrefix = input.Body.InfinityTextDocumentPrefix
+	u.MaximumEmbeddingDimensions = input.Body.MaximumEmbeddingDimensions
+	if input.Body.EnabledBarcodeFormats != nil {
+		s := barcodeFormatsToString(*input.Body.EnabledBarcodeFormats)
+		u.EnabledBarcodeFormats = &s
+	} else {
+		u.EnabledBarcodeFormats = nil
+	}
+	if err = db.Save(&u).Error; err != nil {
+		return
+	}
+	invalidateUserCache(username)
 	output = &struct{ Body UserConfigBody }{Body: input.Body}
 	return
 }
