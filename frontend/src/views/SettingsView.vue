@@ -32,6 +32,9 @@ const userConfig = ref({
   enabledBarcodeFormats: null as string[] | null,
   // null = inherit global; positive number = cap dimensions for this user
   maximumEmbeddingDimensions: null as number | null,
+  ollamaAddress: null as string | null,
+  ollamaVisionModel: null as string | null,
+  ollamaNumCtx: null as number | null,
 });
 const userConfigLoading = ref(false);
 const userConfigSaving = ref(false);
@@ -55,6 +58,7 @@ const globalConfig = ref({
   maximumEmbeddingDimensions: null as number | null,
   ollamaAddress: "",
   ollamaVisionModel: "",
+  ollamaNumCtx: 4096,
 });
 
 const allBarcodeFormats = ref<{ value: string; label: string }[]>([]);
@@ -216,6 +220,9 @@ async function loadUserConfig() {
       infinityTextDocumentPrefix: cfg.infinityTextDocumentPrefix ?? "",
       enabledBarcodeFormats: cfg.enabledBarcodeFormats ?? null,
       maximumEmbeddingDimensions: cfg.maximumEmbeddingDimensions ?? null,
+      ollamaAddress: cfg.ollamaAddress ?? null,
+      ollamaVisionModel: cfg.ollamaVisionModel ?? null,
+      ollamaNumCtx: cfg.ollamaNumCtx ?? null,
     };
   } catch {
     // toast already shown by apiFetch
@@ -235,6 +242,9 @@ async function saveUserConfig() {
         userConfig.value.infinityTextDocumentPrefix || null,
       enabledBarcodeFormats: userConfig.value.enabledBarcodeFormats,
       maximumEmbeddingDimensions: userConfig.value.maximumEmbeddingDimensions,
+      ollamaAddress: userConfig.value.ollamaAddress || null,
+      ollamaVisionModel: userConfig.value.ollamaVisionModel || null,
+      ollamaNumCtx: userConfig.value.ollamaNumCtx,
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -264,6 +274,7 @@ async function loadGlobalConfig() {
       maximumEmbeddingDimensions: cfg.maximumEmbeddingDimensions ?? null,
       ollamaAddress: cfg.ollamaAddress ?? "",
       ollamaVisionModel: cfg.ollamaVisionModel ?? "",
+      ollamaNumCtx: cfg.ollamaNumCtx ?? 4096,
     };
   } catch {
     // toast already shown
@@ -695,6 +706,81 @@ onMounted(() => {
 
           <hr class="border-gray-200 dark:border-gray-700" />
           <p class="text-xs text-gray-500 dark:text-gray-400">
+            Ollama overrides
+          </p>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium">Ollama address</label>
+            <input
+              v-model="userConfig.ollamaAddress"
+              type="text"
+              :placeholder="globalConfig.ollamaAddress || 'Server default'"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Ollama vision model</label
+            >
+            <div class="flex gap-2">
+              <select
+                v-if="ollamaModels.length > 0"
+                v-model="userConfig.ollamaVisionModel"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              >
+                <option :value="null">
+                  Server default ({{
+                    globalConfig.ollamaVisionModel || "unset"
+                  }})
+                </option>
+                <option
+                  v-for="model in ollamaModels"
+                  :key="model"
+                  :value="model"
+                >
+                  {{ model }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="userConfig.ollamaVisionModel"
+                type="text"
+                :placeholder="
+                  globalConfig.ollamaVisionModel || 'Server default'
+                "
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Context window (num_ctx)</label
+            >
+            <input
+              :value="userConfig.ollamaNumCtx ?? ''"
+              @input="
+                (e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  userConfig.ollamaNumCtx =
+                    v === '' ? null : Math.max(512, parseInt(v) || 512);
+                }
+              "
+              type="number"
+              min="512"
+              step="512"
+              :placeholder="
+                globalConfig.ollamaNumCtx
+                  ? String(globalConfig.ollamaNumCtx)
+                  : 'Server default'
+              "
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+          </div>
+
+          <hr class="border-gray-200 dark:border-gray-700" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">
             Barcode / QR code detection
           </p>
           <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -1044,6 +1130,23 @@ onMounted(() => {
                 }}
                 available.
               </span>
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Context window (num_ctx)</label
+            >
+            <input
+              v-model.number="globalConfig.ollamaNumCtx"
+              type="number"
+              min="512"
+              step="512"
+              placeholder="4096"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Increase if you see "context limit hit" warnings in Ollama logs.
             </p>
           </div>
 

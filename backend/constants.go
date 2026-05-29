@@ -17,6 +17,7 @@ var (
 
 	ollamaAddress      = "http://ollama:11434"
 	ollamaVisionModel  = "moondream"
+	ollamaNumCtx       = 4096
 
 	embeddingSemaphore  = make(chan struct{}, 4)
 	suggestionSemaphore = make(chan struct{}, 1)
@@ -37,9 +38,12 @@ func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocu
 	infinityTextDocumentPrefix = textDocumentPrefix
 }
 
-func SetOllamaConfig(address, visionModel string) {
+func SetOllamaConfig(address, visionModel string, numCtx int) {
 	ollamaAddress = address
 	ollamaVisionModel = visionModel
+	if numCtx > 0 {
+		ollamaNumCtx = numCtx
+	}
 }
 
 func SetEmbeddingConcurrency(n int) {

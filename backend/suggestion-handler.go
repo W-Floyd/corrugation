@@ -27,7 +27,7 @@ type ArtifactSuggestionBody struct {
 func GetArtifactSuggestionHandler(_ context.Context, input *struct {
 	ID uint `path:"id"`
 }) (output *struct{ Body ArtifactSuggestionBody }, err error) {
-	_, model := effectiveOllamaConfig()
+	_, model, _ := effectiveOllamaConfig()
 	s, err := GetArtifactSuggestion(input.ID, model)
 	if err != nil {
 		return

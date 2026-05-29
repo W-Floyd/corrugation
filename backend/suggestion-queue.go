@@ -26,10 +26,10 @@ func isOllamaReady() bool {
 }
 
 func waitForOllama() {
-	addr, model := effectiveOllamaConfig()
+	addr, model, _ := effectiveOllamaConfig()
 	Log.Infow("ollama: waiting for server and model", "url", addr, "model", model)
 	for {
-		addr, model = effectiveOllamaConfig()
+		addr, model, _ = effectiveOllamaConfig()
 		resp, err := http.Get(addr + "/api/tags")
 		if err != nil {
 			Log.Infow("ollama: not ready, retrying in 2s", "error", err)
@@ -259,10 +259,15 @@ func processSuggestionJob(jobID uint) {
 	broadcastSuggestionProgress(job)
 }
 
+const ollamaMaxImageDim = 512
+
 func toJPEG(data []byte) ([]byte, error) {
 	img, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
+	}
+	if img.Bounds().Dx() > ollamaMaxImageDim || img.Bounds().Dy() > ollamaMaxImageDim {
+		img = imaging.Fit(img, ollamaMaxImageDim, ollamaMaxImageDim, imaging.Lanczos)
 	}
 	var buf bytes.Buffer
 	if err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85}); err != nil {
@@ -295,8 +300,9 @@ func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx conte
 		return err
 	}
 
-	addr, _ := effectiveOllamaConfig()
-	suggestions, err := generateItemSuggestions(addr, ollamaModel, jpegData)
+	_, user, _, _ := UserFromContext(ctx)
+	addr, _, numCtx := effectiveOllamaConfig(user)
+	suggestions, err := generateItemSuggestions(addr, ollamaModel, numCtx, jpegData)
 	if err != nil {
 		return err
 	}
@@ -337,7 +343,7 @@ func saveSuggestionTextEmbedding(artifactID uint, s ItemSuggestions, ctx context
 }
 
 func backfillArtifactSuggestions() error {
-	addr, model := effectiveOllamaConfig()
+	addr, model, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		Log.Warn("ollama not configured, skipping suggestion backfill")
 		return nil

@@ -20,6 +20,7 @@ type GlobalConfig struct {
 	MaximumEmbeddingDimensions *uint
 	OllamaAddress              string
 	OllamaVisionModel          string
+	OllamaNumCtx               int
 	BackfillSuggestionsOnStart bool
 }
 
@@ -65,7 +66,7 @@ func SetInitialInfinityConfig(text, image, queryPrefix, docPrefix string) error 
 	return nil
 }
 
-func SetInitialOllamaConfig(address, visionModel string) error {
+func SetInitialOllamaConfig(address, visionModel string, numCtx int) error {
 	cfg, err := loadGlobalConfig()
 	if err != nil {
 		return err
@@ -77,6 +78,10 @@ func SetInitialOllamaConfig(address, visionModel string) error {
 	}
 	if cfg.OllamaVisionModel == "" {
 		cfg.OllamaVisionModel = visionModel
+		changed = true
+	}
+	if cfg.OllamaNumCtx == 0 {
+		cfg.OllamaNumCtx = numCtx
 		changed = true
 	}
 	if changed {

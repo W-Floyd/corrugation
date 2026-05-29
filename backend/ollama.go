@@ -16,11 +16,12 @@ import (
 )
 
 type ollamaGenerateRequest struct {
-	Model  string   `json:"model"`
-	Prompt string   `json:"prompt"`
-	Images []string `json:"images"`
-	Stream bool     `json:"stream"`
-	Format string   `json:"format"`
+	Model   string         `json:"model"`
+	Prompt  string         `json:"prompt"`
+	Images  []string       `json:"images"`
+	Stream  bool           `json:"stream"`
+	Format  string         `json:"format"`
+	Options map[string]any `json:"options,omitempty"`
 }
 
 type ollamaGenerateResponse struct {
@@ -84,15 +85,16 @@ const suggestPrompt = `You are analyzing a household inventory item photo. Retur
 
 Respond with valid JSON only. No explanation, no markdown.`
 
-func generateItemSuggestions(address, model string, imageData []byte) (ItemSuggestions, error) {
+func generateItemSuggestions(address, model string, numCtx int, imageData []byte) (ItemSuggestions, error) {
 	b64 := base64.StdEncoding.EncodeToString(imageData)
 
 	reqBody := ollamaGenerateRequest{
-		Model:  model,
-		Prompt: suggestPrompt,
-		Images: []string{b64},
-		Stream: false,
-		Format: "json",
+		Model:   model,
+		Prompt:  suggestPrompt,
+		Images:  []string{b64},
+		Stream:  false,
+		Format:  "json",
+		Options: map[string]any{"num_ctx": numCtx},
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -134,19 +136,39 @@ func generateItemSuggestions(address, model string, imageData []byte) (ItemSugge
 	return suggestions, nil
 }
 
-// effectiveOllamaConfig returns the active Ollama address and vision model,
-// preferring GlobalConfig values over the CLI-seeded constants.
-func effectiveOllamaConfig() (address, visionModel string) {
-	cfg, err := loadGlobalConfig()
-	if err == nil && cfg.OllamaAddress != "" {
-		address = cfg.OllamaAddress
-	} else {
-		address = ollamaAddress
+// effectiveOllamaConfig returns the active Ollama address, vision model, and num_ctx.
+// Priority: per-user override → GlobalConfig → CLI-seeded constants.
+func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx int) {
+	address = ollamaAddress
+	visionModel = ollamaVisionModel
+	numCtx = ollamaNumCtx
+
+	if cfg, err := loadGlobalConfig(); err == nil {
+		if cfg.OllamaAddress != "" {
+			address = cfg.OllamaAddress
+		}
+		if cfg.OllamaVisionModel != "" {
+			visionModel = cfg.OllamaVisionModel
+		}
+		if cfg.OllamaNumCtx > 0 {
+			numCtx = cfg.OllamaNumCtx
+		}
 	}
-	if err == nil && cfg.OllamaVisionModel != "" {
-		visionModel = cfg.OllamaVisionModel
-	} else {
-		visionModel = ollamaVisionModel
+
+	var user *User
+	if len(u) > 0 {
+		user = u[0]
+	}
+	if user != nil {
+		if user.OllamaAddress != nil {
+			address = *user.OllamaAddress
+		}
+		if user.OllamaVisionModel != nil {
+			visionModel = *user.OllamaVisionModel
+		}
+		if user.OllamaNumCtx != nil {
+			numCtx = *user.OllamaNumCtx
+		}
 	}
 	return
 }
@@ -154,7 +176,7 @@ func effectiveOllamaConfig() (address, visionModel string) {
 // EnsureOllamaModel checks whether the configured vision model is available
 // and pulls it in the background if not. Safe to call at startup.
 func EnsureOllamaModel() {
-	addr, model := effectiveOllamaConfig()
+	addr, model, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		return
 	}
@@ -212,7 +234,7 @@ var ListOllamaModelsOperation = huma.Operation{
 }
 
 func ListOllamaModels(_ context.Context, _ *struct{}) (output *struct{ Body []string }, err error) {
-	addr, _ := effectiveOllamaConfig()
+	addr, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		output = &struct{ Body []string }{Body: []string{}}
 		return
@@ -257,7 +279,7 @@ func PullOllamaModel(_ context.Context, input *struct {
 		Model string `json:"model" doc:"Model name to pull"`
 	}
 }) (*struct{}, error) {
-	addr, _ := effectiveOllamaConfig()
+	addr, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		return nil, huma.Error503ServiceUnavailable("ollama not configured")
 	}
@@ -298,12 +320,13 @@ var SuggestFromImageOperation = huma.Operation{
 	OperationID:   "suggest-from-image",
 }
 
-func SuggestFromImage(_ context.Context, input *struct {
+func SuggestFromImage(ctx context.Context, input *struct {
 	RawBody huma.MultipartFormFiles[struct {
 		File huma.FormFile `form:"file" required:"true"`
 	}]
 }) (output *struct{ Body ItemSuggestions }, err error) {
-	addr, model := effectiveOllamaConfig()
+	_, user, _, _ := UserFromContext(ctx)
+	addr, model, numCtx := effectiveOllamaConfig(user)
 	if addr == "" {
 		err = huma.Error503ServiceUnavailable("ollama not configured")
 		return
@@ -316,7 +339,7 @@ func SuggestFromImage(_ context.Context, input *struct {
 		return
 	}
 
-	suggestions, suggestErr := generateItemSuggestions(addr, model, data)
+	suggestions, suggestErr := generateItemSuggestions(addr, model, numCtx, data)
 	if suggestErr != nil {
 		Log.Errorw("ollama suggest failed", "error", suggestErr)
 		err = huma.Error503ServiceUnavailable("suggestion failed: " + suggestErr.Error())

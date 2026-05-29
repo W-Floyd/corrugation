@@ -17,6 +17,9 @@ type User struct {
 	EnabledBarcodeFormats *string
 	// nil = inherit global/model default; positive value caps embedding dimensions via Infinity.
 	MaximumEmbeddingDimensions *uint
+	OllamaAddress              *string
+	OllamaVisionModel          *string
+	OllamaNumCtx               *int
 }
 
 var userCache sync.Map // username → User

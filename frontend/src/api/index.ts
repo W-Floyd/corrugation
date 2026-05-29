@@ -313,6 +313,7 @@ export const api = {
     maximumEmbeddingDimensions?: number | null;
     ollamaAddress: string;
     ollamaVisionModel: string;
+    ollamaNumCtx: number;
   }): Promise<void> {
     await apiFetch("/api/config/global", {
       method: "PUT",
@@ -328,6 +329,9 @@ export const api = {
     infinityTextDocumentPrefix?: string;
     enabledBarcodeFormats?: string[];
     maximumEmbeddingDimensions?: number;
+    ollamaAddress?: string;
+    ollamaVisionModel?: string;
+    ollamaNumCtx?: number;
   }> {
     const response = await apiFetch("/api/config/user");
     return response.json();
@@ -340,6 +344,9 @@ export const api = {
     infinityTextDocumentPrefix?: string | null;
     enabledBarcodeFormats?: string[] | null;
     maximumEmbeddingDimensions?: number | null;
+    ollamaAddress?: string | null;
+    ollamaVisionModel?: string | null;
+    ollamaNumCtx?: number | null;
   }): Promise<void> {
     await apiFetch("/api/config/user", {
       method: "PUT",

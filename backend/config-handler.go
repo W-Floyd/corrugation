@@ -44,6 +44,7 @@ type GlobalConfigBody struct {
 	MaximumEmbeddingDimensions *uint  `json:"maximumEmbeddingDimensions,omitempty" doc:"Cap embedding dimensions sent to Infinity. nil = use model default."`
 	OllamaAddress              string `json:"ollamaAddress" doc:"Ollama service address for image content suggestions"`
 	OllamaVisionModel          string `json:"ollamaVisionModel" doc:"Ollama vision model for image content suggestions"`
+	OllamaNumCtx               int    `json:"ollamaNumCtx" doc:"Ollama context window size (num_ctx) for image suggestions"`
 }
 
 type UserConfigBody struct {
@@ -53,7 +54,10 @@ type UserConfigBody struct {
 	InfinityTextDocumentPrefix *string   `json:"infinityTextDocumentPrefix,omitempty" doc:"Override prefix prepended to text documents"`
 	EnabledBarcodeFormats      *[]string `json:"enabledBarcodeFormats,omitempty" doc:"Override barcode/QR formats to detect. null = use global default; [] = disable; non-empty = specific formats."`
 	// nil = inherit global/model default; positive value overrides embedding dimensions for this user.
-	MaximumEmbeddingDimensions *uint `json:"maximumEmbeddingDimensions,omitempty" doc:"Override embedding dimensions. null = inherit global; positive = cap to this value."`
+	MaximumEmbeddingDimensions *uint   `json:"maximumEmbeddingDimensions,omitempty" doc:"Override embedding dimensions. null = inherit global; positive = cap to this value."`
+	OllamaAddress              *string `json:"ollamaAddress,omitempty" doc:"Override Ollama server address"`
+	OllamaVisionModel          *string `json:"ollamaVisionModel,omitempty" doc:"Override Ollama vision model"`
+	OllamaNumCtx               *int    `json:"ollamaNumCtx,omitempty" doc:"Override Ollama context window size"`
 }
 
 func barcodeFormatsToSlice(s string) []string {
@@ -114,6 +118,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		MaximumEmbeddingDimensions:        cfg.MaximumEmbeddingDimensions,
 		OllamaAddress:                     cfg.OllamaAddress,
 		OllamaVisionModel:                 cfg.OllamaVisionModel,
+		OllamaNumCtx:                      cfg.OllamaNumCtx,
 	}}
 	return
 }
@@ -146,6 +151,7 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 		MaximumEmbeddingDimensions:        input.Body.MaximumEmbeddingDimensions,
 		OllamaAddress:                     input.Body.OllamaAddress,
 		OllamaVisionModel:                 input.Body.OllamaVisionModel,
+		OllamaNumCtx:                      input.Body.OllamaNumCtx,
 	}
 	if err = saveGlobalConfig(cfg); err != nil {
 		return
@@ -174,6 +180,9 @@ func GetUserConfig(ctx context.Context, _ *struct{}) (output *struct{ Body UserC
 		InfinityTextQueryPrefix:    u.InfinityTextQueryPrefix,
 		InfinityTextDocumentPrefix: u.InfinityTextDocumentPrefix,
 		MaximumEmbeddingDimensions: u.MaximumEmbeddingDimensions,
+		OllamaAddress:              u.OllamaAddress,
+		OllamaVisionModel:          u.OllamaVisionModel,
+		OllamaNumCtx:               u.OllamaNumCtx,
 	}
 	if u.EnabledBarcodeFormats != nil {
 		s := barcodeFormatsToSlice(*u.EnabledBarcodeFormats)
@@ -202,6 +211,9 @@ func PutUserConfig(ctx context.Context, input *struct {
 	u.InfinityTextQueryPrefix = input.Body.InfinityTextQueryPrefix
 	u.InfinityTextDocumentPrefix = input.Body.InfinityTextDocumentPrefix
 	u.MaximumEmbeddingDimensions = input.Body.MaximumEmbeddingDimensions
+	u.OllamaAddress = input.Body.OllamaAddress
+	u.OllamaVisionModel = input.Body.OllamaVisionModel
+	u.OllamaNumCtx = input.Body.OllamaNumCtx
 	if input.Body.EnabledBarcodeFormats != nil {
 		s := barcodeFormatsToString(*input.Body.EnabledBarcodeFormats)
 		u.EnabledBarcodeFormats = &s
