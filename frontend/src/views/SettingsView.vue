@@ -1260,6 +1260,13 @@ onMounted(() => {
               Clear done
             </button>
             <button
+              @click="clearJobsByStatus('failed')"
+              :disabled="jobsLoading"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+            >
+              Clear failed
+            </button>
+            <button
               @click="loadJobs"
               :disabled="jobsLoading"
               class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -1466,6 +1473,13 @@ onMounted(() => {
               class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
             >
               Clear done
+            </button>
+            <button
+              @click="clearSuggestionJobsByStatus('failed')"
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-200 disabled:opacity-50 dark:bg-orange-900/40 dark:text-orange-400 dark:hover:bg-orange-900"
+            >
+              Clear failed
             </button>
             <button
               @click="loadSuggestionJobs"
