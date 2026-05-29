@@ -25,6 +25,7 @@ func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body 
 	var p BackfillPreview
 	if err = db.Model(&Record{}).
 		Where("id NOT IN (SELECT DISTINCT record_id FROM embeddings WHERE record_id IS NOT NULL AND deleted_at IS NULL)").
+		Where("(title IS NOT NULL AND title != '') OR (reference_number IS NOT NULL AND reference_number != '') OR (description IS NOT NULL AND description != '')").
 		Count(&p.Records).Error; err != nil {
 		return
 	}
