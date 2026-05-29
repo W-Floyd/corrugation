@@ -37,6 +37,7 @@ const quantity = ref<number | null>(null);
 const referenceNumber = ref<string>("");
 const files = ref<File[]>([]);
 const nextRefNumber = ref<number>(0);
+const suggesting = ref(false);
 
 const refTaken = computed(() => {
   const v = referenceNumber.value.trim();
@@ -102,6 +103,26 @@ const handleSubmit = async (): Promise<void> => {
 const handleDialogClose = (): void => {
   dialogVisible.value = false;
   emit("update:visible", false);
+};
+
+const handleSuggest = async (): Promise<void> => {
+  if (files.value.length === 0) {
+    toastsStore.add("Select an image first", "warn");
+    return;
+  }
+  suggesting.value = true;
+  try {
+    const suggestions = await api.suggestFromImage(files.value[0]);
+    if (suggestions.name && !title.value) title.value = suggestions.name;
+    if (suggestions.description && !description.value)
+      description.value = suggestions.description;
+    if (suggestions.quantity != null && quantity.value == null)
+      quantity.value = suggestions.quantity;
+  } catch {
+    // error toast already shown by apiFetch
+  } finally {
+    suggesting.value = false;
+  }
 };
 
 const handleCameraOpen = async (): Promise<void> => {
@@ -230,6 +251,14 @@ const handleCameraOpen = async (): Promise<void> => {
                 class="h-10 rounded-full bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600"
               >
                 Camera
+              </button>
+              <button
+                type="button"
+                @click="handleSuggest"
+                :disabled="suggesting || files.length === 0"
+                class="h-10 rounded-full bg-purple-500 px-4 py-2 text-white shadow hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {{ suggesting ? "Suggesting…" : "Suggest" }}
               </button>
             </div>
           </div>

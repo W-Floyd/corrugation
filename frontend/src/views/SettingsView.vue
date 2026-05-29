@@ -52,6 +52,8 @@ const globalConfig = ref({
   enabledBarcodeFormats: [] as string[],
   // null = use model output as-is; positive number = cap embedding dimensions
   maximumEmbeddingDimensions: null as number | null,
+  ollamaAddress: "",
+  ollamaVisionModel: "",
 });
 
 const allBarcodeFormats = ref<{ value: string; label: string }[]>([]);
@@ -191,6 +193,8 @@ async function loadGlobalConfig() {
       infinityTextDocumentPrefix: cfg.infinityTextDocumentPrefix,
       enabledBarcodeFormats: cfg.enabledBarcodeFormats ?? [],
       maximumEmbeddingDimensions: cfg.maximumEmbeddingDimensions ?? null,
+      ollamaAddress: cfg.ollamaAddress ?? "",
+      ollamaVisionModel: cfg.ollamaVisionModel ?? "",
     };
   } catch {
     // toast already shown
@@ -826,6 +830,37 @@ onMounted(() => {
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Caps embedding dimensions sent to Infinity server-wide. Leave
               blank to use whatever the model provides.
+            </p>
+          </div>
+
+          <hr class="border-gray-200 dark:border-gray-700" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Ollama content suggestions
+          </p>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium">Ollama address</label>
+            <input
+              v-model="globalConfig.ollamaAddress"
+              type="text"
+              placeholder="http://localhost:11434"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Ollama vision model</label
+            >
+            <input
+              v-model="globalConfig.ollamaVisionModel"
+              type="text"
+              placeholder="moondream2"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Vision model used for the "Suggest" button when creating records.
+              Requires the model to be pulled in Ollama first.
             </p>
           </div>
 

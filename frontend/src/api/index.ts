@@ -210,6 +210,18 @@ export const api = {
     await apiFetch(`/api/artifact/${id}`, { method: "DELETE" });
   },
 
+  async suggestFromImage(
+    file: File,
+  ): Promise<{ name: string; description: string; quantity?: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiFetch("/api/suggest", {
+      method: "POST",
+      body: formData,
+    });
+    return response.json();
+  },
+
   // Next available reference number not held by any labeled record
   async nextReferenceNumber(excludeIDs?: number[]): Promise<number> {
     const params = new URLSearchParams();
