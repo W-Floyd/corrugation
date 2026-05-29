@@ -10,13 +10,21 @@ services:
       - SERVICE_ADDRESS
       - SERVICE_DATA
       - SERVICE_DIST
+      - SERVICE_BACKUP_COUNT
       - SERVICE_EMBEDDING_CONCURRENCY
-      - SERVICE_BACKFILL_ON_START
+      - SERVICE_ALLOW_LOCAL_USERNAME_LOGIN
+      - SERVICE_BACKFILL_ALL_ON_START
+      - SERVICE_BACKFILL_LEGACY_EMBEDDINGS_ON_START
+      - SERVICE_BACKFILL_RECORD_EMBEDDINGS_ON_START
+      - SERVICE_BACKFILL_ARTIFACT_EMBEDDINGS_ON_START
+      - SERVICE_BACKFILL_ARTIFACT_OWNERS_ON_START
       - SERVICE_INFINITY_ADDRESS=http://infinity:${INFINITY_PORT}
       - SERVICE_INFINITY_IMAGE_MODEL
       - SERVICE_INFINITY_TEXT_DOCUMENT_PREFIX
       - SERVICE_INFINITY_TEXT_MODEL
       - SERVICE_INFINITY_TEXT_QUERY_PREFIX
+      - SERVICE_OLLAMA_ADDRESS=http://ollama:${OLLAMA_PORT}
+      - SERVICE_OLLAMA_VISION_MODEL
       - SERVICE_LEGACY_IMPORT_USER
       - SERVICE_LOG_LEVEL
       - SERVICE_OIDC_CLIENT_ID
@@ -28,6 +36,7 @@ services:
       - ${DATA_DIR}/corrugation:/data
     depends_on:
       - infinity
+      - ollama
   infinity:
     image: michaelf34/infinity:latest
     ports:
@@ -42,3 +51,12 @@ services:
     restart: unless-stopped
     volumes:
       - ${DATA_DIR}/infinity/:/app/.cache
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - ${OLLAMA_PORT}:${OLLAMA_PORT}
+    environment:
+      - OLLAMA_HOST=0.0.0.0:${OLLAMA_PORT}
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR}/ollama:/root/.ollama
