@@ -122,6 +122,9 @@ func generateItemSuggestions(address, model string, imageData []byte) (ItemSugge
 		return ItemSuggestions{}, err
 	}
 
+	if ollamaResp.Response == "" {
+		return ItemSuggestions{}, errors.New("ollama returned an empty response — model may not support vision or JSON output")
+	}
 	var suggestions ItemSuggestions
 	if err = json.Unmarshal([]byte(ollamaResp.Response), &suggestions); err != nil {
 		return ItemSuggestions{}, errors.New("ollama returned non-JSON response: " + ollamaResp.Response)
