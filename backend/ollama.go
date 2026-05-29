@@ -100,7 +100,8 @@ func generateItemSuggestions(address, model string, imageData []byte) (ItemSugge
 		return ItemSuggestions{}, err
 	}
 
-	resp, err := http.Post(address+"/api/generate", "application/json", bytes.NewBuffer(body))
+	client := &http.Client{Timeout: 5 * time.Minute}
+	resp, err := client.Post(address+"/api/generate", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return ItemSuggestions{}, err
 	}
