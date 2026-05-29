@@ -174,7 +174,7 @@ const handleDrop = async (e: DragEvent): Promise<void> => {
       ? props.appRecord.ParentID
       : props.appRecord.ID;
   try {
-    await api.moveRecord(draggedId, targetId);
+    await api.moveRecord(draggedId, targetId ?? 0);
     await recordsStore.reload();
     toastsStore.add("Record moved", "info");
   } catch {
@@ -245,7 +245,6 @@ const filteredMoveRecords = computed(() => {
     Artifacts: [],
     ParentID: 0,
     ReferenceNumber: null,
-    lastModified: null,
   };
   const candidates: BackendRecord[] = [
     ...Object.values(recordsStore.recordMap).filter(
@@ -492,7 +491,8 @@ const handleSearchByImage = async (): Promise<void> => {
     return;
 
   try {
-    const artifactId = props.appRecord.Artifacts![0].ID;
+    const artifactId = props.appRecord.Artifacts?.[0]?.ID;
+    if (!artifactId) return;
     const response = await fetch(`/api/artifact/${artifactId}`);
     const artifactFile = await response.blob();
     const file = new File([artifactFile], `artifact-${artifactId}.jpg`, {
@@ -892,14 +892,14 @@ defineExpose({ cardEl });
       </div>
 
       <!-- Description -->
-      <div v-if="!editMode && appRecord.description">
+      <div v-if="!editMode && appRecord.Description">
         <p class="text-gray-600 dark:text-gray-400">
-          {{ appRecord.description }}
+          {{ appRecord.Description }}
         </p>
       </div>
       <div v-else-if="editMode">
         <textarea
-          v-model="localRecord.description"
+          v-model="localRecord.Description"
           class="w-full rounded-sm bg-white ring-1 dark:bg-gray-900"
           rows="3"
           placeholder="Description"
