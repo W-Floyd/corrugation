@@ -138,10 +138,11 @@ func generateItemSuggestions(address, model string, numCtx int, imageData []byte
 
 // effectiveOllamaConfig returns the active Ollama address, vision model, and num_ctx.
 // Priority: per-user override → GlobalConfig → CLI-seeded constants.
-func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx int) {
+func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx, imageMaxDim int) {
 	address = ollamaAddress
 	visionModel = ollamaVisionModel
 	numCtx = ollamaNumCtx
+	imageMaxDim = ollamaImageMaxDim
 
 	if cfg, err := loadGlobalConfig(); err == nil {
 		if cfg.OllamaAddress != "" {
@@ -152,6 +153,9 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx int)
 		}
 		if cfg.OllamaNumCtx > 0 {
 			numCtx = cfg.OllamaNumCtx
+		}
+		if cfg.OllamaImageMaxDim > 0 {
+			imageMaxDim = cfg.OllamaImageMaxDim
 		}
 	}
 
@@ -169,6 +173,9 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx int)
 		if user.OllamaNumCtx != nil {
 			numCtx = *user.OllamaNumCtx
 		}
+		if user.OllamaImageMaxDim != nil {
+			imageMaxDim = *user.OllamaImageMaxDim
+		}
 	}
 	return
 }
@@ -176,7 +183,7 @@ func effectiveOllamaConfig(u ...*User) (address, visionModel string, numCtx int)
 // EnsureOllamaModel checks whether the configured vision model is available
 // and pulls it in the background if not. Safe to call at startup.
 func EnsureOllamaModel() {
-	addr, model, _ := effectiveOllamaConfig()
+	addr, model, _, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		return
 	}
@@ -234,7 +241,7 @@ var ListOllamaModelsOperation = huma.Operation{
 }
 
 func ListOllamaModels(_ context.Context, _ *struct{}) (output *struct{ Body []string }, err error) {
-	addr, _, _ := effectiveOllamaConfig()
+	addr, _, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		output = &struct{ Body []string }{Body: []string{}}
 		return
@@ -279,7 +286,7 @@ func PullOllamaModel(_ context.Context, input *struct {
 		Model string `json:"model" doc:"Model name to pull"`
 	}
 }) (*struct{}, error) {
-	addr, _, _ := effectiveOllamaConfig()
+	addr, _, _, _ := effectiveOllamaConfig()
 	if addr == "" {
 		return nil, huma.Error503ServiceUnavailable("ollama not configured")
 	}
@@ -326,7 +333,7 @@ func SuggestFromImage(ctx context.Context, input *struct {
 	}]
 }) (output *struct{ Body ItemSuggestions }, err error) {
 	_, user, _, _ := UserFromContext(ctx)
-	addr, model, numCtx := effectiveOllamaConfig(user)
+	addr, model, numCtx, _ := effectiveOllamaConfig(user)
 	if addr == "" {
 		err = huma.Error503ServiceUnavailable("ollama not configured")
 		return

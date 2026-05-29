@@ -18,6 +18,7 @@ var (
 	ollamaAddress      = "http://ollama:11434"
 	ollamaVisionModel  = "moondream"
 	ollamaNumCtx       = 4096
+	ollamaImageMaxDim  = 512
 
 	embeddingSemaphore  = make(chan struct{}, 4)
 	suggestionSemaphore = make(chan struct{}, 1)
@@ -38,11 +39,14 @@ func SetInfinityConfig(address, textModel, imageModel, textQueryPrefix, textDocu
 	infinityTextDocumentPrefix = textDocumentPrefix
 }
 
-func SetOllamaConfig(address, visionModel string, numCtx int) {
+func SetOllamaConfig(address, visionModel string, numCtx, imageMaxDim int) {
 	ollamaAddress = address
 	ollamaVisionModel = visionModel
 	if numCtx > 0 {
 		ollamaNumCtx = numCtx
+	}
+	if imageMaxDim > 0 {
+		ollamaImageMaxDim = imageMaxDim
 	}
 }
 

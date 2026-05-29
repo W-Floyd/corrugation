@@ -41,7 +41,7 @@ func GetBackfillPreview(ctx context.Context, _ *struct{}) (output *struct{ Body 
 		Count(&p.Artifacts).Error; err != nil {
 		return
 	}
-	_, ollamaModel, _ := effectiveOllamaConfig()
+	_, ollamaModel, _, _ := effectiveOllamaConfig()
 	p.Suggestions, err = SuggestionBackfillCount(ollamaModel)
 	if err != nil {
 		return

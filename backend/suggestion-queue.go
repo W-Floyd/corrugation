@@ -26,10 +26,10 @@ func isOllamaReady() bool {
 }
 
 func waitForOllama() {
-	addr, model, _ := effectiveOllamaConfig()
+	addr, model, _, _ := effectiveOllamaConfig()
 	Log.Infow("ollama: waiting for server and model", "url", addr, "model", model)
 	for {
-		addr, model, _ = effectiveOllamaConfig()
+		addr, model, _, _ = effectiveOllamaConfig()
 		resp, err := http.Get(addr + "/api/tags")
 		if err != nil {
 			Log.Infow("ollama: not ready, retrying in 2s", "error", err)
@@ -259,15 +259,13 @@ func processSuggestionJob(jobID uint) {
 	broadcastSuggestionProgress(job)
 }
 
-const ollamaMaxImageDim = 512
-
-func toJPEG(data []byte) ([]byte, error) {
+func toJPEG(data []byte, maxDim int) ([]byte, error) {
 	img, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
-	if img.Bounds().Dx() > ollamaMaxImageDim || img.Bounds().Dy() > ollamaMaxImageDim {
-		img = imaging.Fit(img, ollamaMaxImageDim, ollamaMaxImageDim, imaging.Lanczos)
+	if maxDim > 0 && (img.Bounds().Dx() > maxDim || img.Bounds().Dy() > maxDim) {
+		img = imaging.Fit(img, maxDim, maxDim, imaging.Lanczos)
 	}
 	var buf bytes.Buffer
 	if err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85}); err != nil {
@@ -295,13 +293,14 @@ func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx conte
 		return err
 	}
 
-	jpegData, err := toJPEG(*data)
+	_, user, _, _ := UserFromContext(ctx)
+	addr, _, numCtx, imageMaxDim := effectiveOllamaConfig(user)
+
+	jpegData, err := toJPEG(*data, imageMaxDim)
 	if err != nil {
 		return err
 	}
 
-	_, user, _, _ := UserFromContext(ctx)
-	addr, _, numCtx := effectiveOllamaConfig(user)
 	suggestions, err := generateItemSuggestions(addr, ollamaModel, numCtx, jpegData)
 	if err != nil {
 		return err
@@ -343,7 +342,7 @@ func saveSuggestionTextEmbedding(artifactID uint, s ItemSuggestions, ctx context
 }
 
 func backfillArtifactSuggestions() error {
-	addr, model, _ := effectiveOllamaConfig()
+	addr, model, _, _ := effectiveOllamaConfig()
 	if addr == "" || model == "" {
 		Log.Warn("ollama not configured, skipping suggestion backfill")
 		return nil

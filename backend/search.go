@@ -132,7 +132,7 @@ func SearchBySuggestion(ctx context.Context, search string, artifactRecordMap ma
 			embeddedArtifacts[*emb.ArtifactID] = true
 		}
 	}
-	_, ollamaModel, _ := effectiveOllamaConfig()
+	_, ollamaModel, _, _ := effectiveOllamaConfig()
 	for artifactID, recordID := range artifactRecordMap {
 		if recordID == nil || embeddedArtifacts[artifactID] {
 			continue

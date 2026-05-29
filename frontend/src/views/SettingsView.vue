@@ -35,6 +35,7 @@ const userConfig = ref({
   ollamaAddress: null as string | null,
   ollamaVisionModel: null as string | null,
   ollamaNumCtx: null as number | null,
+  ollamaImageMaxDim: null as number | null,
 });
 const userConfigLoading = ref(false);
 const userConfigSaving = ref(false);
@@ -59,6 +60,7 @@ const globalConfig = ref({
   ollamaAddress: "",
   ollamaVisionModel: "",
   ollamaNumCtx: 4096,
+  ollamaImageMaxDim: 512,
 });
 
 const allBarcodeFormats = ref<{ value: string; label: string }[]>([]);
@@ -223,6 +225,7 @@ async function loadUserConfig() {
       ollamaAddress: cfg.ollamaAddress ?? null,
       ollamaVisionModel: cfg.ollamaVisionModel ?? null,
       ollamaNumCtx: cfg.ollamaNumCtx ?? null,
+      ollamaImageMaxDim: cfg.ollamaImageMaxDim ?? null,
     };
   } catch {
     // toast already shown by apiFetch
@@ -245,6 +248,7 @@ async function saveUserConfig() {
       ollamaAddress: userConfig.value.ollamaAddress || null,
       ollamaVisionModel: userConfig.value.ollamaVisionModel || null,
       ollamaNumCtx: userConfig.value.ollamaNumCtx,
+      ollamaImageMaxDim: userConfig.value.ollamaImageMaxDim,
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -275,6 +279,7 @@ async function loadGlobalConfig() {
       ollamaAddress: cfg.ollamaAddress ?? "",
       ollamaVisionModel: cfg.ollamaVisionModel ?? "",
       ollamaNumCtx: cfg.ollamaNumCtx ?? 4096,
+      ollamaImageMaxDim: cfg.ollamaImageMaxDim ?? 512,
     };
   } catch {
     // toast already shown
@@ -779,6 +784,31 @@ onMounted(() => {
             />
           </div>
 
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Image max dimension (px)</label
+            >
+            <input
+              :value="userConfig.ollamaImageMaxDim ?? ''"
+              @input="
+                (e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  userConfig.ollamaImageMaxDim =
+                    v === '' ? null : Math.max(0, parseInt(v) || 0);
+                }
+              "
+              type="number"
+              min="0"
+              step="64"
+              :placeholder="
+                globalConfig.ollamaImageMaxDim
+                  ? String(globalConfig.ollamaImageMaxDim)
+                  : 'Server default'
+              "
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+          </div>
+
           <hr class="border-gray-200 dark:border-gray-700" />
           <p class="text-xs text-gray-500 dark:text-gray-400">
             Barcode / QR code detection
@@ -1147,6 +1177,24 @@ onMounted(() => {
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Increase if you see "context limit hit" warnings in Ollama logs.
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium"
+              >Image max dimension (px)</label
+            >
+            <input
+              v-model.number="globalConfig.ollamaImageMaxDim"
+              type="number"
+              min="0"
+              step="64"
+              placeholder="512"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Images are resized to fit within this square before sending. 0 =
+              no resize.
             </p>
           </div>
 
