@@ -207,12 +207,12 @@ export const useRecordsStore = defineStore("records", () => {
   function parseEmbeddingProgressMessage(
     msg: string,
   ): { jobID: number; jobType: string; targetID: number } | null {
-    const parts = msg.split(":");
-    if (parts.length !== 4) return null;
+    const [, jobIDStr, jobType, targetIDStr] = msg.split(":");
+    if (!jobIDStr || !jobType || !targetIDStr) return null;
     return {
-      jobID: parseInt(parts[1], 10),
-      jobType: parts[2],
-      targetID: parseInt(parts[3], 10),
+      jobID: parseInt(jobIDStr, 10),
+      jobType,
+      targetID: parseInt(targetIDStr, 10),
     };
   }
 
