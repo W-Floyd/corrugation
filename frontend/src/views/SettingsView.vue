@@ -156,7 +156,7 @@ const jobsPage = ref(0);
 const jobsPageSize = 50;
 const jobsLoading = ref(false);
 const jobsPageInput = ref(1);
-const jobsShowAll = ref(false);
+const jobsShowAll = ref(localStorage.getItem("jobs-show-all") === "true");
 const jobsStatusFilter = ref("");
 
 // --- Suggestion jobs ---
@@ -179,8 +179,15 @@ const suggestionJobsPage = ref(0);
 const suggestionJobsPageSize = 50;
 const suggestionJobsLoading = ref(false);
 const suggestionJobsPageInput = ref(1);
-const suggestionJobsShowAll = ref(false);
+const suggestionJobsShowAll = ref(
+  localStorage.getItem("suggestion-jobs-show-all") === "true",
+);
 const suggestionJobsStatusFilter = ref("");
+
+watch(jobsShowAll, (v) => localStorage.setItem("jobs-show-all", String(v)));
+watch(suggestionJobsShowAll, (v) =>
+  localStorage.setItem("suggestion-jobs-show-all", String(v)),
+);
 
 const isAdmin = computed(() => authStore.isAdmin);
 const currentUsername = computed(() => authStore.username);
