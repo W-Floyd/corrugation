@@ -580,6 +580,7 @@ const pendingImages = ref<string[]>([]);
 type Suggestion = { name: string; description: string; quantity?: number };
 const suggestion = ref<Suggestion | null>(null);
 const suggestionLoading = ref(false);
+const suggestionPending = ref(false);
 const suggestionPanelOpen = ref(false);
 
 const isDataless = computed(
@@ -629,9 +630,10 @@ watch(placeholderPending, (pending) => {
   }
 });
 
-onUnmounted(() =>
-  window.removeEventListener("suggestion_progress", onSuggestionProgress),
-);
+onUnmounted(() => {
+  window.removeEventListener("suggestion_progress", onSuggestionProgress);
+  window.removeEventListener("suggestion_progress", onSuggestionReadyForPanel);
+});
 
 // Path segments for search display — leaf node overridden with suggestion name when dataless.
 const displayPathSegments = computed(() => {
@@ -659,7 +661,16 @@ async function fetchSuggestion(): Promise<void> {
   suggestionPanelOpen.value = true;
   try {
     const s = await api.getArtifactSuggestion(artifactId);
-    suggestion.value = s;
+    if (s?.status === "pending") {
+      suggestion.value = null;
+      suggestionPending.value = true;
+    } else if (s?.status === "ready") {
+      suggestion.value = s as unknown as Suggestion;
+      suggestionPending.value = false;
+    } else {
+      suggestion.value = null;
+      suggestionPending.value = false;
+    }
   } catch {
     suggestion.value = null;
   } finally {
@@ -687,9 +698,27 @@ function applyAllSuggestions(): void {
   suggestionPanelOpen.value = false;
 }
 
+function onSuggestionReadyForPanel(e: Event): void {
+  const artifactId = props.appRecord.Artifacts?.[0]?.ID;
+  if (!artifactId) return;
+  if ((e as CustomEvent).detail?.artifactId === artifactId) fetchSuggestion();
+}
+
+watch(suggestionPending, (pending) => {
+  if (pending) {
+    window.addEventListener("suggestion_progress", onSuggestionReadyForPanel);
+  } else {
+    window.removeEventListener(
+      "suggestion_progress",
+      onSuggestionReadyForPanel,
+    );
+  }
+});
+
 watch(editMode, (on) => {
   if (!on) {
     suggestion.value = null;
+    suggestionPending.value = false;
     suggestionPanelOpen.value = false;
   }
 });
@@ -939,9 +968,9 @@ defineExpose({ cardEl });
               >
               <span
                 v-else-if="placeholderPending"
-                class="font-normal text-gray-200 italic dark:text-gray-700"
+                class="animate-pulse font-normal text-gray-300 italic dark:text-gray-600"
                 title="AI suggestion generating…"
-                >…</span
+                >Generating…</span
               >
               <span v-else class="font-normal text-gray-400 dark:text-gray-500"
                 >({{ appRecord.ID }})</span
@@ -1084,8 +1113,15 @@ defineExpose({ cardEl });
         <div v-if="suggestionLoading" class="text-xs text-purple-500">
           Loading…
         </div>
+        <div
+          v-else-if="suggestionPending"
+          class="flex items-center gap-2 text-xs text-purple-400"
+        >
+          <span class="animate-pulse">⬤</span>
+          Generating — will update when ready.
+        </div>
         <div v-else-if="!suggestion" class="text-xs text-purple-500">
-          No suggestion cached yet — still processing.
+          No suggestion available.
         </div>
         <template v-else>
           <div class="flex flex-col gap-2">
