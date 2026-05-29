@@ -193,7 +193,7 @@ func StartEmbeddingWorkers() {
 }
 
 func broadcastEmbeddingProgress(job EmbeddingJob) {
-	msg := "embedding_progress:" + job.JobType + ":" + strconv.FormatUint(uint64(job.TargetID), 10)
+	msg := "embedding_progress:" + strconv.FormatUint(uint64(job.ID), 10) + ":" + job.JobType + ":" + strconv.FormatUint(uint64(job.TargetID), 10)
 	Log.Infow("broadcasting embedding progress", "jobID", job.ID, "username", job.Username, "msg", msg)
 	BroadcastToUser(job.Username, msg)
 }

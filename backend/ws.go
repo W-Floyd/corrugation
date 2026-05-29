@@ -100,6 +100,9 @@ func usernameFromRequest(r *http.Request) string {
 	}
 	username, err := ValidateToken(token)
 	if err != nil {
+		if cfg, cfgErr := loadGlobalConfig(); cfgErr == nil && cfg.AllowLocalUsernameLogin {
+			return token
+		}
 		return ""
 	}
 	return username

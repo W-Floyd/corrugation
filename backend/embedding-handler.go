@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"gorm.io/gorm"
@@ -158,4 +159,161 @@ func GetSearchEmbeddingProgress(ctx context.Context, input *struct {
 
 	output = &struct{ Body SearchEmbeddingProgress }{Body: p}
 	return
+}
+
+var ListEmbeddingJobsOperation = huma.Operation{
+	Method: http.MethodGet,
+	Path:   "/api/embeddings/jobs",
+}
+
+type EmbeddingJobInfo struct {
+	ID         uint      `json:"id"`
+	JobType    string    `json:"jobType"`
+	TargetID   uint      `json:"targetID"`
+	Username   string    `json:"username"`
+	Status     string    `json:"status"`
+	ErrorMsg   string    `json:"errorMsg,omitempty"`
+	RetryCount int       `json:"retryCount"`
+	EmbedModel string    `json:"embedModel"`
+	Dimensions *uint     `json:"dimensions,omitempty"`
+	Source     string    `json:"source"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+type EmbeddingJobsPage struct {
+	Jobs  []EmbeddingJobInfo `json:"jobs"`
+	Total int64              `json:"total"`
+}
+
+func ListEmbeddingJobs(ctx context.Context, input *struct {
+	All    bool   `query:"all" required:"false"`
+	Status string `query:"status" required:"false"`
+	Limit  int    `query:"limit" required:"false" default:"50"`
+	Offset int    `query:"offset" required:"false" default:"0"`
+}) (output *struct{ Body EmbeddingJobsPage }, err error) {
+	username := UsernameFromContext(ctx)
+	uc, _ := loadUser(username)
+
+	showAll := input.All && uc.IsAdmin
+
+	q := db.Model(&EmbeddingJob{})
+	if !showAll && username != "" && uc.ID > 0 {
+		q = q.Where("owner_id = ?", uc.ID)
+	}
+	if input.Status != "" {
+		q = q.Where("status = ?", input.Status)
+	}
+
+	var total int64
+	if err = q.Count(&total).Error; err != nil {
+		return
+	}
+
+	var jobs []EmbeddingJob
+	order := "CASE status WHEN 'processing' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 ELSE 3 END, created_at DESC"
+	if err = q.Order(order).Limit(input.Limit).Offset(input.Offset).Find(&jobs).Error; err != nil {
+		return
+	}
+
+	infos := make([]EmbeddingJobInfo, len(jobs))
+	for i, j := range jobs {
+		infos[i] = EmbeddingJobInfo{
+			ID:         j.ID,
+			JobType:    j.JobType,
+			TargetID:   j.TargetID,
+			Username:   j.Username,
+			Status:     j.Status,
+			ErrorMsg:   j.ErrorMsg,
+			RetryCount: j.RetryCount,
+			EmbedModel: j.EmbedModel,
+			Dimensions: j.Dimensions,
+			Source:     j.Source,
+			CreatedAt:  j.CreatedAt,
+			UpdatedAt:  j.UpdatedAt,
+		}
+	}
+	output = &struct{ Body EmbeddingJobsPage }{Body: EmbeddingJobsPage{Jobs: infos, Total: total}}
+	return
+}
+
+var DeletePendingEmbeddingJobsOperation = huma.Operation{
+	Method:        http.MethodDelete,
+	Path:          "/api/embeddings/jobs",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func DeletePendingEmbeddingJobs(ctx context.Context, input *struct {
+	All    bool   `query:"all" required:"false"`
+	Status string `query:"status" required:"false" default:"pending"`
+}) (*struct{}, error) {
+	username := UsernameFromContext(ctx)
+	uc, _ := loadUser(username)
+
+	status := input.Status
+	if status == "" {
+		status = JobStatusPending
+	}
+
+	q := db.Where("status = ?", status)
+	if !(input.All && uc.IsAdmin) {
+		q = q.Where("owner_id = ?", uc.ID)
+	}
+	return nil, q.Delete(&EmbeddingJob{}).Error
+}
+
+var DeleteEmbeddingJobOperation = huma.Operation{
+	Method:        http.MethodDelete,
+	Path:          "/api/embeddings/jobs/{id}",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func DeleteEmbeddingJob(ctx context.Context, input *struct {
+	ID uint `path:"id"`
+}) (*struct{}, error) {
+	username := UsernameFromContext(ctx)
+	uc, _ := loadUser(username)
+
+	q := db.Where("id = ? AND status = ?", input.ID, JobStatusPending)
+	if !uc.IsAdmin {
+		q = q.Where("owner_id = ?", uc.ID)
+	}
+
+	result := q.Delete(&EmbeddingJob{})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, huma.Error404NotFound("job not found or not deletable")
+	}
+	return nil, nil
+}
+
+var InvalidateUserEmbeddingsOperation = huma.Operation{
+	Method:        http.MethodDelete,
+	Path:          "/api/embeddings/user",
+	DefaultStatus: http.StatusNoContent,
+}
+
+func InvalidateUserEmbeddings(ctx context.Context, _ *struct{}) (*struct{}, error) {
+	_, _, userID, err := UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete embeddings for records owned by this user
+	err = db.Where("record_id IN (SELECT id FROM records WHERE owner_id = ? AND deleted_at IS NULL)", userID).
+		Delete(&Embedding{}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete embeddings for artifacts owned by this user
+	err = db.Where("artifact_id IN (SELECT id FROM artifacts WHERE owner_id = ? AND deleted_at IS NULL)", userID).
+		Delete(&Embedding{}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
