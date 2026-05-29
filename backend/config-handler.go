@@ -106,6 +106,8 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 	if err != nil {
 		return
 	}
+	// Return effective Ollama values so fields always show what's actually running.
+	effectiveAddr, effectiveModel, effectivePrompt, effectiveNumCtx, effectiveImageMaxDim := effectiveOllamaConfig()
 	output = &struct{ Body GlobalConfigBody }{Body: GlobalConfigBody{
 		LogLevel:                          cfg.LogLevel,
 		BackfillLegacyEmbeddingsOnStart:   cfg.BackfillLegacyEmbeddingsOnStart,
@@ -120,11 +122,11 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		InfinityTextDocumentPrefix:        cfg.InfinityTextDocumentPrefix,
 		EnabledBarcodeFormats:             barcodeFormatsToSlice(cfg.EnabledBarcodeFormats),
 		MaximumEmbeddingDimensions:        cfg.MaximumEmbeddingDimensions,
-		OllamaAddress:                     cfg.OllamaAddress,
-		OllamaVisionModel:                 cfg.OllamaVisionModel,
-		OllamaNumCtx:                      cfg.OllamaNumCtx,
-		OllamaImageMaxDim:                 cfg.OllamaImageMaxDim,
-		OllamaSuggestPrompt:               cfg.OllamaSuggestPrompt,
+		OllamaAddress:                     effectiveAddr,
+		OllamaVisionModel:                 effectiveModel,
+		OllamaNumCtx:                      effectiveNumCtx,
+		OllamaImageMaxDim:                 effectiveImageMaxDim,
+		OllamaSuggestPrompt:               effectivePrompt,
 	}}
 	return
 }

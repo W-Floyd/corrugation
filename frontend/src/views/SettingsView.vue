@@ -199,6 +199,32 @@ watch(suggestionJobsShowAll, (v) =>
 );
 
 const isAdmin = computed(() => authStore.isAdmin);
+
+// Returns true when a user Ollama field has been overridden from the global value.
+const ollamaUserOverrides = computed(() => ({
+  address:
+    !!userConfig.value.ollamaAddress &&
+    userConfig.value.ollamaAddress !== globalConfig.value.ollamaAddress,
+  visionModel:
+    !!userConfig.value.ollamaVisionModel &&
+    userConfig.value.ollamaVisionModel !== globalConfig.value.ollamaVisionModel,
+  numCtx:
+    userConfig.value.ollamaNumCtx != null &&
+    userConfig.value.ollamaNumCtx !== globalConfig.value.ollamaNumCtx,
+  imageMaxDim:
+    userConfig.value.ollamaImageMaxDim != null &&
+    userConfig.value.ollamaImageMaxDim !== globalConfig.value.ollamaImageMaxDim,
+  suggestPrompt:
+    !!userConfig.value.ollamaSuggestPrompt &&
+    userConfig.value.ollamaSuggestPrompt !==
+      globalConfig.value.ollamaSuggestPrompt,
+}));
+
+// Null out a user field if it matches the global value — pass-through to global.
+function ollamaNullIfGlobal<T>(val: T | null, globalVal: T): T | null {
+  if (val == null) return null;
+  return val === globalVal ? null : val;
+}
 const currentUsername = computed(() => authStore.username);
 
 async function loadUserConfig() {
@@ -216,6 +242,11 @@ async function loadUserConfig() {
       infinityTextDocumentPrefix: gcfg.infinityTextDocumentPrefix,
       enabledBarcodeFormats: gcfg.enabledBarcodeFormats ?? [],
       maximumEmbeddingDimensions: gcfg.maximumEmbeddingDimensions ?? null,
+      ollamaAddress: gcfg.ollamaAddress ?? "",
+      ollamaVisionModel: gcfg.ollamaVisionModel ?? "",
+      ollamaNumCtx: gcfg.ollamaNumCtx ?? 4096,
+      ollamaImageMaxDim: gcfg.ollamaImageMaxDim ?? 512,
+      ollamaSuggestPrompt: gcfg.ollamaSuggestPrompt ?? "",
     };
     userConfig.value = {
       infinityTextModel: cfg.infinityTextModel ?? "",
@@ -248,11 +279,26 @@ async function saveUserConfig() {
         userConfig.value.infinityTextDocumentPrefix || null,
       enabledBarcodeFormats: userConfig.value.enabledBarcodeFormats,
       maximumEmbeddingDimensions: userConfig.value.maximumEmbeddingDimensions,
-      ollamaAddress: userConfig.value.ollamaAddress || null,
-      ollamaVisionModel: userConfig.value.ollamaVisionModel || null,
-      ollamaNumCtx: userConfig.value.ollamaNumCtx,
-      ollamaImageMaxDim: userConfig.value.ollamaImageMaxDim,
-      ollamaSuggestPrompt: userConfig.value.ollamaSuggestPrompt || null,
+      ollamaAddress: ollamaNullIfGlobal(
+        userConfig.value.ollamaAddress || null,
+        globalConfig.value.ollamaAddress,
+      ),
+      ollamaVisionModel: ollamaNullIfGlobal(
+        userConfig.value.ollamaVisionModel || null,
+        globalConfig.value.ollamaVisionModel,
+      ),
+      ollamaNumCtx: ollamaNullIfGlobal(
+        userConfig.value.ollamaNumCtx,
+        globalConfig.value.ollamaNumCtx,
+      ),
+      ollamaImageMaxDim: ollamaNullIfGlobal(
+        userConfig.value.ollamaImageMaxDim,
+        globalConfig.value.ollamaImageMaxDim,
+      ),
+      ollamaSuggestPrompt: ollamaNullIfGlobal(
+        userConfig.value.ollamaSuggestPrompt || null,
+        globalConfig.value.ollamaSuggestPrompt,
+      ),
     });
     toastsStore.add("User settings saved", "success");
   } catch {
@@ -722,10 +768,18 @@ onMounted(() => {
           <div>
             <label class="mb-1 block text-sm font-medium">Ollama address</label>
             <input
-              v-model="userConfig.ollamaAddress"
+              :value="userConfig.ollamaAddress ?? globalConfig.ollamaAddress"
+              @input="
+                userConfig.ollamaAddress =
+                  ($event.target as HTMLInputElement).value || null
+              "
               type="text"
-              :placeholder="globalConfig.ollamaAddress || 'Server default'"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                ollamaUserOverrides.address
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
           </div>
 
@@ -736,14 +790,20 @@ onMounted(() => {
             <div class="flex gap-2">
               <select
                 v-if="ollamaModels.length > 0"
-                v-model="userConfig.ollamaVisionModel"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                :value="
+                  userConfig.ollamaVisionModel ?? globalConfig.ollamaVisionModel
+                "
+                @change="
+                  userConfig.ollamaVisionModel =
+                    ($event.target as HTMLSelectElement).value || null
+                "
+                :class="[
+                  'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                  ollamaUserOverrides.visionModel
+                    ? 'border-purple-400 ring-1 ring-purple-400'
+                    : 'border-gray-300 dark:border-gray-600',
+                ]"
               >
-                <option :value="null">
-                  Server default ({{
-                    globalConfig.ollamaVisionModel || "unset"
-                  }})
-                </option>
                 <option
                   v-for="model in ollamaModels"
                   :key="model"
@@ -754,12 +814,20 @@ onMounted(() => {
               </select>
               <input
                 v-else
-                v-model="userConfig.ollamaVisionModel"
-                type="text"
-                :placeholder="
-                  globalConfig.ollamaVisionModel || 'Server default'
+                :value="
+                  userConfig.ollamaVisionModel ?? globalConfig.ollamaVisionModel
                 "
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                @input="
+                  userConfig.ollamaVisionModel =
+                    ($event.target as HTMLInputElement).value || null
+                "
+                type="text"
+                :class="[
+                  'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                  ollamaUserOverrides.visionModel
+                    ? 'border-purple-400 ring-1 ring-purple-400'
+                    : 'border-gray-300 dark:border-gray-600',
+                ]"
               />
             </div>
           </div>
@@ -769,7 +837,7 @@ onMounted(() => {
               >Context window (num_ctx)</label
             >
             <input
-              :value="userConfig.ollamaNumCtx ?? ''"
+              :value="userConfig.ollamaNumCtx ?? globalConfig.ollamaNumCtx"
               @input="
                 (e) => {
                   const v = (e.target as HTMLInputElement).value;
@@ -780,12 +848,12 @@ onMounted(() => {
               type="number"
               min="512"
               step="512"
-              :placeholder="
-                globalConfig.ollamaNumCtx
-                  ? String(globalConfig.ollamaNumCtx)
-                  : 'Server default'
-              "
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                ollamaUserOverrides.numCtx
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
           </div>
 
@@ -794,7 +862,9 @@ onMounted(() => {
               >Image max dimension (px)</label
             >
             <input
-              :value="userConfig.ollamaImageMaxDim ?? ''"
+              :value="
+                userConfig.ollamaImageMaxDim ?? globalConfig.ollamaImageMaxDim
+              "
               @input="
                 (e) => {
                   const v = (e.target as HTMLInputElement).value;
@@ -805,12 +875,12 @@ onMounted(() => {
               type="number"
               min="0"
               step="64"
-              :placeholder="
-                globalConfig.ollamaImageMaxDim
-                  ? String(globalConfig.ollamaImageMaxDim)
-                  : 'Server default'
-              "
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-800',
+                ollamaUserOverrides.imageMaxDim
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
           </div>
 
@@ -819,12 +889,21 @@ onMounted(() => {
               >Suggestion prompt</label
             >
             <textarea
-              v-model="userConfig.ollamaSuggestPrompt"
-              rows="6"
-              :placeholder="
-                globalConfig.ollamaSuggestPrompt || 'Server default'
+              :value="
+                userConfig.ollamaSuggestPrompt ??
+                globalConfig.ollamaSuggestPrompt
               "
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800"
+              @input="
+                userConfig.ollamaSuggestPrompt =
+                  ($event.target as HTMLTextAreaElement).value || null
+              "
+              rows="6"
+              :class="[
+                'w-full rounded-lg border bg-white px-3 py-2 font-mono text-xs dark:bg-gray-800',
+                ollamaUserOverrides.suggestPrompt
+                  ? 'border-purple-400 ring-1 ring-purple-400'
+                  : 'border-gray-300 dark:border-gray-600',
+              ]"
             />
           </div>
 

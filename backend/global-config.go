@@ -91,7 +91,11 @@ func SetInitialOllamaConfig(address, visionModel string, numCtx, imageMaxDim int
 		changed = true
 	}
 	if cfg.OllamaSuggestPrompt == "" {
-		cfg.OllamaSuggestPrompt = suggestPrompt
+		p := suggestPrompt
+		if p == "" {
+			p = ollamaSuggestPrompt // use built-in constant when no CLI value
+		}
+		cfg.OllamaSuggestPrompt = p
 		changed = true
 	}
 	if changed {
