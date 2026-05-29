@@ -18,25 +18,32 @@ var GetArtifactSuggestionOperation = huma.Operation{
 }
 
 type ArtifactSuggestionBody struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Status      string `json:"status"` // "ready" or "pending"
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
 	Quantity    *uint  `json:"quantity,omitempty"`
-	OllamaModel string `json:"ollamaModel"`
+	OllamaModel string `json:"ollamaModel,omitempty"`
 }
 
-func GetArtifactSuggestionHandler(_ context.Context, input *struct {
+func GetArtifactSuggestionHandler(ctx context.Context, input *struct {
 	ID uint `path:"id"`
 }) (output *struct{ Body ArtifactSuggestionBody }, err error) {
-	_, model, _, _, _ := effectiveOllamaConfig()
+	_, user, userID, _ := UserFromContext(ctx)
+	_, model, _, _, _ := effectiveOllamaConfig(user)
+
 	s, err := GetArtifactSuggestion(input.ID, model)
 	if err != nil {
 		return
 	}
 	if s == nil {
-		err = huma.Error404NotFound("no suggestion cached for this artifact")
+		// Not cached — enqueue lazily and signal pending.
+		_, ollamaModel, _, _, _ := effectiveOllamaConfig(user)
+		EnqueueSuggestionJob(input.ID, userID, UsernameFromContext(ctx), ollamaModel, "request")
+		output = &struct{ Body ArtifactSuggestionBody }{Body: ArtifactSuggestionBody{Status: "pending"}}
 		return
 	}
 	output = &struct{ Body ArtifactSuggestionBody }{Body: ArtifactSuggestionBody{
+		Status:      "ready",
 		Name:        s.Name,
 		Description: s.Description,
 		Quantity:    s.Quantity,

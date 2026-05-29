@@ -590,12 +590,19 @@ const isDataless = computed(
 );
 
 const placeholderSuggestion = ref<Suggestion | null>(null);
+const placeholderPending = ref(false);
 
 async function loadPlaceholderSuggestion(): Promise<void> {
   const artifactId = props.appRecord.Artifacts?.[0]?.ID;
   if (!artifactId || !isDataless.value) return;
   const s = await api.getArtifactSuggestion(artifactId);
-  if (s) placeholderSuggestion.value = s;
+  if (!s) return;
+  if (s.status === "pending") {
+    placeholderPending.value = true;
+  } else if (s.status === "ready" && s.name) {
+    placeholderPending.value = false;
+    placeholderSuggestion.value = s as Suggestion;
+  }
 }
 
 watch(
@@ -604,6 +611,26 @@ watch(
     if (should && !placeholderSuggestion.value) loadPlaceholderSuggestion();
   },
   { immediate: true },
+);
+
+// Re-fetch when a suggestion job finishes for one of our artifacts.
+function onSuggestionProgress(e: Event): void {
+  const artifactId = props.appRecord.Artifacts?.[0]?.ID;
+  if (!artifactId) return;
+  if ((e as CustomEvent).detail?.artifactId === artifactId)
+    loadPlaceholderSuggestion();
+}
+
+watch(placeholderPending, (pending) => {
+  if (pending) {
+    window.addEventListener("suggestion_progress", onSuggestionProgress);
+  } else {
+    window.removeEventListener("suggestion_progress", onSuggestionProgress);
+  }
+});
+
+onUnmounted(() =>
+  window.removeEventListener("suggestion_progress", onSuggestionProgress),
 );
 
 // Path segments for search display — leaf node overridden with suggestion name when dataless.
@@ -909,6 +936,12 @@ defineExpose({ cardEl });
                 class="font-normal text-gray-300 italic dark:text-gray-600"
                 :title="`AI suggestion: ${placeholderSuggestion.name}`"
                 >{{ placeholderSuggestion.name }}</span
+              >
+              <span
+                v-else-if="placeholderPending"
+                class="font-normal text-gray-200 italic dark:text-gray-700"
+                title="AI suggestion generating…"
+                >…</span
               >
               <span v-else class="font-normal text-gray-400 dark:text-gray-500"
                 >({{ appRecord.ID }})</span

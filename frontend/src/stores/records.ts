@@ -22,6 +22,7 @@ export const useRecordsStore = defineStore("records", () => {
   const searchTextEmbedded = ref(true);
   const searchTextSubstring = ref(true);
   const searchSuggested = ref(true);
+  const suggestionProgressTick = ref(0);
   const lastOllamaPullEvent = ref<{
     model: string;
     success: boolean;
@@ -181,7 +182,19 @@ export const useRecordsStore = defineStore("records", () => {
         reload();
         return;
       }
-      if (e.data.startsWith("embedding_progress")) {
+      if (e.data.startsWith("suggestion_progress:")) {
+        // suggestion_progress:{jobID}:artifact:{artifactID}
+        const parts = e.data.split(":");
+        const artifactId = parts[3] ? parseInt(parts[3], 10) : null;
+        if (artifactId) {
+          window.dispatchEvent(
+            new CustomEvent("suggestion_progress", {
+              detail: { artifactId },
+            }),
+          );
+        }
+        suggestionProgressTick.value++;
+      } else if (e.data.startsWith("embedding_progress")) {
         embeddingProgressTick.value++;
         updateEmbeddingProgressForSearch(e.data);
       } else if (e.data === "embedding_server_offline") {
@@ -512,6 +525,7 @@ export const useRecordsStore = defineStore("records", () => {
     searchTextEmbedded,
     searchTextSubstring,
     searchSuggested,
+    suggestionProgressTick,
     lastOllamaPullEvent,
     apiSearchResults,
     apiSearchResultsPartial,

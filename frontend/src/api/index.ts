@@ -458,10 +458,11 @@ export const api = {
   },
 
   async getArtifactSuggestion(id: number): Promise<{
-    name: string;
-    description: string;
+    status: "ready" | "pending";
+    name?: string;
+    description?: string;
     quantity?: number;
-    ollamaModel: string;
+    ollamaModel?: string;
   } | null> {
     try {
       const response = await apiFetch(`/api/artifact/${id}/suggestion`);
