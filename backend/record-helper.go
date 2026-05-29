@@ -294,6 +294,26 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 			}
 		}
 
+		// Load suggestion text for substring scoring against suggestions.
+		type suggestionText struct {
+			RecordID    uint
+			Name        string
+			Description string
+		}
+		var suggestionTexts []suggestionText
+		if search.SearchSuggested && search.SearchTextSubstring {
+			_, ollamaModel, _, _ := effectiveOllamaConfig()
+			db.Table("artifact_suggestions").
+				Select("artifacts.record_id, artifact_suggestions.name, artifact_suggestions.description").
+				Joins("JOIN artifacts ON artifacts.id = artifact_suggestions.artifact_id AND artifacts.record_id IN ?", scopedRecordIDs).
+				Where("artifact_suggestions.ollama_model = ?", ollamaModel).
+				Scan(&suggestionTexts)
+		}
+		suggestionTextByRecord := make(map[uint]suggestionText, len(suggestionTexts))
+		for _, s := range suggestionTexts {
+			suggestionTextByRecord[s.RecordID] = s
+		}
+
 		searchLower := strings.ToLower(search.Query)
 		for _, r := range records {
 			if r.ReferenceNumber != nil && search.Query == *r.ReferenceNumber {
@@ -301,18 +321,30 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 				bestScore[r.ID] = 1.0
 				exactRefScores[r.ID] = 1.0 // Mark as exact reference match
 				continue
+			}
+			if search.SearchTextSubstring {
+				score := maxFieldScore(searchLower, r.Title, r.ReferenceNumber, r.Description)
+				if score > textScore[r.ID] {
+					textScore[r.ID] = score
 				}
-			if !search.SearchTextSubstring {
-				continue
-				}
-			score := maxFieldScore(searchLower, r.Title, r.ReferenceNumber, r.Description)
-			if score > textScore[r.ID] {
-				textScore[r.ID] = score
-				}
-			if textScore[r.ID] > bestScore[r.ID] {
-				bestScore[r.ID] = textScore[r.ID]
+				if textScore[r.ID] > bestScore[r.ID] {
+					bestScore[r.ID] = textScore[r.ID]
 				}
 			}
+			if search.SearchSuggested {
+				if st, ok := suggestionTextByRecord[r.ID]; ok {
+					name := st.Name
+					desc := st.Description
+					score := maxFieldScore(searchLower, &name, &desc)
+					if score > suggestionScore[r.ID] {
+						suggestionScore[r.ID] = score
+					}
+					if suggestionScore[r.ID] > bestScore[r.ID] {
+						bestScore[r.ID] = suggestionScore[r.ID]
+					}
+				}
+			}
+		}
 
 		var recordMap = map[uint]*Record{}
 		for _, r := range records {
