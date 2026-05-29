@@ -267,6 +267,7 @@ export const api = {
 
   async getGlobalConfig(): Promise<{
     logLevel: string;
+    backfillLegacyEmbeddingsOnStart: boolean;
     backfillRecordEmbeddingsOnStart: boolean;
     backfillArtifactEmbeddingsOnStart: boolean;
     backfillArtifactOwnersOnStart: boolean;
@@ -284,6 +285,7 @@ export const api = {
 
   async updateGlobalConfig(config: {
     logLevel: string;
+    backfillLegacyEmbeddingsOnStart: boolean;
     backfillRecordEmbeddingsOnStart: boolean;
     backfillArtifactEmbeddingsOnStart: boolean;
     backfillArtifactOwnersOnStart: boolean;

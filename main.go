@@ -83,11 +83,6 @@ func main() {
 		if err = backend.InitAndMigrateDB(); err != nil {
 			backend.Log.Fatal(err)
 		}
-		if options.BackfillAllOnStart || options.BackfillLegacyEmbeddingsOnStart {
-			if err = backend.BackfillLegacyEmbeddingsOnStart(); err != nil {
-				backend.Log.Warnf("backfill legacy embeddings failed: %v", err)
-			}
-		}
 		if err = backend.SetInitialLogLevel(options.LogLevel); err != nil {
 			backend.Log.Fatalf("failed to persist log level: %v", err)
 		}
@@ -170,9 +165,15 @@ func main() {
 				options.BackfillArtifactEmbeddingsOnStart = true
 				options.BackfillArtifactOwnersOnStart = true
 			}
+			flags.LegacyEmbeddings = flags.LegacyEmbeddings || options.BackfillLegacyEmbeddingsOnStart
 			flags.RecordEmbeddings = flags.RecordEmbeddings || options.BackfillRecordEmbeddingsOnStart
 			flags.ArtifactEmbeddings = flags.ArtifactEmbeddings || options.BackfillArtifactEmbeddingsOnStart
 			flags.ArtifactOwners = flags.ArtifactOwners || options.BackfillArtifactOwnersOnStart
+			if flags.LegacyEmbeddings {
+				if err := backend.BackfillLegacyEmbeddingsOnStart(); err != nil {
+					backend.Log.Warnf("backfill legacy embeddings failed: %v", err)
+				}
+			}
 			if flags.RecordEmbeddings || flags.ArtifactEmbeddings || flags.ArtifactOwners {
 				go backend.Backfill(flags)
 			}

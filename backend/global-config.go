@@ -4,6 +4,7 @@ package backend
 type GlobalConfig struct {
 	Model
 	LogLevel                          string
+	BackfillLegacyEmbeddingsOnStart   bool
 	BackfillRecordEmbeddingsOnStart   bool
 	BackfillArtifactEmbeddingsOnStart bool
 	BackfillArtifactOwnersOnStart     bool
@@ -71,6 +72,7 @@ func SetInitialAllowLocalUsernameLogin(enabled bool) error {
 }
 
 type BackfillFlags struct {
+	LegacyEmbeddings   bool
 	RecordEmbeddings   bool
 	ArtifactEmbeddings bool
 	ArtifactOwners     bool
@@ -82,6 +84,7 @@ func BackfillOnStartFlags() BackfillFlags {
 		return BackfillFlags{}
 	}
 	return BackfillFlags{
+		LegacyEmbeddings:   cfg.BackfillLegacyEmbeddingsOnStart,
 		RecordEmbeddings:   cfg.BackfillRecordEmbeddingsOnStart,
 		ArtifactEmbeddings: cfg.BackfillArtifactEmbeddingsOnStart,
 		ArtifactOwners:     cfg.BackfillArtifactOwnersOnStart,

@@ -40,6 +40,7 @@ const invalidatingEmbeddings = ref(false);
 // --- Global config ---
 const globalConfig = ref({
   logLevel: "warn",
+  backfillLegacyEmbeddingsOnStart: false,
   backfillRecordEmbeddingsOnStart: false,
   backfillArtifactEmbeddingsOnStart: false,
   backfillArtifactOwnersOnStart: false,
@@ -175,6 +176,7 @@ async function loadGlobalConfig() {
     const cfg = await api.getGlobalConfig();
     globalConfig.value = {
       logLevel: cfg.logLevel,
+      backfillLegacyEmbeddingsOnStart: cfg.backfillLegacyEmbeddingsOnStart,
       backfillRecordEmbeddingsOnStart: cfg.backfillRecordEmbeddingsOnStart,
       backfillArtifactEmbeddingsOnStart: cfg.backfillArtifactEmbeddingsOnStart,
       backfillArtifactOwnersOnStart: cfg.backfillArtifactOwnersOnStart,
@@ -670,6 +672,18 @@ onMounted(() => {
                 {{ lvl }}
               </option>
             </select>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input
+              v-model="globalConfig.backfillLegacyEmbeddingsOnStart"
+              id="backfillLegacyEmbeddings"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <label for="backfillLegacyEmbeddings" class="text-sm font-medium"
+              >Re-index legacy embeddings on start</label
+            >
           </div>
 
           <div class="flex items-center gap-3">

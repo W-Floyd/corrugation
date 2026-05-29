@@ -29,6 +29,7 @@ func requireAdmin(ctx context.Context) error {
 
 type GlobalConfigBody struct {
 	LogLevel                          string   `json:"logLevel" doc:"Log level: silent, panic, error, warn, info, debug"`
+	BackfillLegacyEmbeddingsOnStart   bool     `json:"backfillLegacyEmbeddingsOnStart" doc:"Delete legacy JSON-format embeddings on startup so they are regenerated"`
 	BackfillRecordEmbeddingsOnStart   bool     `json:"backfillRecordEmbeddingsOnStart" doc:"Backfill missing record text embeddings on server startup"`
 	BackfillArtifactEmbeddingsOnStart bool     `json:"backfillArtifactEmbeddingsOnStart" doc:"Backfill missing artifact image embeddings on server startup"`
 	BackfillArtifactOwnersOnStart     bool     `json:"backfillArtifactOwnersOnStart" doc:"Assign owners to ownerless artifacts on server startup"`
@@ -96,6 +97,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 	}
 	output = &struct{ Body GlobalConfigBody }{Body: GlobalConfigBody{
 		LogLevel:                          cfg.LogLevel,
+		BackfillLegacyEmbeddingsOnStart:   cfg.BackfillLegacyEmbeddingsOnStart,
 		BackfillRecordEmbeddingsOnStart:   cfg.BackfillRecordEmbeddingsOnStart,
 		BackfillArtifactEmbeddingsOnStart: cfg.BackfillArtifactEmbeddingsOnStart,
 		BackfillArtifactOwnersOnStart:     cfg.BackfillArtifactOwnersOnStart,
@@ -124,6 +126,7 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 	}
 	cfg := GlobalConfig{
 		LogLevel:                          input.Body.LogLevel,
+		BackfillLegacyEmbeddingsOnStart:   input.Body.BackfillLegacyEmbeddingsOnStart,
 		BackfillRecordEmbeddingsOnStart:   input.Body.BackfillRecordEmbeddingsOnStart,
 		BackfillArtifactEmbeddingsOnStart: input.Body.BackfillArtifactEmbeddingsOnStart,
 		BackfillArtifactOwnersOnStart:     input.Body.BackfillArtifactOwnersOnStart,
