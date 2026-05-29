@@ -222,8 +222,14 @@ func processSuggestionJob(jobID uint) {
 		return
 	}
 
-	// Fast dedup: skip if a fresh suggestion (matching current prompt hash) already exists.
-	_, _, currentPrompt, _, _ := effectiveOllamaConfig()
+	// Fast dedup: skip if a fresh suggestion (matching the job owner's prompt hash) already exists.
+	var jobUser *User
+	if job.Username != "" {
+		if u, err := loadUser(job.Username); err == nil {
+			jobUser = &u
+		}
+	}
+	_, _, currentPrompt, _, _ := effectiveOllamaConfig(jobUser)
 	promptHash := InputHash(currentPrompt)
 	var count int64
 	db.Model(&ArtifactSuggestion{}).
@@ -237,7 +243,6 @@ func processSuggestionJob(jobID uint) {
 
 	activeSuggestionJobs.Store(job.ID, struct{}{})
 	defer activeSuggestionJobs.Delete(job.ID)
-
 	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
 	start := time.Now()
 	genErr := processArtifactSuggestionJob(job.ArtifactID, job.OllamaModel, ctx)
