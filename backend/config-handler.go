@@ -33,6 +33,7 @@ type GlobalConfigBody struct {
 	BackfillRecordEmbeddingsOnStart   bool     `json:"backfillRecordEmbeddingsOnStart" doc:"Backfill missing record text embeddings on server startup"`
 	BackfillArtifactEmbeddingsOnStart bool     `json:"backfillArtifactEmbeddingsOnStart" doc:"Backfill missing artifact image embeddings on server startup"`
 	BackfillArtifactOwnersOnStart     bool     `json:"backfillArtifactOwnersOnStart" doc:"Assign owners to ownerless artifacts on server startup"`
+	BackfillSuggestionsOnStart        bool     `json:"backfillSuggestionsOnStart" doc:"Backfill missing Ollama content suggestions for all artifacts on server startup"`
 	AllowLocalUsernameLogin           bool     `json:"allowLocalUsernameLogin" doc:"Allow local username login without authentication for testing"`
 	InfinityTextModel                 string   `json:"infinityTextModel" doc:"Server-wide default text embedding model"`
 	InfinityImageModel                string   `json:"infinityImageModel" doc:"Server-wide default image embedding model"`
@@ -103,6 +104,7 @@ func GetGlobalConfig(_ context.Context, _ *struct{}) (output *struct{ Body Globa
 		BackfillRecordEmbeddingsOnStart:   cfg.BackfillRecordEmbeddingsOnStart,
 		BackfillArtifactEmbeddingsOnStart: cfg.BackfillArtifactEmbeddingsOnStart,
 		BackfillArtifactOwnersOnStart:     cfg.BackfillArtifactOwnersOnStart,
+		BackfillSuggestionsOnStart:        cfg.BackfillSuggestionsOnStart,
 		AllowLocalUsernameLogin:           cfg.AllowLocalUsernameLogin,
 		InfinityTextModel:                 cfg.InfinityTextModel,
 		InfinityImageModel:                cfg.InfinityImageModel,
@@ -134,6 +136,7 @@ func PutGlobalConfig(ctx context.Context, input *struct {
 		BackfillRecordEmbeddingsOnStart:   input.Body.BackfillRecordEmbeddingsOnStart,
 		BackfillArtifactEmbeddingsOnStart: input.Body.BackfillArtifactEmbeddingsOnStart,
 		BackfillArtifactOwnersOnStart:     input.Body.BackfillArtifactOwnersOnStart,
+		BackfillSuggestionsOnStart:        input.Body.BackfillSuggestionsOnStart,
 		AllowLocalUsernameLogin:           input.Body.AllowLocalUsernameLogin,
 		InfinityTextModel:                 input.Body.InfinityTextModel,
 		InfinityImageModel:                input.Body.InfinityImageModel,
