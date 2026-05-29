@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -204,7 +205,8 @@ func processSuggestionJob(jobID uint) {
 		return
 	}
 
-	genErr := processArtifactSuggestionJob(job.ArtifactID, job.OllamaModel)
+	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
+	genErr := processArtifactSuggestionJob(job.ArtifactID, job.OllamaModel, ctx)
 
 	if genErr != nil {
 		db.Model(&job).Updates(map[string]interface{}{
@@ -220,7 +222,7 @@ func processSuggestionJob(jobID uint) {
 	broadcastSuggestionProgress(job)
 }
 
-func processArtifactSuggestionJob(artifactID uint, ollamaModel string) error {
+func processArtifactSuggestionJob(artifactID uint, ollamaModel string, ctx context.Context) error {
 	artifact, err := GetArtifactFromDB(artifactID)
 	if err != nil {
 		return err
@@ -245,7 +247,39 @@ func processArtifactSuggestionJob(artifactID uint, ollamaModel string) error {
 		return err
 	}
 
-	return saveSuggestion(artifactID, ollamaModel, suggestions)
+	if err = saveSuggestion(artifactID, ollamaModel, suggestions); err != nil {
+		return err
+	}
+
+	return saveSuggestionTextEmbedding(artifactID, suggestions, ctx)
+}
+
+func saveSuggestionTextEmbedding(artifactID uint, s ItemSuggestions, ctx context.Context) error {
+	text := s.Name
+	if s.Description != "" {
+		if text != "" {
+			text += " - "
+		}
+		text += s.Description
+	}
+	if text == "" {
+		return nil
+	}
+
+	_, user, _, err := UserFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	textModel, _, _, _ := effectiveInfinityConfig(user)
+	maxDims := effectiveMaxEmbeddingDimensions(user)
+
+	vec, fullInput, err := GenerateTextDocumentEmbeddingsCtx(ctx, text)
+	if err != nil {
+		return err
+	}
+	_ = maxDims // dimensions are encoded in the stored vec length; saveEmbedding handles it
+
+	return saveEmbedding(nil, &artifactID, vec, textModel, fullInput)
 }
 
 func backfillArtifactSuggestions() error {
