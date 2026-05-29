@@ -27,11 +27,12 @@ type Options struct {
 	OIDCClientID               string `help:"OAuth2 client ID registered in Authentik"`
 	OIDCInsecureSkipVerify     bool   `help:"Skip TLS certificate verification for OIDC discovery and JWKS requests"`
 	LogLevel                   string `help:"Log level: silent, error, warn, info" default:"warn"`
-	BackupCount                       int  `help:"Number of startup database backups to keep (0 to disable)" default:"5"`
-	BackfillAllOnStart                bool `help:"Enable all backfill-on-start options" default:"false"`
-	BackfillRecordEmbeddingsOnStart   bool `help:"Backfill missing record text embeddings on server startup" default:"false"`
-	BackfillArtifactEmbeddingsOnStart bool `help:"Backfill missing artifact image embeddings on server startup" default:"false"`
-	BackfillArtifactOwnersOnStart     bool `help:"Assign owners to ownerless artifacts on server startup" default:"false"`
+	BackupCount                        int  `help:"Number of startup database backups to keep (0 to disable)" default:"5"`
+	BackfillAllOnStart                 bool `help:"Enable all backfill-on-start options" default:"false"`
+	BackfillLegacyEmbeddingsOnStart    bool `help:"Delete legacy JSON-format embeddings on startup so they are regenerated" default:"false"`
+	BackfillRecordEmbeddingsOnStart    bool `help:"Backfill missing record text embeddings on server startup" default:"false"`
+	BackfillArtifactEmbeddingsOnStart  bool `help:"Backfill missing artifact image embeddings on server startup" default:"false"`
+	BackfillArtifactOwnersOnStart      bool `help:"Assign owners to ownerless artifacts on server startup" default:"false"`
 	AllowLocalUsernameLogin    bool   `help:"Allow local username login without OIDC for testing" default:"false"`
 	EmbeddingConcurrency       int    `help:"Max parallel embedding requests" default:"4"`
 	InfinityAddress            string `help:"Infinity embeddings server address" default:"http://localhost:8002"`
@@ -81,6 +82,11 @@ func main() {
 		}
 		if err = backend.InitAndMigrateDB(); err != nil {
 			backend.Log.Fatal(err)
+		}
+		if options.BackfillAllOnStart || options.BackfillLegacyEmbeddingsOnStart {
+			if err = backend.BackfillLegacyEmbeddingsOnStart(); err != nil {
+				backend.Log.Warnf("backfill legacy embeddings failed: %v", err)
+			}
 		}
 		if err = backend.SetInitialLogLevel(options.LogLevel); err != nil {
 			backend.Log.Fatalf("failed to persist log level: %v", err)
@@ -159,6 +165,7 @@ func main() {
 			backend.StartEmbeddingWorkers()
 			flags := backend.BackfillOnStartFlags()
 			if options.BackfillAllOnStart {
+				options.BackfillLegacyEmbeddingsOnStart = true
 				options.BackfillRecordEmbeddingsOnStart = true
 				options.BackfillArtifactEmbeddingsOnStart = true
 				options.BackfillArtifactOwnersOnStart = true
