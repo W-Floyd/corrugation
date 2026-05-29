@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watchEffect, watch, nextTick, onUnmounted } from "vue";
+import { ref, watchEffect, watch, nextTick, onUnmounted, computed } from "vue";
 import { useCameraStore } from "@/stores/camera";
 import RefreshIcon from "vue-material-design-icons/Refresh.vue";
+import CameraFlipOutlineIcon from "vue-material-design-icons/CameraFlipOutline.vue";
 
 const cameraStore = useCameraStore();
 const videoEl = ref<HTMLVideoElement | null>(null);
@@ -52,6 +53,9 @@ watch(
           cameraStore.selectedDeviceId = firstDevice.deviceId;
         }
       }
+      // Sync lastDeviceId so the selectedDeviceId watcher doesn't treat
+      // the post-open assignment as an intentional switch
+      lastDeviceId.value = cameraStore.selectedDeviceId;
     } else {
       window.removeEventListener("keydown", handleKeydown);
     }
@@ -96,6 +100,22 @@ watch(
 
 onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
 
+const isFlipPair = computed(() => {
+  const d = cameraStore.devices;
+  if (d.length !== 2) return false;
+  const labels = d.map((dev) => dev.label.toLowerCase());
+  return (
+    labels.some((l) => l.includes("front")) &&
+    labels.some((l) => l.includes("back"))
+  );
+});
+
+function flipCamera() {
+  const d = cameraStore.devices;
+  const other = d.find((dev) => dev.deviceId !== cameraStore.selectedDeviceId);
+  if (other) cameraStore.selectedDeviceId = other.deviceId;
+}
+
 watchEffect(async () => {
   if (cameraStore.opened && cameraStore.stream) {
     await nextTick();
@@ -137,7 +157,18 @@ watchEffect(async () => {
         v-if="cameraStore.devices.length > 0 && !cameraStore.previewUrl"
         class="absolute top-4 left-0 z-10 flex w-full justify-center gap-2 px-4"
       >
+        <button
+          v-if="isFlipPair"
+          type="button"
+          @click="flipCamera"
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg ring-1 ring-gray-600 hover:bg-gray-700"
+          title="Flip camera"
+          aria-label="Flip camera"
+        >
+          <CameraFlipOutlineIcon :size="20" />
+        </button>
         <select
+          v-else
           v-model="cameraStore.selectedDeviceId"
           class="h-10 rounded-full bg-gray-800 px-4 py-2 text-white shadow-lg ring-1 ring-gray-600"
         >

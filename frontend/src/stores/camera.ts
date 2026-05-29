@@ -99,10 +99,8 @@ export const useCameraStore = defineStore("camera", () => {
       const mobile = navigator.maxTouchPoints > 0;
       const portrait = mobile && window.innerHeight > window.innerWidth;
       const constraints: MediaTrackConstraints = {};
-      // Use saved device ID if no deviceId provided
-      const actualDeviceId = deviceId ?? selectedDeviceId.value;
-      if (actualDeviceId) {
-        constraints.deviceId = { ideal: actualDeviceId };
+      if (deviceId) {
+        constraints.deviceId = { exact: deviceId };
       } else {
         constraints.facingMode = mobile ? "environment" : "user";
       }
@@ -114,6 +112,10 @@ export const useCameraStore = defineStore("camera", () => {
         audio: false,
       });
       opened.value = true;
+      // Sync selectedDeviceId to the actual running track so the
+      // component's device selector reflects reality
+      const track = stream.value.getVideoTracks()[0];
+      if (track) selectedDeviceId.value = track.getSettings().deviceId ?? null;
     } catch (e) {
       console.error("Camera error:", e);
       _reset();
