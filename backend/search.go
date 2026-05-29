@@ -81,7 +81,8 @@ func SearchBySuggestion(ctx context.Context, search string, artifactRecordMap ma
 		return
 	}
 
-	q := db.Where("artifact_id IN ? AND embed_model = ?", artifactIDs, textModel)
+	q := db.Where("artifact_id IN ? AND embed_model = ?", artifactIDs, textModel).
+		Where("artifact_id NOT IN (SELECT a.id FROM artifacts a JOIN records r ON r.id = a.record_id WHERE r.exclude_from_suggestion_search = 1)")
 	dims := uint(len(searchEmbeddings))
 	if dims > 0 {
 		q = q.Where("dimensions = ?", dims)

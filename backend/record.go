@@ -12,12 +12,13 @@ import (
 const maxSearchDepth = 100
 
 type RecordInput struct {
-	Quantity        *uint   `required:"false"`
-	ReferenceNumber *string `required:"false"`
-	Title           *string `required:"false"`
-	Description     *string `required:"false"`
-	ParentID        *uint   `required:"false"`
-	Artifacts       []*uint `required:"false"`
+	Quantity                    *uint   `required:"false"`
+	ReferenceNumber             *string `required:"false"`
+	Title                       *string `required:"false"`
+	Description                 *string `required:"false"`
+	ParentID                    *uint   `required:"false"`
+	Artifacts                   []*uint `required:"false"`
+	ExcludeFromSuggestionSearch *bool   `required:"false"`
 }
 
 type Record struct {
@@ -36,6 +37,8 @@ type Record struct {
 	OwnerID *uint `json:",omitempty" gorm:"uniqueIndex:idx_owner_ref"`
 	Owner   *User `gorm:"foreignKey:OwnerID" json:"-"`
 
+	ExcludeFromSuggestionSearch bool     `json:",omitempty"`
+
 	SearchConfidenceImage      *float64 `gorm:"-" json:",omitempty"`
 	SearchConfidenceText       *float64 `gorm:"-" json:",omitempty"`
 	SearchConfidenceSuggestion *float64 `gorm:"-" json:",omitempty"`
@@ -46,6 +49,9 @@ func (i *RecordInput) Convert() (o Record, err error) {
 	o.ReferenceNumber = i.ReferenceNumber
 	o.Title = i.Title
 	o.Description = i.Description
+	if i.ExcludeFromSuggestionSearch != nil {
+		o.ExcludeFromSuggestionSearch = *i.ExcludeFromSuggestionSearch
+	}
 
 	if i.ParentID != nil {
 		var found []Record

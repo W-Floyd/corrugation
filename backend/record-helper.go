@@ -331,7 +331,7 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 					bestScore[r.ID] = textScore[r.ID]
 				}
 			}
-			if search.SearchSuggested {
+			if search.SearchSuggested && !r.ExcludeFromSuggestionSearch {
 				if st, ok := suggestionTextByRecord[r.ID]; ok {
 					name := st.Name
 					desc := st.Description

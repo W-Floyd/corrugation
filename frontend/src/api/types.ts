@@ -10,6 +10,7 @@ export interface BackendRecord {
   ParentID?: number;
   SearchConfidenceImage?: number;
   SearchConfidenceText?: number;
+  ExcludeFromSuggestionSearch?: boolean;
 }
 
 export interface RecordBody {
@@ -19,6 +20,7 @@ export interface RecordBody {
   Quantity?: number | null;
   ParentID?: number | null;
   Artifacts?: number[];
+  ExcludeFromSuggestionSearch?: boolean;
 }
 
 export interface BackendArtifactRef {

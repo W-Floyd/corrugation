@@ -447,6 +447,7 @@ const handleUpdate = async (): Promise<void> => {
       Quantity: typeof e.Quantity === "number" ? e.Quantity : null,
       ParentID: e.ParentID || undefined,
       Artifacts: artifacts,
+      ExcludeFromSuggestionSearch: e.ExcludeFromSuggestionSearch,
     });
     pendingDeletions.value = new Set();
     await recordsStore.reload();
@@ -587,7 +588,8 @@ const isDataless = computed(
   () =>
     !props.appRecord.Title &&
     !props.appRecord.Description &&
-    !props.appRecord.ReferenceNumber,
+    !props.appRecord.ReferenceNumber &&
+    !props.appRecord.ExcludeFromSuggestionSearch,
 );
 
 const placeholderSuggestion = ref<Suggestion | null>(null);
@@ -1088,6 +1090,23 @@ defineExpose({ cardEl });
           rows="3"
           placeholder="Description"
         ></textarea>
+      </div>
+
+      <!-- Suggestion search toggle -->
+      <div v-if="editMode" class="mt-1 flex items-center gap-2">
+        <input
+          :id="`excl-sug-${appRecord.ID}`"
+          type="checkbox"
+          v-model="localRecord.ExcludeFromSuggestionSearch"
+          class="h-3.5 w-3.5 rounded border-gray-300 text-purple-600"
+          @click.stop
+        />
+        <label
+          :for="`excl-sug-${appRecord.ID}`"
+          class="text-xs text-gray-500 dark:text-gray-400"
+          @click.stop
+          >Exclude from AI suggestion search</label
+        >
       </div>
 
       <!-- Suggestion panel -->

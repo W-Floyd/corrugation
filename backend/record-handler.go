@@ -241,11 +241,12 @@ func UpdateRecord(ctx context.Context, input *struct {
 	}
 
 	err = db.Model(&r).Updates(map[string]any{
-		"quantity":         updated.Quantity,
-		"reference_number": updated.ReferenceNumber,
-		"title":            updated.Title,
-		"description":      updated.Description,
-		"parent_id":        updated.ParentID,
+		"quantity":                       updated.Quantity,
+		"reference_number":               updated.ReferenceNumber,
+		"title":                          updated.Title,
+		"description":                    updated.Description,
+		"parent_id":                      updated.ParentID,
+		"exclude_from_suggestion_search": updated.ExcludeFromSuggestionSearch,
 	}).Error
 	if err != nil {
 		return
@@ -312,6 +313,9 @@ func PatchRecord(ctx context.Context, input *struct {
 	}
 	if input.Body.ParentID != nil {
 		updates["parent_id"] = *input.Body.ParentID
+	}
+	if input.Body.ExcludeFromSuggestionSearch != nil {
+		updates["exclude_from_suggestion_search"] = *input.Body.ExcludeFromSuggestionSearch
 	}
 
 	// Update Artifacts if provided
