@@ -258,6 +258,13 @@ export const api = {
     return response.json();
   },
 
+  async getCapabilities(): Promise<{
+    barcodeFormats: { value: string; label: string }[];
+  }> {
+    const response = await apiFetch("/api/capabilities");
+    return response.json();
+  },
+
   async getGlobalConfig(): Promise<{
     logLevel: string;
     backfillRecordEmbeddingsOnStart: boolean;
@@ -268,6 +275,8 @@ export const api = {
     infinityImageModel: string;
     infinityTextQueryPrefix: string;
     infinityTextDocumentPrefix: string;
+    enabledBarcodeFormats: string[];
+    maximumEmbeddingDimensions?: number;
   }> {
     const response = await apiFetch("/api/config/global");
     return response.json();
@@ -283,6 +292,8 @@ export const api = {
     infinityImageModel: string;
     infinityTextQueryPrefix: string;
     infinityTextDocumentPrefix: string;
+    enabledBarcodeFormats: string[];
+    maximumEmbeddingDimensions?: number | null;
   }): Promise<void> {
     await apiFetch("/api/config/global", {
       method: "PUT",
@@ -296,6 +307,8 @@ export const api = {
     infinityImageModel?: string;
     infinityTextQueryPrefix?: string;
     infinityTextDocumentPrefix?: string;
+    enabledBarcodeFormats?: string[];
+    maximumEmbeddingDimensions?: number;
   }> {
     const response = await apiFetch("/api/config/user");
     return response.json();
@@ -306,12 +319,74 @@ export const api = {
     infinityImageModel?: string | null;
     infinityTextQueryPrefix?: string | null;
     infinityTextDocumentPrefix?: string | null;
+    enabledBarcodeFormats?: string[] | null;
+    maximumEmbeddingDimensions?: number | null;
   }): Promise<void> {
     await apiFetch("/api/config/user", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
+  },
+
+  async getEmbeddingJobs(
+    opts: {
+      all?: boolean;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ): Promise<{
+    jobs: {
+      id: number;
+      jobType: string;
+      targetID: number;
+      username: string;
+      status: string;
+      errorMsg?: string;
+      retryCount: number;
+      embedModel: string;
+      dimensions?: number;
+      source: string;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+    total: number;
+  }> {
+    const params = new URLSearchParams();
+    if (opts.all) params.set("all", "true");
+    if (opts.status) params.set("status", opts.status);
+    if (opts.limit != null) params.set("limit", String(opts.limit));
+    if (opts.offset != null) params.set("offset", String(opts.offset));
+    const response = await apiFetch(`/api/embeddings/jobs?${params}`);
+    return response.json();
+  },
+
+  async deleteBulkEmbeddingJobs(status: string, all?: boolean): Promise<void> {
+    const params = new URLSearchParams({ status });
+    if (all) params.set("all", "true");
+    await apiFetch(`/api/embeddings/jobs?${params}`, { method: "DELETE" });
+  },
+
+  async deleteEmbeddingJob(id: number): Promise<void> {
+    await apiFetch(`/api/embeddings/jobs/${id}`, { method: "DELETE" });
+  },
+
+  async invalidateUserEmbeddings(): Promise<void> {
+    await apiFetch("/api/embeddings/user", { method: "DELETE" });
+  },
+
+  async getBackfillPreview(): Promise<{ records: number; artifacts: number }> {
+    const response = await apiFetch("/api/backfill/preview");
+    return response.json();
+  },
+
+  async runRecordBackfill(): Promise<void> {
+    await apiFetch("/api/backfill/records", { method: "POST" });
+  },
+
+  async runArtifactBackfill(): Promise<void> {
+    await apiFetch("/api/backfill/artifacts", { method: "POST" });
   },
 
   async getUsers(): Promise<
