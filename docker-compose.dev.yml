@@ -55,8 +55,6 @@ services:
       - ${DATA_DIR}/infinity/:/app/.cache
   ollama:
     image: ollama/ollama:latest
-    ports:
-      - ${OLLAMA_PORT}:${OLLAMA_PORT}
     environment:
       - OLLAMA_HOST=0.0.0.0:${OLLAMA_PORT}
     restart: unless-stopped
