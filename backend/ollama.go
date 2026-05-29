@@ -146,6 +146,47 @@ func effectiveOllamaConfig() (address, visionModel string) {
 	return
 }
 
+// --- List models endpoint ---
+
+var ListOllamaModelsOperation = huma.Operation{
+	Method:        http.MethodGet,
+	Path:          "/api/ollama/models",
+	DefaultStatus: http.StatusOK,
+	OperationID:   "list-ollama-models",
+}
+
+func ListOllamaModels(_ context.Context, _ *struct{}) (output *struct{ Body []string }, err error) {
+	addr, _ := effectiveOllamaConfig()
+	if addr == "" {
+		output = &struct{ Body []string }{Body: []string{}}
+		return
+	}
+
+	resp, err := http.Get(addr + "/api/tags")
+	if err != nil {
+		err = huma.Error503ServiceUnavailable("ollama not reachable: " + err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	var tagsResp struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&tagsResp); err != nil {
+		err = huma.Error503ServiceUnavailable("failed to parse ollama response")
+		return
+	}
+
+	names := make([]string, len(tagsResp.Models))
+	for i, m := range tagsResp.Models {
+		names[i] = m.Name
+	}
+	output = &struct{ Body []string }{Body: names}
+	return
+}
+
 // --- Suggest endpoint ---
 
 var SuggestFromImageOperation = huma.Operation{

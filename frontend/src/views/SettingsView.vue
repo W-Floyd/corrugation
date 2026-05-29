@@ -82,6 +82,11 @@ function toggleBarcodeFormat(fmt: string) {
 }
 const globalConfigLoading = ref(false);
 const globalConfigSaving = ref(false);
+const ollamaModels = ref<string[]>([]);
+
+async function loadOllamaModels() {
+  ollamaModels.value = await api.getOllamaModels();
+}
 
 // --- Backfill ---
 const backfillPreview = ref<{
@@ -463,6 +468,7 @@ function selectTab(tab: Tab) {
   else if (tab === "global") {
     loadGlobalConfig();
     loadBackfillPreview();
+    loadOllamaModels();
   } else if (tab === "users") loadUsers();
   else if (tab === "jobs") loadJobs();
   else if (tab === "suggestion-jobs") loadSuggestionJobs();
@@ -476,6 +482,7 @@ onMounted(() => {
   else if (tab === "global") {
     loadGlobalConfig();
     loadBackfillPreview();
+    loadOllamaModels();
   } else if (tab === "users") loadUsers();
   else if (tab === "jobs") loadJobs();
   else if (tab === "suggestion-jobs") loadSuggestionJobs();
@@ -949,6 +956,7 @@ onMounted(() => {
               type="text"
               placeholder="http://localhost:11434"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              @blur="loadOllamaModels"
             />
           </div>
 
@@ -956,15 +964,42 @@ onMounted(() => {
             <label class="mb-1 block text-sm font-medium"
               >Ollama vision model</label
             >
-            <input
-              v-model="globalConfig.ollamaVisionModel"
-              type="text"
-              placeholder="moondream2"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
-            />
+            <div class="flex gap-2">
+              <input
+                v-model="globalConfig.ollamaVisionModel"
+                list="ollama-models-list"
+                type="text"
+                placeholder="moondream2"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+              />
+              <button
+                type="button"
+                @click="loadOllamaModels"
+                title="Refresh model list"
+                class="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
+              >
+                ↺
+              </button>
+            </div>
+            <datalist id="ollama-models-list">
+              <option
+                v-for="model in ollamaModels"
+                :key="model"
+                :value="model"
+              />
+            </datalist>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Vision model used for the "Suggest" button when creating records.
               Requires the model to be pulled in Ollama first.
+              <span
+                v-if="ollamaModels.length > 0"
+                class="text-green-600 dark:text-green-400"
+              >
+                {{ ollamaModels.length }} model{{
+                  ollamaModels.length !== 1 ? "s" : ""
+                }}
+                available.
+              </span>
             </p>
           </div>
 

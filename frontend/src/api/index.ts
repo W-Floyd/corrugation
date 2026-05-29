@@ -464,6 +464,15 @@ export const api = {
     await apiFetch("/api/backfill/suggestions", { method: "POST" });
   },
 
+  async getOllamaModels(): Promise<string[]> {
+    try {
+      const response = await apiFetch("/api/ollama/models");
+      return response.json();
+    } catch {
+      return [];
+    }
+  },
+
   async runRecordBackfill(): Promise<void> {
     await apiFetch("/api/backfill/records", { method: "POST" });
   },

@@ -71,7 +71,8 @@ func RegisterHandlers(api huma.API) {
 	// Image search endpoint
 	huma.Register(api, SearchByImageOperation, SearchByImageHandler)
 
-	// Ollama content suggestion endpoint
+	// Ollama endpoints
+	huma.Register(api, ListOllamaModelsOperation, ListOllamaModels)
 	huma.Register(api, SuggestFromImageOperation, SuggestFromImage)
 	huma.Register(api, GetArtifactSuggestionOperation, GetArtifactSuggestionHandler)
 	huma.Register(api, ListSuggestionJobsOperation, ListSuggestionJobs)
