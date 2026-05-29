@@ -1,9 +1,11 @@
 package backend
 
 import (
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -56,9 +58,9 @@ func ConnectDB(dbFilePath string) (err error) {
 	return
 }
 
-// BackupDB creates a timestamped copy of the database via VACUUM INTO, then
-// prunes backups in backupDir beyond the keep most recent. keep=0 disables.
-// Must be called after ConnectDB.
+// BackupDB creates a timestamped gzip-compressed copy of the database via
+// VACUUM INTO, then prunes backups in backupDir beyond the keep most recent.
+// keep=0 disables. Must be called after ConnectDB.
 func BackupDB(backupDir string, keep int) error {
 	if keep == 0 {
 		return nil
@@ -67,13 +69,21 @@ func BackupDB(backupDir string, keep int) error {
 		return fmt.Errorf("create backup dir: %w", err)
 	}
 
-	dest := filepath.Join(backupDir, fmt.Sprintf("db.sqlite.%s", time.Now().Format("20060102-150405")))
+	name := fmt.Sprintf("db.sqlite.%s", time.Now().Format("20060102-150405"))
+	tmp := filepath.Join(backupDir, name)
+	dest := tmp + ".gz"
+
 	Log.Infow("backing up database", "dest", dest)
-	if err := db.Exec("VACUUM INTO ?", dest).Error; err != nil {
+	if err := db.Exec("VACUUM INTO ?", tmp).Error; err != nil {
 		return fmt.Errorf("vacuum into: %w", err)
 	}
+	if err := gzipFile(tmp, dest); err != nil {
+		os.Remove(tmp)
+		return fmt.Errorf("compress backup: %w", err)
+	}
+	os.Remove(tmp)
 
-	entries, _ := filepath.Glob(filepath.Join(backupDir, "db.sqlite.*"))
+	entries, _ := filepath.Glob(filepath.Join(backupDir, "db.sqlite.*.gz"))
 	sort.Strings(entries)
 	for _, old := range entries[:max(0, len(entries)-keep)] {
 		if err := os.Remove(old); err != nil {
@@ -81,6 +91,29 @@ func BackupDB(backupDir string, keep int) error {
 		}
 	}
 	return nil
+}
+
+func gzipFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	gz, err := gzip.NewWriterLevel(out, gzip.BestCompression)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+
+	_, err = io.Copy(gz, in)
+	return err
 }
 
 func InitAndMigrateDB() error {
