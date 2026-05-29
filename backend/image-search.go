@@ -122,7 +122,7 @@ func GetRecordsWithImageSimilarity(ctx context.Context, imageData []byte) (resul
 		Select("records.*, embeddings.data as embedding_data, embeddings.hash as embedding_hash").
 		Joins("JOIN artifacts ON artifacts.id = embeddings.artifact_id").
 		Joins("JOIN records ON records.id = artifacts.record_id").
-		Where("embeddings.embed_model = ?", imageModel)
+		Where("embeddings.embed_model = ? AND embeddings.dimensions = ?", imageModel, len(imageEmbeddings))
 
 	if userID != nil {
 		q = q.Where("records.owner_id = ?", userID)

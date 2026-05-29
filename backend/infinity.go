@@ -213,7 +213,12 @@ func (e *Embeddings) MarshalEmbeddings(input string) (hash string, data []byte, 
 
 func UnmarshalEmbeddings(data []byte) (Embeddings, error) {
 	if len(data)%8 != 0 {
-		return nil, errors.New("embedding data length is not a multiple of 8")
+		// Legacy rows were stored as JSON; fall back until migrated.
+		var e Embeddings
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, errors.New("embedding data length is not a multiple of 8 and is not valid JSON")
+		}
+		return e, nil
 	}
 	e := make(Embeddings, len(data)/8)
 	for i := range e {

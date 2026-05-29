@@ -121,7 +121,7 @@ func gzipFile(src, dst string) error {
 // BackfillLegacyEmbeddingsOnStart deletes any JSON-encoded embedding rows so
 // they are regenerated in binary format by the normal backfill process.
 func BackfillLegacyEmbeddingsOnStart() error {
-	result := db.Unscoped().Where("substr(data, 1, 1) = '['").Delete(&Embedding{})
+	result := db.Unscoped().Where("substr(data, 1, 1) = X'5B'").Delete(&Embedding{})
 	if result.Error != nil {
 		return result.Error
 	}
