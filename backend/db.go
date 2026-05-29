@@ -58,9 +58,8 @@ func ConnectDB(dbFilePath string) (err error) {
 	return
 }
 
-// BackupDB creates a timestamped gzip-compressed copy of the database via
-// VACUUM INTO, then prunes backups in backupDir beyond the keep most recent.
-// keep=0 disables. Must be called after ConnectDB.
+// BackupDB snapshots the database via VACUUM INTO, then compresses and prunes
+// old backups in the background. keep=0 disables. Must be called after ConnectDB.
 func BackupDB(backupDir string, keep int) error {
 	if keep == 0 {
 		return nil
@@ -77,19 +76,22 @@ func BackupDB(backupDir string, keep int) error {
 	if err := db.Exec("VACUUM INTO ?", tmp).Error; err != nil {
 		return fmt.Errorf("vacuum into: %w", err)
 	}
-	if err := gzipFile(tmp, dest); err != nil {
-		os.Remove(tmp)
-		return fmt.Errorf("compress backup: %w", err)
-	}
-	os.Remove(tmp)
 
-	entries, _ := filepath.Glob(filepath.Join(backupDir, "db.sqlite.*.gz"))
-	sort.Strings(entries)
-	for _, old := range entries[:max(0, len(entries)-keep)] {
-		if err := os.Remove(old); err != nil {
-			Log.Warnw("failed to remove old backup", "path", old, "error", err)
+	go func() {
+		if err := gzipFile(tmp, dest); err != nil {
+			Log.Warnw("failed to compress backup", "dest", dest, "error", err)
+			os.Remove(tmp)
+			return
 		}
-	}
+		os.Remove(tmp)
+		entries, _ := filepath.Glob(filepath.Join(backupDir, "db.sqlite.*.gz"))
+		sort.Strings(entries)
+		for _, old := range entries[:max(0, len(entries)-keep)] {
+			if err := os.Remove(old); err != nil {
+				Log.Warnw("failed to remove old backup", "path", old, "error", err)
+			}
+		}
+	}()
 	return nil
 }
 
