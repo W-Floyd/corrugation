@@ -997,7 +997,7 @@ onMounted(() => {
                 v-model="globalConfig.ollamaVisionModel"
                 list="ollama-models-list"
                 type="text"
-                placeholder="moondream2"
+                placeholder="qwen3.5:2b"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
               />
               <button
@@ -1037,7 +1037,7 @@ onMounted(() => {
                 v-model="ollamaPullModel"
                 list="ollama-models-list"
                 type="text"
-                placeholder="e.g. moondream2, llama3.2-vision"
+                placeholder="e.g. qwen3.5:2b, llama3.2-vision"
                 :disabled="ollamaPulling"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                 @keydown.enter.prevent="pullOllamaModel"
