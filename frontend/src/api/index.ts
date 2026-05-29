@@ -301,6 +301,7 @@ export const api = {
     backfillRecordEmbeddingsOnStart: boolean;
     backfillArtifactEmbeddingsOnStart: boolean;
     backfillArtifactOwnersOnStart: boolean;
+    backfillSuggestionsOnStart: boolean;
     allowLocalUsernameLogin: boolean;
     infinityTextModel: string;
     infinityImageModel: string;
@@ -308,6 +309,8 @@ export const api = {
     infinityTextDocumentPrefix: string;
     enabledBarcodeFormats: string[];
     maximumEmbeddingDimensions?: number | null;
+    ollamaAddress: string;
+    ollamaVisionModel: string;
   }): Promise<void> {
     await apiFetch("/api/config/global", {
       method: "PUT",
@@ -390,13 +393,73 @@ export const api = {
     await apiFetch("/api/embeddings/user", { method: "DELETE" });
   },
 
+  async getSuggestionJobs(
+    opts: {
+      all?: boolean;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ): Promise<{
+    jobs: {
+      id: number;
+      artifactID: number;
+      ollamaModel: string;
+      username: string;
+      status: string;
+      errorMsg?: string;
+      retryCount: number;
+      source: string;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+    total: number;
+  }> {
+    const params = new URLSearchParams();
+    if (opts.all) params.set("all", "true");
+    if (opts.status) params.set("status", opts.status);
+    if (opts.limit != null) params.set("limit", String(opts.limit));
+    if (opts.offset != null) params.set("offset", String(opts.offset));
+    const response = await apiFetch(`/api/suggestions/jobs?${params}`);
+    return response.json();
+  },
+
+  async deleteBulkSuggestionJobs(status: string, all?: boolean): Promise<void> {
+    const params = new URLSearchParams({ status });
+    if (all) params.set("all", "true");
+    await apiFetch(`/api/suggestions/jobs?${params}`, { method: "DELETE" });
+  },
+
+  async deleteSuggestionJob(id: number): Promise<void> {
+    await apiFetch(`/api/suggestions/jobs/${id}`, { method: "DELETE" });
+  },
+
+  async getArtifactSuggestion(id: number): Promise<{
+    name: string;
+    description: string;
+    quantity?: number;
+    ollamaModel: string;
+  } | null> {
+    try {
+      const response = await apiFetch(`/api/artifact/${id}/suggestion`);
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+
   async getBackfillPreview(): Promise<{
     legacyEmbeddings: number;
     records: number;
     artifacts: number;
+    suggestions: number;
   }> {
     const response = await apiFetch("/api/backfill/preview");
     return response.json();
+  },
+
+  async runSuggestionsBackfill(): Promise<void> {
+    await apiFetch("/api/backfill/suggestions", { method: "POST" });
   },
 
   async runRecordBackfill(): Promise<void> {

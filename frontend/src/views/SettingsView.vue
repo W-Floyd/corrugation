@@ -11,8 +11,8 @@ const route = useRoute();
 const authStore = useAuthStore();
 const toastsStore = useToastsStore();
 
-type Tab = "user" | "global" | "users" | "jobs";
-const validTabs: Tab[] = ["user", "global", "users", "jobs"];
+type Tab = "user" | "global" | "users" | "jobs" | "suggestion-jobs";
+const validTabs: Tab[] = ["user", "global", "users", "jobs", "suggestion-jobs"];
 
 function tabFromRoute(): Tab {
   const t = route.params.tab;
@@ -44,6 +44,7 @@ const globalConfig = ref({
   backfillRecordEmbeddingsOnStart: false,
   backfillArtifactEmbeddingsOnStart: false,
   backfillArtifactOwnersOnStart: false,
+  backfillSuggestionsOnStart: false,
   allowLocalUsernameLogin: false,
   infinityTextModel: "",
   infinityImageModel: "",
@@ -87,11 +88,13 @@ const backfillPreview = ref<{
   legacyEmbeddings: number;
   records: number;
   artifacts: number;
+  suggestions: number;
 } | null>(null);
 const backfillPreviewLoading = ref(false);
 const runningLegacyEmbeddingsBackfill = ref(false);
 const runningRecordBackfill = ref(false);
 const runningArtifactBackfill = ref(false);
+const runningSuggestionsBackfill = ref(false);
 
 // --- Users list ---
 const users = ref<{ id: number; username: string; isAdmin: boolean }[]>([]);
@@ -120,6 +123,28 @@ const jobsLoading = ref(false);
 const jobsPageInput = ref(1);
 const jobsShowAll = ref(false);
 const jobsStatusFilter = ref("");
+
+// --- Suggestion jobs ---
+type SuggestionJob = {
+  id: number;
+  artifactID: number;
+  ollamaModel: string;
+  username: string;
+  status: string;
+  errorMsg?: string;
+  retryCount: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+const suggestionJobs = ref<SuggestionJob[]>([]);
+const suggestionJobsTotal = ref(0);
+const suggestionJobsPage = ref(0);
+const suggestionJobsPageSize = 50;
+const suggestionJobsLoading = ref(false);
+const suggestionJobsPageInput = ref(1);
+const suggestionJobsShowAll = ref(false);
+const suggestionJobsStatusFilter = ref("");
 
 const recordsStore = useRecordsStore();
 const isAdmin = computed(() => authStore.isAdmin);
@@ -186,6 +211,7 @@ async function loadGlobalConfig() {
       backfillRecordEmbeddingsOnStart: cfg.backfillRecordEmbeddingsOnStart,
       backfillArtifactEmbeddingsOnStart: cfg.backfillArtifactEmbeddingsOnStart,
       backfillArtifactOwnersOnStart: cfg.backfillArtifactOwnersOnStart,
+      backfillSuggestionsOnStart: cfg.backfillSuggestionsOnStart ?? false,
       allowLocalUsernameLogin: cfg.allowLocalUsernameLogin,
       infinityTextModel: cfg.infinityTextModel,
       infinityImageModel: cfg.infinityImageModel,
@@ -261,6 +287,68 @@ async function runArtifactBackfill() {
     // toast already shown
   } finally {
     runningArtifactBackfill.value = false;
+  }
+}
+
+async function runSuggestionsBackfill() {
+  runningSuggestionsBackfill.value = true;
+  try {
+    await api.runSuggestionsBackfill();
+    toastsStore.add("Suggestions backfill started", "success");
+    await loadBackfillPreview();
+  } catch {
+    // toast already shown
+  } finally {
+    runningSuggestionsBackfill.value = false;
+  }
+}
+
+async function loadSuggestionJobs() {
+  suggestionJobsLoading.value = true;
+  try {
+    const result = await api.getSuggestionJobs({
+      all: suggestionJobsShowAll.value,
+      status: suggestionJobsStatusFilter.value || undefined,
+      limit: suggestionJobsPageSize,
+      offset: suggestionJobsPage.value * suggestionJobsPageSize,
+    });
+    suggestionJobsTotal.value = result.total;
+    if (result.jobs.length === 0 && result.total > 0) {
+      suggestionJobsPage.value = Math.max(
+        0,
+        Math.ceil(result.total / suggestionJobsPageSize) - 1,
+      );
+      return loadSuggestionJobs();
+    }
+    suggestionJobs.value = result.jobs;
+  } catch {
+    // toast already shown
+  } finally {
+    suggestionJobsLoading.value = false;
+  }
+}
+
+function suggestionJobsSetPage(page: number) {
+  suggestionJobsPage.value = page;
+  suggestionJobsPageInput.value = page + 1;
+  loadSuggestionJobs();
+}
+
+async function clearSuggestionJobsByStatus(status: string) {
+  try {
+    await api.deleteBulkSuggestionJobs(status, suggestionJobsShowAll.value);
+    await loadSuggestionJobs();
+  } catch {
+    // toast already shown
+  }
+}
+
+async function deleteSuggestionJob(id: number) {
+  try {
+    await api.deleteSuggestionJob(id);
+    suggestionJobs.value = suggestionJobs.value.filter((j) => j.id !== id);
+  } catch {
+    // toast already shown
   }
 }
 
@@ -377,6 +465,7 @@ function selectTab(tab: Tab) {
     loadBackfillPreview();
   } else if (tab === "users") loadUsers();
   else if (tab === "jobs") loadJobs();
+  else if (tab === "suggestion-jobs") loadSuggestionJobs();
 }
 
 onMounted(() => {
@@ -389,6 +478,7 @@ onMounted(() => {
     loadBackfillPreview();
   } else if (tab === "users") loadUsers();
   else if (tab === "jobs") loadJobs();
+  else if (tab === "suggestion-jobs") loadSuggestionJobs();
 });
 </script>
 
@@ -425,8 +515,8 @@ onMounted(() => {
       >
         <button
           v-for="tab in isAdmin
-            ? (['user', 'global', 'users', 'jobs'] as Tab[])
-            : (['user', 'jobs'] as Tab[])"
+            ? (['user', 'global', 'users', 'jobs', 'suggestion-jobs'] as Tab[])
+            : (['user', 'jobs', 'suggestion-jobs'] as Tab[])"
           :key="tab"
           @click="selectTab(tab)"
           :class="[
@@ -443,7 +533,9 @@ onMounted(() => {
                 ? "Global Settings"
                 : tab === "users"
                   ? "Users"
-                  : "Embedding Jobs"
+                  : tab === "jobs"
+                    ? "Embedding Jobs"
+                    : "Suggestion Jobs"
           }}
         </button>
       </div>
@@ -750,6 +842,18 @@ onMounted(() => {
 
           <div class="flex items-center gap-3">
             <input
+              v-model="globalConfig.backfillSuggestionsOnStart"
+              id="backfillSuggestions"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-purple-600"
+            />
+            <label for="backfillSuggestions" class="text-sm font-medium"
+              >Backfill Ollama content suggestions on start</label
+            >
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input
               v-model="globalConfig.allowLocalUsernameLogin"
               id="localLogin"
               type="checkbox"
@@ -988,6 +1092,31 @@ onMounted(() => {
               {{ runningArtifactBackfill ? "Starting…" : "Run" }}
             </button>
           </div>
+
+          <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            <div>
+              <p class="text-sm font-medium">Ollama content suggestions</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                <template v-if="backfillPreviewLoading">Counting…</template>
+                <template v-else-if="backfillPreview">
+                  {{ backfillPreview.suggestions }} artifact{{
+                    backfillPreview.suggestions !== 1 ? "s" : ""
+                  }}
+                  without suggestions
+                </template>
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="runSuggestionsBackfill"
+              :disabled="runningSuggestionsBackfill || backfillPreviewLoading"
+              class="rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+            >
+              {{ runningSuggestionsBackfill ? "Starting…" : "Run" }}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -1190,6 +1319,229 @@ onMounted(() => {
             <button
               @click="jobsSetPage(Math.ceil(jobsTotal / jobsPageSize) - 1)"
               :disabled="(jobsPage + 1) * jobsPageSize >= jobsTotal"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+              title="Last page"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestion Jobs Tab -->
+      <div v-if="activeTab === 'suggestion-jobs'" class="max-w-3xl">
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+          <select
+            v-model="suggestionJobsStatusFilter"
+            @change="
+              suggestionJobsPage = 0;
+              loadSuggestionJobs();
+            "
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="done">Done</option>
+            <option value="failed">Failed</option>
+          </select>
+          <label v-if="isAdmin" class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              v-model="suggestionJobsShowAll"
+              @change="
+                suggestionJobsPage = 0;
+                loadSuggestionJobs();
+              "
+              class="h-4 w-4 rounded border-gray-300 text-purple-600"
+            />
+            Show all users
+          </label>
+          <div class="ml-auto flex gap-2">
+            <button
+              @click="clearSuggestionJobsByStatus('pending')"
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900"
+            >
+              Clear pending
+            </button>
+            <button
+              @click="clearSuggestionJobsByStatus('done')"
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              Clear done
+            </button>
+            <button
+              @click="loadSuggestionJobs"
+              :disabled="suggestionJobsLoading"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              {{ suggestionJobsLoading ? "Loading…" : "Refresh" }}
+            </button>
+          </div>
+        </div>
+        <div
+          v-if="suggestionJobsLoading && suggestionJobs.length === 0"
+          class="text-gray-500"
+        >
+          Loading…
+        </div>
+        <div
+          v-else-if="suggestionJobs.length === 0"
+          class="text-sm text-gray-500"
+        >
+          No suggestion jobs found.
+        </div>
+        <div
+          v-else
+          class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <table class="w-full text-xs">
+            <thead>
+              <tr
+                class="border-b border-gray-200 bg-white text-left text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+              >
+                <th class="px-3 py-2 font-semibold">Artifact ID</th>
+                <th class="px-3 py-2 font-semibold">Model</th>
+                <th class="px-3 py-2 font-semibold">User</th>
+                <th class="px-3 py-2 font-semibold">Source</th>
+                <th class="px-3 py-2 font-semibold">Status</th>
+                <th class="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody
+              class="divide-y divide-gray-100 bg-white dark:divide-gray-700/50 dark:bg-gray-800"
+            >
+              <template v-for="job in suggestionJobs" :key="job.id">
+                <tr>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{ job.artifactID }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-700 dark:text-gray-300">
+                    {{ job.ollamaModel }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
+                    {{ job.username || "—" }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
+                    {{ job.source }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      :class="[
+                        'rounded-full px-2 py-0.5 font-medium',
+                        job.status === 'done'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                          : job.status === 'failed'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                            : job.status === 'processing'
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+                      ]"
+                      >{{ job.status }}</span
+                    >
+                  </td>
+                  <td class="px-3 py-2">
+                    <button
+                      v-if="job.status === 'pending'"
+                      @click="deleteSuggestionJob(job.id)"
+                      class="rounded px-1.5 py-0.5 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                      title="Delete job"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="job.errorMsg">
+                  <td
+                    colspan="6"
+                    class="px-3 pb-2 text-red-600 dark:text-red-400"
+                  >
+                    {{ job.errorMsg }}
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="suggestionJobsTotal > suggestionJobsPageSize"
+          class="mt-3 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
+        >
+          <span
+            >{{ suggestionJobsPage * suggestionJobsPageSize + 1 }}–{{
+              Math.min(
+                (suggestionJobsPage + 1) * suggestionJobsPageSize,
+                suggestionJobsTotal,
+              )
+            }}
+            of {{ suggestionJobsTotal }}</span
+          >
+          <div class="flex items-center gap-1">
+            <button
+              @click="suggestionJobsSetPage(0)"
+              :disabled="suggestionJobsPage === 0"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+              title="First page"
+            >
+              «
+            </button>
+            <button
+              @click="suggestionJobsSetPage(suggestionJobsPage - 1)"
+              :disabled="suggestionJobsPage === 0"
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+            >
+              ←
+            </button>
+            <input
+              type="number"
+              :min="1"
+              :max="Math.ceil(suggestionJobsTotal / suggestionJobsPageSize)"
+              v-model.number="suggestionJobsPageInput"
+              @change="
+                suggestionJobsSetPage(
+                  Math.min(
+                    Math.max(
+                      0,
+                      (isNaN(suggestionJobsPageInput)
+                        ? 1
+                        : suggestionJobsPageInput) - 1,
+                    ),
+                    Math.ceil(suggestionJobsTotal / suggestionJobsPageSize) - 1,
+                  ),
+                )
+              "
+              class="w-14 rounded-lg border border-gray-300 bg-white px-2 py-1 text-center text-sm dark:border-gray-600 dark:bg-gray-800"
+            />
+            <span class="text-gray-400"
+              >/
+              {{
+                Math.ceil(suggestionJobsTotal / suggestionJobsPageSize)
+              }}</span
+            >
+            <button
+              @click="suggestionJobsSetPage(suggestionJobsPage + 1)"
+              :disabled="
+                (suggestionJobsPage + 1) * suggestionJobsPageSize >=
+                suggestionJobsTotal
+              "
+              class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
+            >
+              →
+            </button>
+            <button
+              @click="
+                suggestionJobsSetPage(
+                  Math.ceil(suggestionJobsTotal / suggestionJobsPageSize) - 1,
+                )
+              "
+              :disabled="
+                (suggestionJobsPage + 1) * suggestionJobsPageSize >=
+                suggestionJobsTotal
+              "
               class="rounded-lg px-3 py-1 text-sm transition-colors hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-gray-700"
               title="Last page"
             >
