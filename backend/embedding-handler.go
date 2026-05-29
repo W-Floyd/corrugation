@@ -177,6 +177,7 @@ type EmbeddingJobInfo struct {
 	EmbedModel string    `json:"embedModel"`
 	Dimensions *uint     `json:"dimensions,omitempty"`
 	Source     string    `json:"source"`
+	DurationMs *int64    `json:"durationMs,omitempty"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
@@ -229,6 +230,7 @@ func ListEmbeddingJobs(ctx context.Context, input *struct {
 			EmbedModel: j.EmbedModel,
 			Dimensions: j.Dimensions,
 			Source:     j.Source,
+			DurationMs: j.DurationMs,
 			CreatedAt:  j.CreatedAt,
 			UpdatedAt:  j.UpdatedAt,
 		}

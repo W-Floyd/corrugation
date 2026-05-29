@@ -56,6 +56,7 @@ type SuggestionJobInfo struct {
 	ErrorMsg    string    `json:"errorMsg,omitempty"`
 	RetryCount  int       `json:"retryCount"`
 	Source      string    `json:"source"`
+	DurationMs  *int64    `json:"durationMs,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
@@ -113,6 +114,7 @@ func ListSuggestionJobs(ctx context.Context, input *struct {
 			ErrorMsg:    j.ErrorMsg,
 			RetryCount:  j.RetryCount,
 			Source:      j.Source,
+			DurationMs:  j.DurationMs,
 			CreatedAt:   j.CreatedAt,
 			UpdatedAt:   j.UpdatedAt,
 		}

@@ -53,6 +53,7 @@ type SuggestionJob struct {
 	ErrorMsg    string
 	RetryCount  int
 	Source      string // "store", "backfill"
+	DurationMs  *int64
 }
 
 var suggestionRetryTrigger = make(chan struct{}, 1)
@@ -206,16 +207,22 @@ func processSuggestionJob(jobID uint) {
 	}
 
 	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
+	start := time.Now()
 	genErr := processArtifactSuggestionJob(job.ArtifactID, job.OllamaModel, ctx)
+	ms := time.Since(start).Milliseconds()
 
 	if genErr != nil {
 		db.Model(&job).Updates(map[string]interface{}{
-			"status":    JobStatusFailed,
-			"error_msg": genErr.Error(),
+			"status":      JobStatusFailed,
+			"error_msg":   genErr.Error(),
+			"duration_ms": ms,
 		})
 		Log.Errorw("suggestion job failed", "jobID", job.ID, "artifactID", job.ArtifactID, "error", genErr)
 	} else {
-		db.Model(&job).Update("status", JobStatusDone)
+		db.Model(&job).Updates(map[string]interface{}{
+			"status":      JobStatusDone,
+			"duration_ms": ms,
+		})
 		triggerSuggestionRetry()
 	}
 

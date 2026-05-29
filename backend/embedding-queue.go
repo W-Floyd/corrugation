@@ -63,6 +63,7 @@ type EmbeddingJob struct {
 	EmbedModel string `gorm:"not null;index:idx_embedding_job_dedup"`
 	Dimensions *uint  // nil = use model default; positive = requested cap passed to Infinity
 	Source     string // "store", "search", "backfill"
+	DurationMs *int64
 }
 
 // retryTrigger is signalled after each successful job or every 10 s, whichever comes first.
@@ -241,21 +242,27 @@ func processEmbeddingJob(jobID uint) {
 	}
 
 	ctx := context.WithValue(dbCtx, usernameContextKey, job.Username)
+	start := time.Now()
 	var genErr error
 	if job.JobType == JobTypeArtifact {
 		genErr = processArtifactEmbeddingJob(job.TargetID, ctx)
 	} else {
 		genErr = processRecordEmbeddingJob(job.TargetID, ctx)
 	}
+	ms := time.Since(start).Milliseconds()
 
 	if genErr != nil {
 		db.Model(&job).Updates(map[string]interface{}{
-			"status":    JobStatusFailed,
-			"error_msg": genErr.Error(),
+			"status":      JobStatusFailed,
+			"error_msg":   genErr.Error(),
+			"duration_ms": ms,
 		})
 		Log.Errorw("embedding job failed", "jobID", job.ID, "type", job.JobType, "targetID", job.TargetID, "error", genErr)
 	} else {
-		db.Model(&job).Update("status", JobStatusDone)
+		db.Model(&job).Updates(map[string]interface{}{
+			"status":      JobStatusDone,
+			"duration_ms": ms,
+		})
 		triggerRetry()
 	}
 

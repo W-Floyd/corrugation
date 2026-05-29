@@ -146,6 +146,7 @@ type EmbeddingJob = {
   embedModel: string;
   dimensions?: number;
   source: string;
+  durationMs?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -168,6 +169,7 @@ type SuggestionJob = {
   errorMsg?: string;
   retryCount: number;
   source: string;
+  durationMs?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1296,6 +1298,7 @@ onMounted(() => {
                 <th class="px-3 py-2 font-semibold">Dims</th>
                 <th class="px-3 py-2 font-semibold">User</th>
                 <th class="px-3 py-2 font-semibold">Source</th>
+                <th class="px-3 py-2 font-semibold">Duration</th>
                 <th class="px-3 py-2 font-semibold">Status</th>
                 <th class="px-3 py-2"></th>
               </tr>
@@ -1328,6 +1331,17 @@ onMounted(() => {
                   </td>
                   <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
                     {{ job.source }}
+                  </td>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{
+                      job.durationMs != null
+                        ? job.durationMs >= 1000
+                          ? (job.durationMs / 1000).toFixed(1) + "s"
+                          : job.durationMs + "ms"
+                        : "—"
+                    }}
                   </td>
                   <td class="px-3 py-2">
                     <span
@@ -1515,6 +1529,7 @@ onMounted(() => {
                 <th class="px-3 py-2 font-semibold">Model</th>
                 <th class="px-3 py-2 font-semibold">User</th>
                 <th class="px-3 py-2 font-semibold">Source</th>
+                <th class="px-3 py-2 font-semibold">Duration</th>
                 <th class="px-3 py-2 font-semibold">Status</th>
                 <th class="px-3 py-2"></th>
               </tr>
@@ -1537,6 +1552,17 @@ onMounted(() => {
                   </td>
                   <td class="px-3 py-2 text-gray-500 dark:text-gray-400">
                     {{ job.source }}
+                  </td>
+                  <td
+                    class="px-3 py-2 font-mono text-gray-500 dark:text-gray-400"
+                  >
+                    {{
+                      job.durationMs != null
+                        ? job.durationMs >= 1000
+                          ? (job.durationMs / 1000).toFixed(1) + "s"
+                          : job.durationMs + "ms"
+                        : "—"
+                    }}
                   </td>
                   <td class="px-3 py-2">
                     <span
