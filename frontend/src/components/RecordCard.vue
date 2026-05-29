@@ -807,6 +807,20 @@ defineExpose({ cardEl });
           Math.round(recordsStore.apiSearchScores[appRecord.ID]!.image! * 100)
         }}%I
       </div>
+      <div
+        v-if="
+          recordsStore.apiSearchScores[appRecord.ID]?.suggestion != null &&
+          recordsStore.apiSearchScores[appRecord.ID]!.suggestion! > 0
+        "
+        class="cursor-default rounded bg-purple-100 px-1 text-xs text-purple-500 dark:bg-purple-900/40 dark:text-purple-400"
+        :title="`Suggestion search: ${(recordsStore.apiSearchScores[appRecord.ID]!.suggestion! * 100).toFixed(1)}%`"
+      >
+        {{
+          Math.round(
+            recordsStore.apiSearchScores[appRecord.ID]!.suggestion! * 100,
+          )
+        }}%S
+      </div>
     </div>
 
     <!-- Content -->

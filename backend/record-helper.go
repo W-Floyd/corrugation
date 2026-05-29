@@ -376,9 +376,13 @@ func GetRecords(ctx context.Context, ID *uint, childrenDepth *int, parentDepth *
 			r, ok := recordMap[rid]
 			if ok && r != nil {
 				imageScore := bestImageScore[rid]
-				ts := max(textScore[rid], suggestionScore[rid])
+				ts := textScore[rid]
+				ss := suggestionScore[rid]
 				r.SearchConfidenceImage = &imageScore
 				r.SearchConfidenceText = &ts
+				if ss > 0 {
+					r.SearchConfidenceSuggestion = &ss
+				}
 				filteredSortedRecords = append(filteredSortedRecords, *r)
 			}
 		}

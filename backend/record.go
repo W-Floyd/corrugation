@@ -36,8 +36,9 @@ type Record struct {
 	OwnerID *uint `json:",omitempty" gorm:"uniqueIndex:idx_owner_ref"`
 	Owner   *User `gorm:"foreignKey:OwnerID" json:"-"`
 
-	SearchConfidenceImage *float64 `gorm:"-" json:",omitempty"`
-	SearchConfidenceText  *float64 `gorm:"-" json:",omitempty"`
+	SearchConfidenceImage      *float64 `gorm:"-" json:",omitempty"`
+	SearchConfidenceText       *float64 `gorm:"-" json:",omitempty"`
+	SearchConfidenceSuggestion *float64 `gorm:"-" json:",omitempty"`
 }
 
 func (i *RecordInput) Convert() (o Record, err error) {

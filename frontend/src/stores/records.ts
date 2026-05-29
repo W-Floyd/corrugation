@@ -29,7 +29,7 @@ export const useRecordsStore = defineStore("records", () => {
   const apiSearchResults = ref<BackendRecord[]>([]);
   const apiSearchResultsPartial = ref<boolean>(false);
   const apiSearchScores = ref<
-    Record<number, { image?: number; text?: number }>
+    Record<number, { image?: number; text?: number; suggestion?: number }>
   >({});
   const filterToMissingImage = ref(false);
   const filterToOnlyImage = ref(false);
@@ -391,9 +391,16 @@ export const useRecordsStore = defineStore("records", () => {
             fetchAndUpdateProgress(scope); // populates searchProgress
           }
           apiSearchResults.value = results.map((r) => r.record);
-          const scores: Record<number, { image?: number; text?: number }> = {};
+          const scores: Record<
+            number,
+            { image?: number; text?: number; suggestion?: number }
+          > = {};
           for (const r of results) {
-            scores[r.record.ID] = { image: r.imageScore, text: r.textScore };
+            scores[r.record.ID] = {
+              image: r.imageScore,
+              text: r.textScore,
+              suggestion: (r.record as any).SearchConfidenceSuggestion,
+            };
           }
           apiSearchScores.value = scores;
         } else {
